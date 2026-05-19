@@ -1,11 +1,10 @@
-import { SignUp } from "@clerk/react";
-
-import { paths } from "@/config/paths";
+import { AuthLayout } from "@/features/auth/components/auth-layout";
+import { SignUpForm } from "@/features/auth/components/sign-up-form";
 
 export function SignUpRoute(): React.ReactElement {
   return (
-    <main className="bg-background flex min-h-dvh items-center justify-center px-4 py-10">
-      <SignUp routing="path" path={paths.signUp} signInUrl={paths.signIn} />
-    </main>
+    <AuthLayout>
+      <SignUpForm />
+    </AuthLayout>
   );
 }
