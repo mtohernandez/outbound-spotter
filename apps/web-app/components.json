@@ -16,6 +16,6 @@
     "hooks": "@/hooks",
     "lib": "@/lib",
     "utils": "@outbound/ui/lib/utils",
-    "ui": "@outbound/ui/components"
+    "ui": "@outbound/ui/components/ui"
   }
 }
