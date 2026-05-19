@@ -87,7 +87,7 @@ Each `features/<name>/` may contain `api/`, `assets/`, `components/`, `hooks/`, 
 ## Django + DRF
 
 - **App layout**: `apps/web-api/web_api/` is the Django project; feature modules live as Django apps under `web_api/apps/<name>/` (e.g., `trips`, `users`, `logs`). The HOS planner is **not** a Django app — it lives in `web_api/hos/` as plain Python.
-- **Settings via `django-environ` / `pydantic-settings`.** No secrets in `settings.py`. `.env.example` documents every variable.
+- **Settings via `django-environ` / `pydantic-settings`.** No secrets in `settings.py`. `.env.local.example` documents every variable (see `CONTRIBUTING.md` §6 for the per-app convention).
 - **Models**:
   - Always set `Meta.indexes` for query patterns used in views; do not rely on auto-indexes.
   - `null=False` is the default; only `null=True` where the column genuinely has no value (not "we'll fill it later").
