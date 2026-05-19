@@ -24,7 +24,9 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
-    "test": "echo 'no tests in packages/ui yet'"
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "dependencies": {
     "@hookform/resolvers": "5.2.2",
@@ -41,13 +43,20 @@
   "devDependencies": {
     "@outbound/eslint-config": "workspace:*",
     "@outbound/typescript-config": "workspace:*",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "@vitest/coverage-v8": "4.1.6",
     "eslint": "10.4.0",
+    "jsdom": "29.1.1",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "tailwindcss": "4.3.0",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "vitest": "4.1.6"
   },
   "peerDependencies": {
     "react": ">=19",
