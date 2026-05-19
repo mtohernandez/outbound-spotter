@@ -4,7 +4,7 @@ Update this file after every meaningful implementation change.
 
 ## Current Phase
 
-- Foundation + auth scaffolding (specs authored, implementation queued).
+- Foundation + auth scaffolding (spec 01 implementation complete; spec 02 queued).
 
 ## Current Goal
 
@@ -14,6 +14,7 @@ Update this file after every meaningful implementation change.
 
 - 2026-05-19 — `context/specs/01-shared-ui-foundation.md` authored (`packages/ui` shadcn primitives + `BrandMark` + `SpotterLoader` + `ThemeProvider` / `useTheme` / `ThemeToggle` + Vitest harness).
 - 2026-05-19 — `context/specs/02-clerk-auth-screens.md` authored (`apps/web-auth` custom Clerk flows with floating video panel, OAuth, inline email-code verification, bot protection, forgot-password, theme toggle, accessibility floor).
+- 2026-05-19 — `feat/01-shared-ui-foundation` implemented (10 shadcn primitives, inline-JSX `BrandMark` + animated `SpotterLoader`, `ThemeProvider` / `useTheme` / `ThemeToggle` colocated under `components/theme/`, Vitest 4 + RTL 16 harness with 21 colocated tests, exports override for the .ts hook, sonner wired to the new theme primitive).
 
 ## In Progress
 
@@ -21,8 +22,7 @@ Update this file after every meaningful implementation change.
 
 ## Next Up
 
-1. `feat/01-shared-ui-foundation` — implement spec 01. Branch off `develop`. Verification gate: `pnpm exec turbo run lint typecheck test build --filter=@outbound/ui` + sub-agent reviews (`code-reviewer`, `architect-review`, `ui-visual-validator`).
-2. `feat/02-clerk-auth-screens` — implement spec 02 on top of merged spec 01. Verification gate: the full browser-test matrix in §02#Browser-test matrix + sub-agent reviews (`code-reviewer`, `architect-review`, `security-auditor`, `ui-visual-validator`, `performance-optimizer`) + the Clerk-dashboard checklist.
+1. `feat/02-clerk-auth-screens` — implement spec 02 on top of merged spec 01. Verification gate: the full browser-test matrix in §02#Browser-test matrix + sub-agent reviews (`code-reviewer`, `architect-review`, `security-auditor`, `ui-visual-validator`, `performance-optimizer`) + the Clerk-dashboard checklist.
 
 ## Open Questions
 
@@ -38,6 +38,12 @@ Update this file after every meaningful implementation change.
 - 2026-05-19 — **End-to-end testing is performed by the session-attached Playwright MCP, not by committed Playwright source.** Reason: E2E coverage must drive a real browser as a real user, but the project does not need (and `architecture.md` does not pin) `@playwright/test` as a repo dependency. The MCP is the runner; artifacts (screenshots, DOM snapshots, trace) are attached to the PR body per scenario.
 - 2026-05-19 — **`aria-pressed` (not `role="switch"`) for the show/hide password toggle and the theme toggle.** Reason: the W3C APG button-toggle pattern (<https://www.w3.org/WAI/ARIA/apg/patterns/button/>) prefers `aria-pressed` for two-state buttons without a track/thumb metaphor; the toggle label stays constant so screen readers don't thrash.
 - 2026-05-19 — **`<Show when="signed-in">` / `<Show when="signed-out">` as the gating primitive across both apps.** Reason: Clerk Core 3 deprecates `<SignedIn>` / `<SignedOut>` in favor of `<Show>` (<https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3>). The architecture file already records this; no implementation has had to pick yet, so the decision lands here.
+- 2026-05-19 — **Brand SVGs inlined as JSX inside `BrandMark` and `SpotterLoader`** (spec 01 deviation). Reason: `packages/ui` is a JIT source-consumption package with no bundler (no Vite, tsup, or tsc emit), so the spec's SVGR pipeline is contingent on infrastructure that does not exist. Inline JSX keeps the `packages/ui-only` boundary, lets the loader animation target each circle directly via CSS keyframes scoped by `useId`, and passes the hex-free rule by mapping brand colors to OKLCH ramp CSS variables (`var(--teal-*)`, `var(--red-500)`). `src/assets/brand/` is not created.
+- 2026-05-19 — **`packages/ui/package.json#exports` gains one specific key for `./components/theme/use-theme`** (spec 01 deviation). Reason: the spec colocates the `useTheme` hook with the provider, but the existing pattern `./components/*` → `./src/components/*.tsx` only resolves `.tsx`. Node and TypeScript both honor specific keys over pattern keys, so a single targeted override preserves the public API verbatim while keeping the pattern intact for every other component.
+- 2026-05-19 — **shadcn `toggle` primitive dropped from the install list** (spec 01 deviation). Reason: the spec's own Step 3 implements `ThemeToggle` as `Button variant="ghost" size="icon"` with `aria-pressed` per the recorded APG decision, so `toggle` would have shipped with no callsite. `code-standards.md` forbids installs without a callsite ("Untouched dependencies are noise").
+- 2026-05-19 — **`sonner.tsx` hand-edited to import `useTheme` from our theme primitive** (spec 01 deviation). Reason: shadcn 4's canonical sonner wrapper imports `useTheme` from `next-themes`, which (a) duplicates a theme controller alongside our `ThemeProvider` and (b) yields `theme: string | undefined`, breaking the typecheck under `exactOptionalPropertyTypes`. The minimal 3-line edit replaces the import path and removes the now-obsolete `as ToasterProps["theme"]` cast. The `next-themes` dep is dropped. If we re-run `shadcn add sonner --overwrite` later, this edit must be re-applied.
+- 2026-05-19 — **`packages/ui/eslint.config.js` adds an override for `src/components/ui/**`** turning off `import-x/order`, `react-refresh/only-export-components`, `@typescript-eslint/consistent-type-definitions`, `@typescript-eslint/no-unnecessary-condition`, `@typescript-eslint/no-unnecessary-template-expression`, `@typescript-eslint/no-unnecessary-type-conversion`. Reason: those rules fight canonical shadcn output. Per `code-standards.md`, the files under `components/ui/\*` are CLI-owned and re-run-to-update — we adapt the linter rather than patch the generated code.
+- 2026-05-19 — **Vitest setup ships an in-memory `Storage` shim and a `matchMedia` stub.** Reason: under vitest 4.1.6 + jsdom 29.1.1 in this pool configuration, `window.localStorage` exists but its prototype methods (`setItem`, `clear`) are not callable, and `window.matchMedia` is not defined. A 30-line shim in `packages/ui/src/test/setup.ts` restores the contract the `ThemeProvider` relies on; production code is unaffected.
 
 ## Session Notes
 
