@@ -76,7 +76,7 @@ Each `features/<name>/` may contain `api/`, `assets/`, `components/`, `hooks/`, 
   - Target Python: `3.13`
   - Selected rule sets: `E, F, I, B, UP, SIM, ANN, ARG, RET, S, PL, PERF, RUF`
   - `extend-ignore`: `ANN101`, `ANN102` (self/cls annotations), `S101` (asserts in tests).
-- **Type-check with mypy 2** (`--strict`). Mypy 2 is the current major; treat strict mode as table stakes for new modules. The HOS planner ships with full strict typing; Django app code adheres where `django-stubs` allows.
+- **Type-check with mypy 1.20** (`--strict`). Pinned to the 1.x line until `django-stubs` ships mypy 2 compatibility (the `compatible-mypy` extra currently caps at `<2.1`). The HOS planner ships with full strict typing; Django app code adheres where `django-stubs` allows.
 - **Naming**:
   - Modules, packages, functions, variables: `snake_case`.
   - Classes, dataclasses, exceptions: `PascalCase`.

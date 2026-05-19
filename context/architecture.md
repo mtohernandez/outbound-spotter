@@ -26,7 +26,7 @@ Each version below was pinned to the latest stable release at the time of select
 | Toasts / icons        | sonner 2 + lucide-react v1                                                                  | Notifications, iconography (shadcn defaults)                                                                                                        |
 | Deployment            | Vercel (web-app, web-auth) + Fly.io (web-api + Postgres)                                    | Free-tier hosting                                                                                                                                   |
 | Python deps           | uv (Astral)                                                                                 | Virtualenv + dependency manager for web-api (replaces pip + venv + pip-tools)                                                                       |
-| Tooling               | ESLint + Prettier (TS) · Ruff + mypy 2 (Py) · dotenv-cli · tsx                              | Lint, format, type-check across both ecosystems                                                                                                     |
+| Tooling               | ESLint + Prettier (TS) · Ruff + mypy 1.20 (Py) · dotenv-cli · tsx                           | Lint, format, type-check across both ecosystems. mypy pinned to 1.x until django-stubs supports 2.x.                                                |
 
 ## System Boundaries
 

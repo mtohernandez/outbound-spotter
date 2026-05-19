@@ -12,8 +12,6 @@ const config = {
   endOfLine: "lf",
   proseWrap: "preserve",
   plugins: ["prettier-plugin-tailwindcss"],
-  // prettier-plugin-tailwindcss reads tailwind config from each app independently.
-  // The plugin auto-discovers the closest tailwind config / @theme block.
   tailwindFunctions: ["cn", "clsx", "cva", "tw"],
   overrides: [
     {

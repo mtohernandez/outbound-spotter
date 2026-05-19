@@ -2,7 +2,6 @@
   "$schema": "https://turborepo.com/schema.json",
   "ui": "stream",
   "globalDependencies": [
-    "tsconfig.base.json",
     "packages/typescript-config/**",
     "packages/eslint-config/**",
     "prettier.config.js",

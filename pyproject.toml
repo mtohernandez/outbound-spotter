@@ -39,8 +39,6 @@ select = [
   "TCH",    # type-checking imports
 ]
 extend-ignore = [
-  "ANN101", # missing type hint for self
-  "ANN102", # missing type hint for cls
   "PLR0913", # too-many-arguments (Django views often have many)
 ]
 

@@ -2,6 +2,8 @@ packages:
   - 'apps/*'
   - 'packages/*'
 allowBuilds:
+  '@clerk/shared': true
+  msw: true
   unrs-resolver: true
 minimumReleaseAgeExclude:
   - '@types/node@25.9.0'
@@ -16,3 +18,9 @@ minimumReleaseAgeExclude:
   - '@typescript-eslint/utils@8.59.4'
   - '@typescript-eslint/visitor-keys@8.59.4'
   - typescript-eslint@8.59.4
+  - '@clerk/react@6.6.6'
+  - '@clerk/shared@4.12.2'
+  - '@tanstack/query-core@5.100.11'
+  - '@tanstack/query-devtools@5.100.11'
+  - '@tanstack/react-query-devtools@5.100.11'
+  - '@tanstack/react-query@5.100.11'

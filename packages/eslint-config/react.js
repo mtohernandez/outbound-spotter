@@ -7,6 +7,8 @@
  * - Bulletproof React import-direction rules (shared → features → app)
  *   See: context/code-standards.md and https://github.com/alan2207/bulletproof-react
  */
+import { createTypeScriptImportResolver } from "eslint-import-resolver-typescript";
+import { createNodeResolver } from "eslint-plugin-import-x";
 import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
@@ -75,10 +77,15 @@ export const reactConfig = [
       "jsx-a11y": jsxA11y,
     },
     settings: {
-      react: { version: "detect" },
-      "import-x/resolver": {
-        typescript: { alwaysTryTypes: true },
-      },
+      // Pinned (not "detect") because eslint-plugin-react@7.37 calls
+      // context.getFilename() which is removed in ESLint 10 flat config.
+      // Until eslint-plugin-react ships ESLint-10-compatible version detection,
+      // we set the version explicitly. Bump alongside the React major.
+      react: { version: "19.2" },
+      "import-x/resolver-next": [
+        createTypeScriptImportResolver({ alwaysTryTypes: true }),
+        createNodeResolver(),
+      ],
     },
     rules: {
       ...react.configs.recommended.rules,
