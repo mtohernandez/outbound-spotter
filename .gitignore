@@ -1,0 +1,63 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Node / pnpm / Turbo
+node_modules/
+.pnpm-store/
+.turbo/
+dist/
+build/
+out/
+.next/
+.cache/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Vite
+*.local
+.vite/
+
+# TypeScript
+*.tsbuildinfo
+
+# Python / Django
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+*.sqlite3
+*.sqlite3-journal
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Claude Code
+.claude/settings.local.json
+.claude/agent-memory-local/
+
+# Fly / Vercel local artifacts
+.fly/
+.vercel/
