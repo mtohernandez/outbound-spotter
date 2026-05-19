@@ -1,3 +1,6 @@
+// hand-edited from shadcn's canonical sonner template — see context/specs/01 deviation #4.
+// Re-apply this delta after `pnpm dlx shadcn@latest add sonner --overwrite`: swap the
+// `next-themes` useTheme import for `../theme/use-theme` and drop the obsolete cast on `theme`.
 import {
   CircleCheckIcon,
   InfoIcon,
