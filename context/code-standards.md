@@ -1,14 +1,14 @@
 # Code Standards
 
-These rules apply across the monorepo. The architecture invariants in `architecture.md` win over anything here; this file is the next layer down — *how* to write code that respects those invariants.
+These rules apply across the monorepo. The architecture invariants in `architecture.md` win over anything here; this file is the next layer down — _how_ to write code that respects those invariants.
 
 ## General principles
 
 - **Small modules, single purpose.** A file does one thing. If a function grows past ~60 lines or a component past ~150, split.
 - **Fix root causes, not symptoms.** No try/except (or try/catch) that swallows errors. If a code path can fail, decide whether to bubble, retry, or return a typed result.
-- **No premature abstraction.** Three similar lines is better than a clever helper. Extract on the *fourth* duplicate, not the second.
+- **No premature abstraction.** Three similar lines is better than a clever helper. Extract on the _fourth_ duplicate, not the second.
 - **No dead code.** No commented-out blocks "for reference," no unused exports, no flags for features that never shipped. Remove it; git remembers.
-- **No comments that restate the code.** Names carry meaning. Use comments only for the *why* — a hidden constraint, a non-obvious invariant, a workaround for a specific bug.
+- **No comments that restate the code.** Names carry meaning. Use comments only for the _why_ — a hidden constraint, a non-obvious invariant, a workaround for a specific bug.
 - **Validate at the boundary, trust inside.** Validate user / network input where it enters the system; downstream code assumes the data is sound.
 - **No mixing concerns in a single unit.** UI + DB + background work in one PR is a smell. Split per the AI workflow rules.
 
@@ -181,7 +181,7 @@ docs/                  # Reference material (read-only)
 
 ## Tooling versions
 
-Defined in `architecture.md` "Stack versions". When a dependency goes out of date, *first* update `architecture.md`, then update the manifests. The spec for the version-bump unit references both.
+Defined in `architecture.md` "Stack versions". When a dependency goes out of date, _first_ update `architecture.md`, then update the manifests. The spec for the version-bump unit references both.
 
 ## Source files that are off-limits to edit
 

@@ -1,0 +1,42 @@
+{
+  "name": "@outbound/eslint-config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "UNLICENSED",
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "exports": {
+    "./base": "./base.js",
+    "./react": "./react.js",
+    "./library": "./library.js"
+  },
+  "files": [
+    "base.js",
+    "react.js",
+    "library.js"
+  ],
+  "scripts": {
+    "lint": "node --check base.js && node --check react.js && node --check library.js",
+    "typecheck": "echo 'eslint-config is plain JS — nothing to typecheck'",
+    "test": "echo 'eslint-config has no tests'"
+  },
+  "dependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-check-file": "3.3.1",
+    "eslint-plugin-import-x": "4.16.2",
+    "eslint-plugin-jsx-a11y": "6.10.2",
+    "eslint-plugin-react": "7.37.5",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.2",
+    "eslint-plugin-unicorn": "64.0.0",
+    "globals": "17.6.0",
+    "typescript-eslint": "8.59.4"
+  },
+  "peerDependencies": {
+    "eslint": ">=10",
+    "typescript": ">=6"
+  }
+}

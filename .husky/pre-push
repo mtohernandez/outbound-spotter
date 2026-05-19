@@ -1,0 +1,20 @@
+#!/usr/bin/env sh
+# Block accidental pushes to protected branches and run typecheck + tests
+# against affected packages before the push hits the remote.
+
+set -e
+
+protected_branch_re='^(main|develop)$'
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+if echo "$current_branch" | grep -qE "$protected_branch_re"; then
+  echo "✗ Pushing directly to '$current_branch' is blocked by .husky/pre-push."
+  echo "  Open a PR from a feat/fix/chore branch into develop instead (gitflow)."
+  exit 1
+fi
+
+echo "▶ pnpm turbo run typecheck --affected"
+pnpm exec turbo run typecheck --affected
+
+echo "▶ pnpm turbo run test --affected"
+pnpm exec turbo run test --affected

@@ -1,0 +1,98 @@
+# Root pyproject.toml — shared Python tooling configuration for the monorepo.
+# Per-app Python projects (apps/web-api) ship their own [project] + dependencies;
+# this file holds only the tool config that applies across the repo so Ruff and
+# mypy behave identically wherever they run.
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = [
+  ".venv",
+  "**/.venv",
+  "**/migrations/*",  # auto-generated Django files
+  "node_modules",
+  ".turbo",
+  ".cache",
+]
+
+[tool.ruff.lint]
+# Per context/code-standards.md — these rule sets are required.
+select = [
+  "E",      # pycodestyle errors
+  "W",      # pycodestyle warnings
+  "F",      # pyflakes
+  "I",      # isort
+  "B",      # flake8-bugbear
+  "UP",     # pyupgrade
+  "SIM",    # flake8-simplify
+  "ANN",    # flake8-annotations
+  "ARG",    # flake8-unused-arguments
+  "RET",    # flake8-return
+  "S",      # bandit (security)
+  "PL",     # pylint subset
+  "PERF",   # perflint
+  "RUF",    # ruff-specific
+  "N",      # pep8-naming
+  "C4",     # comprehensions
+  "DTZ",    # datetime timezone-aware
+  "PTH",    # pathlib over os.path
+  "TCH",    # type-checking imports
+]
+extend-ignore = [
+  "ANN101", # missing type hint for self
+  "ANN102", # missing type hint for cls
+  "PLR0913", # too-many-arguments (Django views often have many)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101", "PLR2004", "ANN201"]   # asserts, magic numbers, missing return type
+"**/conftest.py" = ["ANN001", "ANN201"]
+"**/migrations/*.py" = ["ALL"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["web_api"]
+combine-as-imports = true
+force-sort-within-sections = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_any_generics = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+exclude = [
+  "^.*/migrations/.*\\.py$",
+  "^build/",
+  "^dist/",
+  "^.venv/",
+]
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+addopts = "-ra --strict-markers --strict-config"
+testpaths = ["apps/web-api/tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+filterwarnings = [
+  "error",
+  "ignore::DeprecationWarning:django.*",
+]

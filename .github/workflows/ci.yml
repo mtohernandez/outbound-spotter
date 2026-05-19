@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch: {}
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+  DO_NOT_TRACK: 1
+
+permissions:
+  contents: read
+
+jobs:
+  js-quality:
+    name: JS — lint · typecheck · test · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # required for turbo --affected
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm exec turbo run lint --affected
+
+      - name: Typecheck
+        run: pnpm exec turbo run typecheck --affected
+
+      - name: Test
+        run: pnpm exec turbo run test --affected
+
+      - name: Build
+        run: pnpm exec turbo run build --affected
+
+      - name: Prettier formatting check
+        run: pnpm format:check
+
+  py-quality:
+    name: Python — ruff · mypy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ hashFiles('apps/web-api/**/*.py') != '' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: 'latest'
+
+      - name: Set up Python
+        run: uv python install $(cat .python-version)
+
+      - name: Sync web-api
+        working-directory: apps/web-api
+        run: uv sync --frozen
+
+      - name: Ruff check
+        working-directory: apps/web-api
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        working-directory: apps/web-api
+        run: uv run ruff format --check .
+
+      - name: mypy
+        working-directory: apps/web-api
+        run: uv run mypy .
+
+      - name: pytest
+        working-directory: apps/web-api
+        run: uv run pytest
+
+  commitlint:
+    name: Commit messages
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' }}
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate PR commits
+        run: pnpm exec commitlint --from=${{ github.event.pull_request.base.sha }} --to=${{ github.event.pull_request.head.sha }} --verbose

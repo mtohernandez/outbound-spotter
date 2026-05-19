@@ -54,6 +54,16 @@ coverage.xml
 *.swp
 *.swo
 
+# Husky internal
+.husky/_/
+
+# Coverage
+coverage/
+**/coverage/
+
+# uv
+.python-cache/
+
 # Claude Code
 .claude/settings.local.json
 .claude/agent-memory-local/

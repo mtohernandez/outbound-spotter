@@ -1,0 +1,32 @@
+**/node_modules/**
+**/dist/**
+**/build/**
+**/.next/**
+**/.turbo/**
+**/coverage/**
+**/.cache/**
+**/__generated__/**
+**/*.generated.*
+
+# Generated lockfiles
+pnpm-lock.yaml
+uv.lock
+package-lock.json
+yarn.lock
+
+# Reference material we don't own
+docs/ai-builders-playbook.md
+docs/interstate-truck-driver-guide.md
+docs/assesment.md
+
+# Skills + agents are managed by their tooling
+.agents/skills/**
+.claude/plugins/**
+
+# Python virtualenvs + cache
+.venv/
+**/.venv/
+**/__pycache__/**
+**/.mypy_cache/**
+**/.ruff_cache/**
+**/.pytest_cache/**

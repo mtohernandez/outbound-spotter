@@ -1,0 +1,46 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "ui": "stream",
+  "globalDependencies": [
+    "tsconfig.base.json",
+    "packages/typescript-config/**",
+    "packages/eslint-config/**",
+    "prettier.config.js",
+    "eslint.config.js"
+  ],
+  "globalEnv": ["NODE_ENV", "CI"],
+  "tasks": {
+    "topo": {
+      "dependsOn": ["^topo"]
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "build/**"]
+    },
+    "lint": {
+      "dependsOn": ["topo"],
+      "outputs": []
+    },
+    "lint:fix": {
+      "dependsOn": ["topo"],
+      "cache": false,
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": ["topo"],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "clean": {
+      "cache": false,
+      "outputs": []
+    }
+  }
+}
