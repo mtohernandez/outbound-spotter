@@ -24,13 +24,13 @@ Every choice in this file is derived from a documented, validated technique:
 
 Computed from the five brand hexes in `docs/theme.md` using the standard sRGB → linear-RGB → LMS¹ᐟ³ → OKLab → OKLCH pipeline:
 
-| Brand name   | Hex       | OKLCH (precise)                | Anchor stop  | Slot it owns                                          |
-| ------------ | --------- | ------------------------------ | ------------ | ----------------------------------------------------- |
-| White        | `#FEFFFF` | `oklch(0.9992 0.0011 197.14)`  | `teal-50`    | `--background`, `--card`, `--popover` (light)         |
-| Light blue   | `#BDDDDE` | `oklch(0.8746 0.0338 198.87)`  | `teal-200`   | `--secondary`, `--muted`, `--accent`, `--border` (light) |
-| Green (teal) | `#008080` | `oklch(0.5431 0.0927 194.77)`  | `teal-600`   | `--primary`, `--ring`, brand surfaces                 |
-| Black        | `#001212` | `oklch(0.1650 0.0282 194.77)`  | `teal-950`   | `--foreground` (light), `--background` (dark)         |
-| Red          | `#F84960` | `oklch(0.6609 0.2101 17.87)`   | `red-500`    | `--destructive`                                       |
+| Brand name   | Hex       | OKLCH (precise)               | Anchor stop | Slot it owns                                             |
+| ------------ | --------- | ----------------------------- | ----------- | -------------------------------------------------------- |
+| White        | `#FEFFFF` | `oklch(0.9992 0.0011 197.14)` | `teal-50`   | `--background`, `--card`, `--popover` (light)            |
+| Light blue   | `#BDDDDE` | `oklch(0.8746 0.0338 198.87)` | `teal-200`  | `--secondary`, `--muted`, `--accent`, `--border` (light) |
+| Green (teal) | `#008080` | `oklch(0.5431 0.0927 194.77)` | `teal-600`  | `--primary`, `--ring`, brand surfaces                    |
+| Black        | `#001212` | `oklch(0.1650 0.0282 194.77)` | `teal-950`  | `--foreground` (light), `--background` (dark)            |
+| Red          | `#F84960` | `oklch(0.6609 0.2101 17.87)`  | `red-500`   | `--destructive`                                          |
 
 Notice that **four of the five brand hexes are stops on a single teal ramp** (50, 200, 600, 950). This is a deliberate, coherent palette: the chrome of the app rides one hue family, with red reserved as the lone accent for destructive intent.
 
@@ -40,35 +40,35 @@ Anchored on the brand hexes; intermediate stops interpolate L at the brand hue, 
 
 ### Teal ramp — `--teal-50 … --teal-950`
 
-| Stop | OKLCH                            | Hex (sRGB fallback) | Notes                                                          |
-| ---- | -------------------------------- | ------------------- | -------------------------------------------------------------- |
-| 50   | `oklch(0.9992 0.0011 197)`       | `#FEFFFF`           | ★ brand white (light bg)                                       |
-| 100  | `oklch(0.965 0.012 197)`         | `#F0F7F7`           | subtle tinted surfaces                                         |
-| 200  | `oklch(0.8746 0.0338 198.87)`    | `#BDDDDE`           | ★ brand light blue (secondary surface)                         |
-| 300  | `oklch(0.795 0.055 197)`         | `#9BC9CB`           | hover-on-secondary                                              |
-| 400  | `oklch(0.685 0.082 196)`         | `#5FA1A4`           | mid-tone, icons in light mode                                   |
-| 500  | `oklch(0.620 0.097 195.5)`       | `#3D9296`           | bright primary alt                                              |
-| 600  | `oklch(0.5431 0.0927 194.77)`    | `#008080`           | ★ brand teal (primary)                                          |
-| 700  | `oklch(0.455 0.080 195)`         | `#106D6D`           | primary hover/pressed                                           |
-| 800  | `oklch(0.355 0.060 195)`         | `#1B5454`           | dark surface variant                                            |
-| 900  | `oklch(0.255 0.040 195)`         | `#1A3737`           | dark elevated surface                                           |
-| 950  | `oklch(0.1650 0.0282 194.77)`    | `#001212`           | ★ brand black (dark bg)                                         |
+| Stop | OKLCH                         | Hex (sRGB fallback) | Notes                                  |
+| ---- | ----------------------------- | ------------------- | -------------------------------------- |
+| 50   | `oklch(0.9992 0.0011 197)`    | `#FEFFFF`           | ★ brand white (light bg)               |
+| 100  | `oklch(0.965 0.012 197)`      | `#F0F7F7`           | subtle tinted surfaces                 |
+| 200  | `oklch(0.8746 0.0338 198.87)` | `#BDDDDE`           | ★ brand light blue (secondary surface) |
+| 300  | `oklch(0.795 0.055 197)`      | `#9BC9CB`           | hover-on-secondary                     |
+| 400  | `oklch(0.685 0.082 196)`      | `#5FA1A4`           | mid-tone, icons in light mode          |
+| 500  | `oklch(0.620 0.097 195.5)`    | `#3D9296`           | bright primary alt                     |
+| 600  | `oklch(0.5431 0.0927 194.77)` | `#008080`           | ★ brand teal (primary)                 |
+| 700  | `oklch(0.455 0.080 195)`      | `#106D6D`           | primary hover/pressed                  |
+| 800  | `oklch(0.355 0.060 195)`      | `#1B5454`           | dark surface variant                   |
+| 900  | `oklch(0.255 0.040 195)`      | `#1A3737`           | dark elevated surface                  |
+| 950  | `oklch(0.1650 0.0282 194.77)` | `#001212`           | ★ brand black (dark bg)                |
 
 ### Red ramp — `--red-50 … --red-950` (destructive only)
 
-| Stop | OKLCH                            | Hex (sRGB fallback) |
-| ---- | -------------------------------- | ------------------- |
-| 50   | `oklch(0.975 0.020 18)`          | `#FFEEEE`           |
-| 100  | `oklch(0.945 0.045 18)`          | `#FBD5D9`           |
-| 200  | `oklch(0.890 0.090 18)`          | `#F4B0B7`           |
-| 300  | `oklch(0.820 0.140 18)`          | `#EE8593`           |
-| 400  | `oklch(0.745 0.185 18)`          | `#F36474`           |
-| 500  | `oklch(0.6609 0.2101 17.87)`     | `#F84960`           | ★ brand red                                                     |
-| 600  | `oklch(0.585 0.215 18)`          | `#DD3650`           |
-| 700  | `oklch(0.495 0.190 18)`          | `#B62740`           |
-| 800  | `oklch(0.395 0.155 18)`          | `#8C1B30`           |
-| 900  | `oklch(0.305 0.115 18)`          | `#601321`           |
-| 950  | `oklch(0.215 0.075 18)`          | `#3A0A14`           |
+| Stop | OKLCH                        | Hex (sRGB fallback) |
+| ---- | ---------------------------- | ------------------- | ----------- |
+| 50   | `oklch(0.975 0.020 18)`      | `#FFEEEE`           |
+| 100  | `oklch(0.945 0.045 18)`      | `#FBD5D9`           |
+| 200  | `oklch(0.890 0.090 18)`      | `#F4B0B7`           |
+| 300  | `oklch(0.820 0.140 18)`      | `#EE8593`           |
+| 400  | `oklch(0.745 0.185 18)`      | `#F36474`           |
+| 500  | `oklch(0.6609 0.2101 17.87)` | `#F84960`           | ★ brand red |
+| 600  | `oklch(0.585 0.215 18)`      | `#DD3650`           |
+| 700  | `oklch(0.495 0.190 18)`      | `#B62740`           |
+| 800  | `oklch(0.395 0.155 18)`      | `#8C1B30`           |
+| 900  | `oklch(0.305 0.115 18)`      | `#601321`           |
+| 950  | `oklch(0.215 0.075 18)`      | `#3A0A14`           |
 
 Hex columns are computed fallbacks for environments that don't yet support OKLCH. Both forms are emitted in CSS via `color-mix(in oklab, …)` fallback chains when targeting older browsers; modern targets (Vite 8 → ES2022+ browser baseline) use OKLCH directly.
 
@@ -78,59 +78,59 @@ Components reference semantic tokens. The mapping below is the single source of 
 
 ### Light mode
 
-| Token                          | Maps to              |
-| ------------------------------ | -------------------- |
-| `--background`                 | `--teal-50`          |
-| `--foreground`                 | `--teal-950`         |
-| `--card` / `--popover`         | `--teal-50`          |
-| `--card-foreground` / `--popover-foreground` | `--teal-950` |
-| `--primary`                    | `--teal-600`         |
-| `--primary-foreground`         | `--teal-50`          |
-| `--secondary`                  | `--teal-200`         |
-| `--secondary-foreground`       | `--teal-900`         |
-| `--muted`                      | `--teal-100`         |
-| `--muted-foreground`           | `--teal-700`         |
-| `--accent`                     | `--teal-200`         |
-| `--accent-foreground`          | `--teal-900`         |
-| `--destructive`                | `--red-500`          |
-| `--destructive-foreground`     | `--teal-50`          |
-| `--border`                     | `--teal-200`         |
-| `--input`                      | `--teal-200`         |
-| `--ring`                       | `--teal-600`         |
-| `--chart-1` … `--chart-5`      | teal-600, red-500, teal-200, teal-400, teal-800 |
+| Token                                        | Maps to                                         |
+| -------------------------------------------- | ----------------------------------------------- |
+| `--background`                               | `--teal-50`                                     |
+| `--foreground`                               | `--teal-950`                                    |
+| `--card` / `--popover`                       | `--teal-50`                                     |
+| `--card-foreground` / `--popover-foreground` | `--teal-950`                                    |
+| `--primary`                                  | `--teal-600`                                    |
+| `--primary-foreground`                       | `--teal-50`                                     |
+| `--secondary`                                | `--teal-200`                                    |
+| `--secondary-foreground`                     | `--teal-900`                                    |
+| `--muted`                                    | `--teal-100`                                    |
+| `--muted-foreground`                         | `--teal-700`                                    |
+| `--accent`                                   | `--teal-200`                                    |
+| `--accent-foreground`                        | `--teal-900`                                    |
+| `--destructive`                              | `--red-500`                                     |
+| `--destructive-foreground`                   | `--teal-50`                                     |
+| `--border`                                   | `--teal-200`                                    |
+| `--input`                                    | `--teal-200`                                    |
+| `--ring`                                     | `--teal-600`                                    |
+| `--chart-1` … `--chart-5`                    | teal-600, red-500, teal-200, teal-400, teal-800 |
 
 ### Dark mode
 
-| Token                          | Maps to              |
-| ------------------------------ | -------------------- |
-| `--background`                 | `--teal-950`         |
-| `--foreground`                 | `--teal-50`          |
-| `--card` / `--popover`         | `--teal-900`         |
-| `--card-foreground` / `--popover-foreground` | `--teal-50`  |
-| `--primary`                    | `--teal-500`         |
-| `--primary-foreground`         | `--teal-950`         |
-| `--secondary`                  | `--teal-800`         |
-| `--secondary-foreground`       | `--teal-100`         |
-| `--muted`                      | `--teal-900`         |
-| `--muted-foreground`           | `--teal-300`         |
-| `--accent`                     | `--teal-800`         |
-| `--accent-foreground`          | `--teal-50`          |
-| `--destructive`                | `--red-500`          |
-| `--destructive-foreground`     | `--teal-50`          |
-| `--border`                     | `oklch(1 0 0 / 10%)` |
-| `--input`                      | `oklch(1 0 0 / 15%)` |
-| `--ring`                       | `--teal-500`         |
-| `--chart-1` … `--chart-5`      | teal-500, red-500, teal-300, teal-200, teal-700 |
+| Token                                        | Maps to                                         |
+| -------------------------------------------- | ----------------------------------------------- |
+| `--background`                               | `--teal-950`                                    |
+| `--foreground`                               | `--teal-50`                                     |
+| `--card` / `--popover`                       | `--teal-900`                                    |
+| `--card-foreground` / `--popover-foreground` | `--teal-50`                                     |
+| `--primary`                                  | `--teal-500`                                    |
+| `--primary-foreground`                       | `--teal-950`                                    |
+| `--secondary`                                | `--teal-800`                                    |
+| `--secondary-foreground`                     | `--teal-100`                                    |
+| `--muted`                                    | `--teal-900`                                    |
+| `--muted-foreground`                         | `--teal-300`                                    |
+| `--accent`                                   | `--teal-800`                                    |
+| `--accent-foreground`                        | `--teal-50`                                     |
+| `--destructive`                              | `--red-500`                                     |
+| `--destructive-foreground`                   | `--teal-50`                                     |
+| `--border`                                   | `oklch(1 0 0 / 10%)`                            |
+| `--input`                                    | `oklch(1 0 0 / 15%)`                            |
+| `--ring`                                     | `--teal-500`                                    |
+| `--chart-1` … `--chart-5`                    | teal-500, red-500, teal-300, teal-200, teal-700 |
 
 ### APCA + WCAG verification (worst-case body pairs)
 
-| Pair                                       | Lc (APCA) | WCAG ratio | Verdict       |
-| ------------------------------------------ | --------- | ---------- | ------------- |
-| `--foreground` on `--background` (light)   | ~ 96      | ~ 19:1     | passes (AAA)  |
-| `--foreground` on `--background` (dark)    | ~ -96     | ~ 19:1     | passes (AAA)  |
-| `--primary-foreground` on `--primary` (light) | ~ 76   | ~ 4.9:1    | passes (AA)   |
-| `--muted-foreground` on `--background`     | ~ 78      | ~ 5.2:1    | passes (AA)   |
-| `--destructive-foreground` on `--destructive` | ~ 75   | ~ 4.6:1    | passes (AA)   |
+| Pair                                          | Lc (APCA) | WCAG ratio | Verdict      |
+| --------------------------------------------- | --------- | ---------- | ------------ |
+| `--foreground` on `--background` (light)      | ~ 96      | ~ 19:1     | passes (AAA) |
+| `--foreground` on `--background` (dark)       | ~ -96     | ~ 19:1     | passes (AAA) |
+| `--primary-foreground` on `--primary` (light) | ~ 76      | ~ 4.9:1    | passes (AA)  |
+| `--muted-foreground` on `--background`        | ~ 78      | ~ 5.2:1    | passes (AA)  |
+| `--destructive-foreground` on `--destructive` | ~ 75      | ~ 4.6:1    | passes (AA)  |
 
 These are computed against the precise OKLCH values above; any ramp adjustment must be re-checked before commit (the `apca-check` lint step will run in CI once the design system unit lands).
 
@@ -146,50 +146,50 @@ The block below lands in `apps/web-app/src/styles/globals.css` and the same file
 
 :root {
   /* Teal ramp */
-  --teal-50:  oklch(0.9992 0.0011 197);
-  --teal-100: oklch(0.965  0.012  197);
+  --teal-50: oklch(0.9992 0.0011 197);
+  --teal-100: oklch(0.965 0.012 197);
   --teal-200: oklch(0.8746 0.0338 198.87);
-  --teal-300: oklch(0.795  0.055  197);
-  --teal-400: oklch(0.685  0.082  196);
-  --teal-500: oklch(0.620  0.097  195.5);
+  --teal-300: oklch(0.795 0.055 197);
+  --teal-400: oklch(0.685 0.082 196);
+  --teal-500: oklch(0.62 0.097 195.5);
   --teal-600: oklch(0.5431 0.0927 194.77);
-  --teal-700: oklch(0.455  0.080  195);
-  --teal-800: oklch(0.355  0.060  195);
-  --teal-900: oklch(0.255  0.040  195);
-  --teal-950: oklch(0.1650 0.0282 194.77);
+  --teal-700: oklch(0.455 0.08 195);
+  --teal-800: oklch(0.355 0.06 195);
+  --teal-900: oklch(0.255 0.04 195);
+  --teal-950: oklch(0.165 0.0282 194.77);
   /* Red ramp */
-  --red-50:   oklch(0.975 0.020 18);
-  --red-100:  oklch(0.945 0.045 18);
-  --red-200:  oklch(0.890 0.090 18);
-  --red-300:  oklch(0.820 0.140 18);
-  --red-400:  oklch(0.745 0.185 18);
-  --red-500:  oklch(0.6609 0.2101 17.87);
-  --red-600:  oklch(0.585 0.215 18);
-  --red-700:  oklch(0.495 0.190 18);
-  --red-800:  oklch(0.395 0.155 18);
-  --red-900:  oklch(0.305 0.115 18);
-  --red-950:  oklch(0.215 0.075 18);
+  --red-50: oklch(0.975 0.02 18);
+  --red-100: oklch(0.945 0.045 18);
+  --red-200: oklch(0.89 0.09 18);
+  --red-300: oklch(0.82 0.14 18);
+  --red-400: oklch(0.745 0.185 18);
+  --red-500: oklch(0.6609 0.2101 17.87);
+  --red-600: oklch(0.585 0.215 18);
+  --red-700: oklch(0.495 0.19 18);
+  --red-800: oklch(0.395 0.155 18);
+  --red-900: oklch(0.305 0.115 18);
+  --red-950: oklch(0.215 0.075 18);
 
   /* Semantic — light */
-  --background:             var(--teal-50);
-  --foreground:             var(--teal-950);
-  --card:                   var(--teal-50);
-  --card-foreground:        var(--teal-950);
-  --popover:                var(--teal-50);
-  --popover-foreground:     var(--teal-950);
-  --primary:                var(--teal-600);
-  --primary-foreground:     var(--teal-50);
-  --secondary:              var(--teal-200);
-  --secondary-foreground:   var(--teal-900);
-  --muted:                  var(--teal-100);
-  --muted-foreground:       var(--teal-700);
-  --accent:                 var(--teal-200);
-  --accent-foreground:      var(--teal-900);
-  --destructive:            var(--red-500);
+  --background: var(--teal-50);
+  --foreground: var(--teal-950);
+  --card: var(--teal-50);
+  --card-foreground: var(--teal-950);
+  --popover: var(--teal-50);
+  --popover-foreground: var(--teal-950);
+  --primary: var(--teal-600);
+  --primary-foreground: var(--teal-50);
+  --secondary: var(--teal-200);
+  --secondary-foreground: var(--teal-900);
+  --muted: var(--teal-100);
+  --muted-foreground: var(--teal-700);
+  --accent: var(--teal-200);
+  --accent-foreground: var(--teal-900);
+  --destructive: var(--red-500);
   --destructive-foreground: var(--teal-50);
-  --border:                 var(--teal-200);
-  --input:                  var(--teal-200);
-  --ring:                   var(--teal-600);
+  --border: var(--teal-200);
+  --input: var(--teal-200);
+  --ring: var(--teal-600);
 
   --chart-1: var(--teal-600);
   --chart-2: var(--red-500);
@@ -197,39 +197,39 @@ The block below lands in `apps/web-app/src/styles/globals.css` and the same file
   --chart-4: var(--teal-400);
   --chart-5: var(--teal-800);
 
-  --sidebar:                       var(--teal-50);
-  --sidebar-foreground:            var(--teal-950);
-  --sidebar-primary:               var(--teal-600);
-  --sidebar-primary-foreground:    var(--teal-50);
-  --sidebar-accent:                var(--teal-200);
-  --sidebar-accent-foreground:     var(--teal-900);
-  --sidebar-border:                var(--teal-200);
-  --sidebar-ring:                  var(--teal-600);
+  --sidebar: var(--teal-50);
+  --sidebar-foreground: var(--teal-950);
+  --sidebar-primary: var(--teal-600);
+  --sidebar-primary-foreground: var(--teal-50);
+  --sidebar-accent: var(--teal-200);
+  --sidebar-accent-foreground: var(--teal-900);
+  --sidebar-border: var(--teal-200);
+  --sidebar-ring: var(--teal-600);
 
   /* Radius scale (small, dense-UI) */
-  --radius: 0.375rem;                          /* 6px base */
+  --radius: 0.375rem; /* 6px base */
 }
 
 .dark {
-  --background:             var(--teal-950);
-  --foreground:             var(--teal-50);
-  --card:                   var(--teal-900);
-  --card-foreground:        var(--teal-50);
-  --popover:                var(--teal-900);
-  --popover-foreground:     var(--teal-50);
-  --primary:                var(--teal-500);
-  --primary-foreground:     var(--teal-950);
-  --secondary:              var(--teal-800);
-  --secondary-foreground:   var(--teal-100);
-  --muted:                  var(--teal-900);
-  --muted-foreground:       var(--teal-300);
-  --accent:                 var(--teal-800);
-  --accent-foreground:      var(--teal-50);
-  --destructive:            var(--red-500);
+  --background: var(--teal-950);
+  --foreground: var(--teal-50);
+  --card: var(--teal-900);
+  --card-foreground: var(--teal-50);
+  --popover: var(--teal-900);
+  --popover-foreground: var(--teal-50);
+  --primary: var(--teal-500);
+  --primary-foreground: var(--teal-950);
+  --secondary: var(--teal-800);
+  --secondary-foreground: var(--teal-100);
+  --muted: var(--teal-900);
+  --muted-foreground: var(--teal-300);
+  --accent: var(--teal-800);
+  --accent-foreground: var(--teal-50);
+  --destructive: var(--red-500);
   --destructive-foreground: var(--teal-50);
-  --border:                 oklch(1 0 0 / 10%);
-  --input:                  oklch(1 0 0 / 15%);
-  --ring:                   var(--teal-500);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: var(--teal-500);
 
   --chart-1: var(--teal-500);
   --chart-2: var(--red-500);
@@ -237,63 +237,66 @@ The block below lands in `apps/web-app/src/styles/globals.css` and the same file
   --chart-4: var(--teal-200);
   --chart-5: var(--teal-700);
 
-  --sidebar:                       var(--teal-900);
-  --sidebar-foreground:            var(--teal-50);
-  --sidebar-primary:               var(--teal-500);
-  --sidebar-primary-foreground:    var(--teal-950);
-  --sidebar-accent:                var(--teal-800);
-  --sidebar-accent-foreground:     var(--teal-50);
-  --sidebar-border:                oklch(1 0 0 / 10%);
-  --sidebar-ring:                  var(--teal-500);
+  --sidebar: var(--teal-900);
+  --sidebar-foreground: var(--teal-50);
+  --sidebar-primary: var(--teal-500);
+  --sidebar-primary-foreground: var(--teal-950);
+  --sidebar-accent: var(--teal-800);
+  --sidebar-accent-foreground: var(--teal-50);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: var(--teal-500);
 }
 
 @theme inline {
-  --color-background:             var(--background);
-  --color-foreground:             var(--foreground);
-  --color-card:                   var(--card);
-  --color-card-foreground:        var(--card-foreground);
-  --color-popover:                var(--popover);
-  --color-popover-foreground:     var(--popover-foreground);
-  --color-primary:                var(--primary);
-  --color-primary-foreground:     var(--primary-foreground);
-  --color-secondary:              var(--secondary);
-  --color-secondary-foreground:   var(--secondary-foreground);
-  --color-muted:                  var(--muted);
-  --color-muted-foreground:       var(--muted-foreground);
-  --color-accent:                 var(--accent);
-  --color-accent-foreground:      var(--accent-foreground);
-  --color-destructive:            var(--destructive);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
-  --color-border:                 var(--border);
-  --color-input:                  var(--input);
-  --color-ring:                   var(--ring);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 
-  --font-sans:    "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display: "Geologica", "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono:    ui-monospace, "JetBrains Mono", Menlo, Monaco, monospace;
+  --font-mono: ui-monospace, "JetBrains Mono", Menlo, Monaco, monospace;
 
   /* shadcn radius scale (dense) */
   --radius-sm: calc(var(--radius) - 4px); /* 2px — badges, chips */
   --radius-md: calc(var(--radius) - 2px); /* 4px — buttons, inputs */
-  --radius-lg: var(--radius);             /* 6px — cards, popovers */
+  --radius-lg: var(--radius); /* 6px — cards, popovers */
   --radius-xl: calc(var(--radius) + 4px); /* 10px — dialogs, sheets */
 }
 ```
 
 ## Typography
 
-| Role                          | Font          | Tailwind class    | CSS variable     |
-| ----------------------------- | ------------- | ----------------- | ---------------- |
-| Headings (h1–h6, display)     | Geologica     | `font-display`    | `--font-display` |
-| Body, controls, labels        | DM Sans       | `font-sans`       | `--font-sans`    |
-| Code, log timestamps, tabular | system mono   | `font-mono`       | `--font-mono`    |
+| Role                          | Font        | Tailwind class | CSS variable     |
+| ----------------------------- | ----------- | -------------- | ---------------- |
+| Headings (h1–h6, display)     | Geologica   | `font-display` | `--font-display` |
+| Body, controls, labels        | DM Sans     | `font-sans`    | `--font-sans`    |
+| Code, log timestamps, tabular | system mono | `font-mono`    | `--font-mono`    |
 
 Both Geologica and DM Sans are variable-axis. Load via `<link>` tags in `index.html` (web-app + web-auth):
 
 ```html
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geologica:opsz,wght@12..96,100..900&family=DM+Sans:opsz,wght@9..40,100..1000&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Geologica:opsz,wght@12..96,100..900&family=DM+Sans:opsz,wght@9..40,100..1000&display=swap"
+  rel="stylesheet"
+/>
 ```
 
 ELD log SVGs use `font-mono` for the hour ruler and `font-sans` for the Remarks column. `font-display` is reserved for true headings, never for ambient UI text.
@@ -302,16 +305,16 @@ ELD log SVGs use `font-mono` for the hour ruler and `font-sans` for the Remarks 
 
 Following the **major-third** typographic scale (1.25 ratio) at a 16 px base, with explicit line-heights that keep dense tables legible without crowding.
 
-| Token        | Font size | Line height | Tracking | Use                                                |
-| ------------ | --------- | ----------- | -------- | -------------------------------------------------- |
-| `text-xs`    | 12 px     | 16 px       | normal   | Tabular labels, sidebar items, badges              |
-| `text-sm`    | 14 px     | 20 px       | normal   | Default body in dense surfaces, form labels        |
-| `text-base`  | 16 px     | 24 px       | normal   | Default body in airier surfaces, paragraphs        |
-| `text-lg`    | 18 px     | 26 px       | -0.005em | Section headings inside cards                      |
-| `text-xl`    | 20 px     | 28 px       | -0.005em | Card titles                                        |
-| `text-2xl`   | 24 px     | 32 px       | -0.010em | Page section titles                                |
-| `text-3xl`   | 30 px     | 36 px       | -0.015em | Page titles (`font-display`)                       |
-| `text-4xl`   | 36 px     | 40 px       | -0.020em | Hero / marketing-only (rarely used in-app)         |
+| Token       | Font size | Line height | Tracking | Use                                         |
+| ----------- | --------- | ----------- | -------- | ------------------------------------------- |
+| `text-xs`   | 12 px     | 16 px       | normal   | Tabular labels, sidebar items, badges       |
+| `text-sm`   | 14 px     | 20 px       | normal   | Default body in dense surfaces, form labels |
+| `text-base` | 16 px     | 24 px       | normal   | Default body in airier surfaces, paragraphs |
+| `text-lg`   | 18 px     | 26 px       | -0.005em | Section headings inside cards               |
+| `text-xl`   | 20 px     | 28 px       | -0.005em | Card titles                                 |
+| `text-2xl`  | 24 px     | 32 px       | -0.010em | Page section titles                         |
+| `text-3xl`  | 30 px     | 36 px       | -0.015em | Page titles (`font-display`)                |
+| `text-4xl`  | 36 px     | 40 px       | -0.020em | Hero / marketing-only (rarely used in-app)  |
 
 These mirror Tailwind's defaults; pin them here so the system stays explicit.
 
@@ -319,12 +322,12 @@ These mirror Tailwind's defaults; pin them here so the system stays explicit.
 
 `--radius: 0.375rem` (6 px) anchors the scale. shadcn's `calc()` pattern derives the rest:
 
-| Token         | Computed | Use                                  |
-| ------------- | -------- | ------------------------------------ |
-| `--radius-sm` | 2 px     | Badges, chips, inline status pills   |
-| `--radius-md` | 4 px     | Buttons, inputs, form controls       |
-| `--radius-lg` | 6 px     | Cards, popovers, dropdowns           |
-| `--radius-xl` | 10 px    | Dialogs, sheets, large overlays      |
+| Token         | Computed | Use                                |
+| ------------- | -------- | ---------------------------------- |
+| `--radius-sm` | 2 px     | Badges, chips, inline status pills |
+| `--radius-md` | 4 px     | Buttons, inputs, form controls     |
+| `--radius-lg` | 6 px     | Cards, popovers, dropdowns         |
+| `--radius-xl` | 10 px    | Dialogs, sheets, large overlays    |
 
 This matches the dense-pro-tool median (Linear ~ 6 px, Vercel dashboard ~ 6 px, GitHub ~ 6 px, Radix Primitives examples ~ 6 px). Buttons and inputs land at 4 px so the form area reads as "snappy."
 
@@ -332,37 +335,37 @@ This matches the dense-pro-tool median (Linear ~ 6 px, Vercel dashboard ~ 6 px, 
 
 Tailwind's native `0.25rem` (4 px) base; the dense-UI choices below.
 
-| Token   | px  | Use                                                                      |
-| ------- | --- | ------------------------------------------------------------------------ |
-| `0`     | 0   | Zero gap                                                                 |
-| `0.5`   | 2   | Inline icon-to-text in tight chips                                       |
-| `1`     | 4   | Tight gaps inside dense rows                                             |
-| `1.5`   | 6   | Vertical padding inside table rows                                       |
-| `2`     | 8   | Default control internal padding, icon-to-label                          |
-| `2.5`   | 10  | Subdued breathing room                                                   |
-| `3`     | 12  | `FieldGroup` gap, sidebar item padding                                   |
-| `3.5`   | 14  | (rarely used)                                                            |
-| `4`     | 16  | Default content gap, card content padding                                |
-| `5`     | 20  | Form section gap                                                         |
-| `6`     | 24  | Section gap, card outer padding                                          |
-| `8`     | 32  | Page section gap                                                         |
-| `10`    | 40  | Hero / large dialog padding                                              |
-| `12`    | 48  | Top-level page padding                                                   |
+| Token | px  | Use                                             |
+| ----- | --- | ----------------------------------------------- |
+| `0`   | 0   | Zero gap                                        |
+| `0.5` | 2   | Inline icon-to-text in tight chips              |
+| `1`   | 4   | Tight gaps inside dense rows                    |
+| `1.5` | 6   | Vertical padding inside table rows              |
+| `2`   | 8   | Default control internal padding, icon-to-label |
+| `2.5` | 10  | Subdued breathing room                          |
+| `3`   | 12  | `FieldGroup` gap, sidebar item padding          |
+| `3.5` | 14  | (rarely used)                                   |
+| `4`   | 16  | Default content gap, card content padding       |
+| `5`   | 20  | Form section gap                                |
+| `6`   | 24  | Section gap, card outer padding                 |
+| `8`   | 32  | Page section gap                                |
+| `10`  | 40  | Hero / large dialog padding                     |
+| `12`  | 48  | Top-level page padding                          |
 
 ## Component density (heights + paddings)
 
 The shadcn primitives ship `size="sm" / "default" / "lg"`. Our dense baseline uses the values below — the same dimensions Linear, Vercel, Radix use for dense surfaces.
 
-| Component        | sm        | default (dense)        | lg            |
-| ---------------- | --------- | ---------------------- | ------------- |
-| `Button`         | h-7 (28px) px-2.5 text-xs | **h-8 (32px) px-3 text-sm** | h-10 (40px) px-4 text-base |
-| `Input`          | h-7       | **h-8 (32px) px-2.5 text-sm** | h-10 px-3 |
-| `Select` trigger | h-7       | **h-8**                | h-10          |
-| `Badge`          | px-1.5 py-0.5 text-xs (always sm) | — | — |
-| `Table` row      | py-1 (24px) | **py-1.5 (28px)**    | py-2 (32px)   |
-| `Sidebar` item   | h-7 px-2  | **h-8 px-2**           | h-9 px-2.5    |
-| `Toolbar`        | h-9       | **h-10**               | h-12          |
-| `Avatar`         | size-6    | **size-7**             | size-8        |
+| Component        | sm                                | default (dense)               | lg                         |
+| ---------------- | --------------------------------- | ----------------------------- | -------------------------- |
+| `Button`         | h-7 (28px) px-2.5 text-xs         | **h-8 (32px) px-3 text-sm**   | h-10 (40px) px-4 text-base |
+| `Input`          | h-7                               | **h-8 (32px) px-2.5 text-sm** | h-10 px-3                  |
+| `Select` trigger | h-7                               | **h-8**                       | h-10                       |
+| `Badge`          | px-1.5 py-0.5 text-xs (always sm) | —                             | —                          |
+| `Table` row      | py-1 (24px)                       | **py-1.5 (28px)**             | py-2 (32px)                |
+| `Sidebar` item   | h-7 px-2                          | **h-8 px-2**                  | h-9 px-2.5                 |
+| `Toolbar`        | h-9                               | **h-10**                      | h-12                       |
+| `Avatar`         | size-6                            | **size-7**                    | size-8                     |
 
 **Touch-target rule (WCAG 2.5.8)**: any interactive element narrower or shorter than 24 × 24 px must provide ≥ 24 px clear hit area (e.g., row-click affordances) or pair with a larger control. Default sizes above clear this.
 
@@ -370,14 +373,14 @@ The shadcn primitives ship `size="sm" / "default" / "lg"`. Our dense baseline us
 
 Fast, smooth, deliberate.
 
-| Use                                          | Duration   | Easing                     | Where                                                                |
-| -------------------------------------------- | ---------- | -------------------------- | -------------------------------------------------------------------- |
-| Hover / focus state                          | 100 ms     | `ease-out`                 | utility: `duration-100 ease-out`                                     |
-| Dialog / Sheet enter                         | 150 ms     | `ease-out`                 | provided by shadcn primitive                                         |
-| Dialog / Sheet exit                          | 120 ms     | `ease-in`                  | provided by shadcn primitive                                         |
-| Toast (Sonner) enter                         | ~180 ms    | `ease-out`                 | Sonner default, accept                                               |
-| Skeleton shimmer                             | 1500 ms    | linear infinite            | shadcn `Skeleton`                                                    |
-| Spotter logo loader (corner circles loop)    | ~1.2 s     | per-segment `ease-in-out`  | custom `SpotterLoader` (CSS keyframes or SVG `<animateMotion>`)      |
+| Use                                       | Duration | Easing                    | Where                                                           |
+| ----------------------------------------- | -------- | ------------------------- | --------------------------------------------------------------- |
+| Hover / focus state                       | 100 ms   | `ease-out`                | utility: `duration-100 ease-out`                                |
+| Dialog / Sheet enter                      | 150 ms   | `ease-out`                | provided by shadcn primitive                                    |
+| Dialog / Sheet exit                       | 120 ms   | `ease-in`                 | provided by shadcn primitive                                    |
+| Toast (Sonner) enter                      | ~180 ms  | `ease-out`                | Sonner default, accept                                          |
+| Skeleton shimmer                          | 1500 ms  | linear infinite           | shadcn `Skeleton`                                               |
+| Spotter logo loader (corner circles loop) | ~1.2 s   | per-segment `ease-in-out` | custom `SpotterLoader` (CSS keyframes or SVG `<animateMotion>`) |
 
 Always honor `prefers-reduced-motion`. The `motion-safe:` Tailwind variant gates every transition; reduced-motion preference drops durations to 0 ms and replaces the SpotterLoader animation with a static state.
 
@@ -409,14 +412,14 @@ Mirrors the rules in `.agents/skills/shadcn/SKILL.md`. Non-negotiable in `apps/w
 
 ## Layout patterns
 
-| Pattern                  | Structure                                                                                                                  |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| App shell (web-app)      | Full-viewport. Left `Sidebar` (collapsible, fixed-width 240 px), top `Topbar` with bottom border, scrollable main.         |
-| Trip workspace           | Two-pane: left = log-day strip (vertical, scrollable, snap-y); right = map + trip summary card. Mobile collapses to tabs. |
-| Trip form                | Centered card, max-w 480 px, `Card` + `Form` + `FieldGroup`s for current / pickup / dropoff / cycle-hours.                 |
-| Saved-trips list         | Card list with title, route summary, created date. Hover reveals `DropdownMenu` (Open / Delete).                           |
-| Auth screens (web-auth)  | Single-column centered, max-w 384 px. shadcn auth blocks (current `login-*` / `signup-*` blocks) re-themed to our tokens.  |
-| Modals / Sheets          | shadcn defaults; bottom-sheet on mobile via `Sheet side="bottom"`.                                                         |
+| Pattern                 | Structure                                                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| App shell (web-app)     | Full-viewport. Left `Sidebar` (collapsible, fixed-width 240 px), top `Topbar` with bottom border, scrollable main.        |
+| Trip workspace          | Two-pane: left = log-day strip (vertical, scrollable, snap-y); right = map + trip summary card. Mobile collapses to tabs. |
+| Trip form               | Centered card, max-w 480 px, `Card` + `Form` + `FieldGroup`s for current / pickup / dropoff / cycle-hours.                |
+| Saved-trips list        | Card list with title, route summary, created date. Hover reveals `DropdownMenu` (Open / Delete).                          |
+| Auth screens (web-auth) | Single-column centered, max-w 384 px. shadcn auth blocks (current `login-*` / `signup-*` blocks) re-themed to our tokens. |
+| Modals / Sheets         | shadcn defaults; bottom-sheet on mobile via `Sheet side="bottom"`.                                                        |
 
 ## Loaders + brand artifacts
 
