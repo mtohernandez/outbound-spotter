@@ -12,8 +12,8 @@ import {
 } from "@outbound/ui/components/ui/card";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@outbound/ui/components/ui/field";
 import { Input } from "@outbound/ui/components/ui/input";
-import { useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useEffect, useRef, useState } from "react";
+import { useForm, useWatch, type UseFormReturn } from "react-hook-form";
 import { Link } from "react-router";
 
 import { env } from "@/config/env";
@@ -71,9 +71,11 @@ export function ForgotPasswordForm(): React.ReactElement {
     setServerErrors([]);
     const result = await startPasswordReset(signIn, { emailAddress: values.email });
     if (result.status === "error") {
-      // Per OWASP: surface "code sent" optimistically even if the email is unregistered to avoid
-      // user-enumeration. We still log the underlying error to the console for support triage.
-      console.warn("startPasswordReset error", result.errors);
+      // Per OWASP: surface "code sent" optimistically even when the email is unregistered so the
+      // UI does not leak existence. We deliberately do NOT log the underlying error here — a
+      // console.warn() exposes the Clerk error code (e.g. form_identifier_not_found) to anyone
+      // with DevTools open, undoing the enumeration mitigation. Support triage uses Clerk's
+      // dashboard, which has the unredacted record.
       setPhase({ name: "verifying", emailAddress: values.email });
       return;
     }
@@ -122,65 +124,14 @@ export function ForgotPasswordForm(): React.ReactElement {
   }
 
   if (phase.name === "reset") {
-    const { banner, field } = splitClerkErrors(serverErrors);
     return (
-      <Card className="border-border bg-card mx-auto w-full max-w-[28rem] shadow-sm">
-        <CardHeader>
-          <HeaderActions />
-          <CardTitle className="font-display text-2xl">Set a new password</CardTitle>
-          <CardDescription>Pick a password you have not used elsewhere.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form
-            noValidate
-            onSubmit={(event) => {
-              void onReset(event);
-            }}
-          >
-            <FieldGroup>
-              <Field data-invalid={Boolean(resetForm.formState.errors.password ?? field.password)}>
-                <FieldLabel htmlFor="reset-password">New password</FieldLabel>
-                <PasswordInput
-                  id="reset-password"
-                  autoComplete="new-password"
-                  aria-invalid={Boolean(resetForm.formState.errors.password ?? field.password)}
-                  {...resetForm.register("password")}
-                />
-                <PasswordStrengthMeter value={resetPasswordValue} />
-                <FieldError>
-                  {resetForm.formState.errors.password?.message ?? field.password}
-                </FieldError>
-              </Field>
-              <Field data-invalid={Boolean(resetForm.formState.errors.confirmPassword)}>
-                <FieldLabel htmlFor="reset-confirm">Confirm password</FieldLabel>
-                <PasswordInput
-                  id="reset-confirm"
-                  autoComplete="new-password"
-                  aria-invalid={Boolean(resetForm.formState.errors.confirmPassword)}
-                  {...resetForm.register("confirmPassword")}
-                />
-                <FieldError>{resetForm.formState.errors.confirmPassword?.message}</FieldError>
-              </Field>
-            </FieldGroup>
-            {banner.length > 0 ? (
-              <div
-                role="alert"
-                aria-live="assertive"
-                className="border-destructive/30 bg-destructive/10 text-destructive mt-4 rounded-md border px-3 py-2 text-sm"
-              >
-                {banner.map((error) => (
-                  <p key={error.code}>{error.longMessage ?? error.message}</p>
-                ))}
-              </div>
-            ) : null}
-            <Button type="submit" className="mt-5 w-full" disabled={isBusy}>
-              {isBusy ? <SpotterLoader size="sm" /> : null}
-              Save new password
-            </Button>
-          </form>
-        </CardContent>
-        <CardFooter className="hidden" />
-      </Card>
+      <ResetPasswordPhase
+        resetForm={resetForm}
+        resetPasswordValue={resetPasswordValue}
+        serverErrors={serverErrors}
+        isBusy={isBusy}
+        onSubmit={onReset}
+      />
     );
   }
 
@@ -210,15 +161,17 @@ export function ForgotPasswordForm(): React.ReactElement {
                 spellCheck={false}
                 autoCorrect="off"
                 aria-invalid={Boolean(requestForm.formState.errors.email)}
+                aria-describedby="forgot-email-error"
                 {...requestForm.register("email")}
               />
-              <FieldError>{requestForm.formState.errors.email?.message}</FieldError>
+              <FieldError id="forgot-email-error">
+                {requestForm.formState.errors.email?.message}
+              </FieldError>
             </Field>
           </FieldGroup>
           {banner.length > 0 ? (
             <div
               role="alert"
-              aria-live="assertive"
               className="border-destructive/30 bg-destructive/10 text-destructive mt-4 rounded-md border px-3 py-2 text-sm"
             >
               {banner.map((error) => (
@@ -240,6 +193,99 @@ export function ForgotPasswordForm(): React.ReactElement {
           </Link>
         </p>
       </CardFooter>
+    </Card>
+  );
+}
+
+interface ResetPasswordPhaseProps {
+  readonly resetForm: UseFormReturn<ForgotPasswordResetValues>;
+  readonly resetPasswordValue: string;
+  readonly serverErrors: AuthError[];
+  readonly isBusy: boolean;
+  readonly onSubmit: (event: React.SyntheticEvent<HTMLFormElement>) => Promise<void>;
+}
+
+function ResetPasswordPhase({
+  resetForm,
+  resetPasswordValue,
+  serverErrors,
+  isBusy,
+  onSubmit,
+}: ResetPasswordPhaseProps): React.ReactElement {
+  // Spec §"Accessibility floor": on the verifying → reset phase transition, focus moves to the
+  // first interactive element of the new phase. Mirrors the pattern used in VerificationStep.
+  const passwordRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    passwordRef.current?.focus();
+  }, []);
+
+  const passwordRegister = resetForm.register("password");
+  const { banner, field } = splitClerkErrors(serverErrors);
+
+  return (
+    <Card className="border-border bg-card mx-auto w-full max-w-[28rem] shadow-sm">
+      <CardHeader>
+        <HeaderActions />
+        <CardTitle className="font-display text-2xl">Set a new password</CardTitle>
+        <CardDescription>Pick a password you have not used elsewhere.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form
+          noValidate
+          onSubmit={(event) => {
+            void onSubmit(event);
+          }}
+        >
+          <FieldGroup>
+            <Field data-invalid={Boolean(resetForm.formState.errors.password ?? field.password)}>
+              <FieldLabel htmlFor="reset-password">New password</FieldLabel>
+              <PasswordInput
+                id="reset-password"
+                autoComplete="new-password"
+                aria-invalid={Boolean(resetForm.formState.errors.password ?? field.password)}
+                aria-describedby="reset-password-error"
+                {...passwordRegister}
+                ref={(node) => {
+                  passwordRegister.ref(node);
+                  passwordRef.current = node;
+                }}
+              />
+              <PasswordStrengthMeter value={resetPasswordValue} />
+              <FieldError id="reset-password-error">
+                {resetForm.formState.errors.password?.message ?? field.password}
+              </FieldError>
+            </Field>
+            <Field data-invalid={Boolean(resetForm.formState.errors.confirmPassword)}>
+              <FieldLabel htmlFor="reset-confirm">Confirm password</FieldLabel>
+              <PasswordInput
+                id="reset-confirm"
+                autoComplete="new-password"
+                aria-invalid={Boolean(resetForm.formState.errors.confirmPassword)}
+                aria-describedby="reset-confirm-error"
+                {...resetForm.register("confirmPassword")}
+              />
+              <FieldError id="reset-confirm-error">
+                {resetForm.formState.errors.confirmPassword?.message}
+              </FieldError>
+            </Field>
+          </FieldGroup>
+          {banner.length > 0 ? (
+            <div
+              role="alert"
+              className="border-destructive/30 bg-destructive/10 text-destructive mt-4 rounded-md border px-3 py-2 text-sm"
+            >
+              {banner.map((error) => (
+                <p key={error.code}>{error.longMessage ?? error.message}</p>
+              ))}
+            </div>
+          ) : null}
+          <Button type="submit" className="mt-5 w-full" disabled={isBusy}>
+            {isBusy ? <SpotterLoader size="sm" /> : null}
+            Save new password
+          </Button>
+        </form>
+      </CardContent>
+      <CardFooter className="hidden" />
     </Card>
   );
 }

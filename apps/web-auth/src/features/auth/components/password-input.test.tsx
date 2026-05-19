@@ -28,7 +28,7 @@ describe("PasswordInput", () => {
     );
 
     const input = getByLabelText("Account password") as HTMLInputElement;
-    const toggle = getByRole("button", { name: /show password/i });
+    const toggle = getByRole("button", { name: /password visibility/i });
 
     expect(toggle.getAttribute("aria-pressed")).toBe("false");
     expect(input.type).toBe("password");

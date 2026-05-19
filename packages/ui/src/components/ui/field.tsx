@@ -206,9 +206,12 @@ function FieldError({
     return null;
   }
 
+  // Inline field-level validation messages use aria-live="polite" rather than role="alert"
+  // (WCAG 4.1.3 / ARIA APG): assertive interrupts the user mid-keystroke, which is the wrong
+  // severity for client-side input validation. Server-error banners still use role="alert".
   return (
     <div
-      role="alert"
+      aria-live="polite"
       data-slot="field-error"
       className={cn("text-destructive text-sm font-normal", className)}
       {...props}

@@ -94,7 +94,6 @@ export function VerificationStep({
         {errors.length > 0 ? (
           <div
             role="alert"
-            aria-live="assertive"
             className="border-destructive/30 bg-destructive/10 text-destructive rounded-md border px-3 py-2 text-sm"
           >
             {errors.map((error) => (
@@ -114,20 +113,21 @@ export function VerificationStep({
           Verify
         </Button>
         <div className="flex flex-col items-center gap-2 text-sm">
+          {/* WCAG 2.5.8 Target Size (Minimum) — interactive ≥ 24 CSS px in both axes. */}
           <button
             type="button"
             onClick={() => {
               void onResendClick();
             }}
             disabled={resendCountdown > 0}
-            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring focus-visible:ring-offset-background rounded-sm underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring focus-visible:ring-offset-background inline-flex min-h-6 items-center justify-center rounded-sm px-2 py-1 underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
           >
             {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : "Resend code"}
           </button>
           <button
             type="button"
             onClick={onBack}
-            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring focus-visible:ring-offset-background rounded-sm underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring focus-visible:ring-offset-background inline-flex min-h-6 items-center justify-center rounded-sm px-2 py-1 underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             Use a different email
           </button>

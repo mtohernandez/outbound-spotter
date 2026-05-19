@@ -71,3 +71,7 @@ coverage/
 # Fly / Vercel local artifacts
 .fly/
 .vercel/
+
+# Playwright MCP snapshots + on-demand E2E screenshots (never committed)
+.playwright-mcp/
+e2e-*.png

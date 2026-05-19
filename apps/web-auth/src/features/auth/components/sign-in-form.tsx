@@ -19,7 +19,7 @@ import {
 } from "@outbound/ui/components/ui/field";
 import { Input } from "@outbound/ui/components/ui/input";
 import { Separator } from "@outbound/ui/components/ui/separator";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router";
 
@@ -38,11 +38,19 @@ import type { AuthError } from "../types/flow-state";
 export function SignInForm(): React.ReactElement {
   const { signIn, fetchStatus } = useSignIn();
   const [serverErrors, setServerErrors] = useState<AuthError[]>([]);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
     defaultValues: { email: "", password: "" },
   });
+  const passwordRegister = form.register("password");
+
+  useEffect(() => {
+    // Spec §"Accessibility floor": after a server error, focus returns to the offending field
+    // so the user can immediately re-enter or correct their credentials.
+    if (serverErrors.length > 0) passwordRef.current?.focus();
+  }, [serverErrors]);
 
   const isBusy = form.formState.isSubmitting || fetchStatus === "fetching";
 
@@ -114,9 +122,12 @@ export function SignInForm(): React.ReactElement {
                 spellCheck={false}
                 autoCorrect="off"
                 aria-invalid={Boolean(form.formState.errors.email ?? field.email)}
+                aria-describedby="signin-email-error"
                 {...form.register("email")}
               />
-              <FieldError>{form.formState.errors.email?.message ?? field.email}</FieldError>
+              <FieldError id="signin-email-error">
+                {form.formState.errors.email?.message ?? field.email}
+              </FieldError>
             </Field>
             <Field data-invalid={Boolean(form.formState.errors.password ?? field.password)}>
               <div className="flex items-center justify-between gap-2">
@@ -132,18 +143,26 @@ export function SignInForm(): React.ReactElement {
                 id="signin-password"
                 autoComplete="current-password"
                 aria-invalid={Boolean(form.formState.errors.password ?? field.password)}
-                {...form.register("password")}
+                aria-describedby="signin-password-error"
+                {...passwordRegister}
+                ref={(node) => {
+                  passwordRegister.ref(node);
+                  passwordRef.current = node;
+                }}
               />
-              <FieldError>{form.formState.errors.password?.message ?? field.password}</FieldError>
+              <FieldError id="signin-password-error">
+                {form.formState.errors.password?.message ?? field.password}
+              </FieldError>
               <FieldDescription className="sr-only">
                 Need help? Contact {env.VITE_SUPPORT_EMAIL}.
               </FieldDescription>
             </Field>
           </FieldGroup>
           {banner.length > 0 ? (
+            // role="alert" carries an implicit aria-live="assertive" — setting both was redundant
+            // (and causes NVDA double-announce).
             <div
               role="alert"
-              aria-live="assertive"
               className="border-destructive/30 bg-destructive/10 text-destructive mt-4 rounded-md border px-3 py-2 text-sm"
             >
               {banner.map((error) => (

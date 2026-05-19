@@ -125,8 +125,12 @@ export function SignUpForm(): React.ReactElement {
         }}
         onResend={async () => resendVerificationCode(signUp)}
         onBack={() => {
+          // Spec §10 "Use a different email" returns to the collect phase with the form pristine —
+          // clear the prior submission's values so the user starts fresh.
+          form.reset({ email: "", password: "" });
           setPhase({ name: "collect" });
           setServerErrors([]);
+          setPasswordScore(0);
         }}
       />
     );
@@ -165,9 +169,12 @@ export function SignUpForm(): React.ReactElement {
                 spellCheck={false}
                 autoCorrect="off"
                 aria-invalid={Boolean(form.formState.errors.email ?? field.email)}
+                aria-describedby="signup-email-error"
                 {...form.register("email")}
               />
-              <FieldError>{form.formState.errors.email?.message ?? field.email}</FieldError>
+              <FieldError id="signup-email-error">
+                {form.formState.errors.email?.message ?? field.email}
+              </FieldError>
             </Field>
             <Field data-invalid={Boolean(form.formState.errors.password ?? field.password)}>
               <FieldLabel htmlFor="signup-password">Password</FieldLabel>
@@ -175,6 +182,7 @@ export function SignUpForm(): React.ReactElement {
                 id="signup-password"
                 autoComplete="new-password"
                 aria-invalid={Boolean(form.formState.errors.password ?? field.password)}
+                aria-describedby="signup-password-error"
                 {...form.register("password")}
               />
               <PasswordStrengthMeter
@@ -182,7 +190,9 @@ export function SignUpForm(): React.ReactElement {
                 userInputs={userInputs}
                 onScoreChange={setPasswordScore}
               />
-              <FieldError>{form.formState.errors.password?.message ?? field.password}</FieldError>
+              <FieldError id="signup-password-error">
+                {form.formState.errors.password?.message ?? field.password}
+              </FieldError>
             </Field>
           </FieldGroup>
           <div className="mt-4">
@@ -191,7 +201,6 @@ export function SignUpForm(): React.ReactElement {
           {banner.length > 0 ? (
             <div
               role="alert"
-              aria-live="assertive"
               className="border-destructive/30 bg-destructive/10 text-destructive mt-4 rounded-md border px-3 py-2 text-sm"
             >
               {banner.map((error) => (

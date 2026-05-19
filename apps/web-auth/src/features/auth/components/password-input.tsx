@@ -39,9 +39,11 @@ export function PasswordInput({
           type="button"
           variant="ghost"
           size="icon"
-          // aria-pressed (button-toggle, APG): https://www.w3.org/WAI/ARIA/apg/patterns/button/
+          // APG button-toggle pattern: the accessible name must stay constant across states;
+          // aria-pressed conveys the on/off state, the icon swap is purely visual.
+          // https://www.w3.org/WAI/ARIA/apg/patterns/button/
           aria-pressed={visible}
-          aria-label="Show password"
+          aria-label="Password visibility"
           onClick={() => {
             setVisible((current) => !current);
           }}
