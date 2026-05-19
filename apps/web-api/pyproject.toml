@@ -1,0 +1,67 @@
+[project]
+name = "web-api"
+version = "0.0.0"
+description = "Outbound Spotter — Django + DRF service. Trip CRUD, HOS planner, ORS proxy, Clerk JWT verification."
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+license = "UNLICENSED"
+dependencies = [
+  "django>=5.2,<6",
+  "djangorestframework~=3.17.1",
+  "drf-spectacular~=0.29.0",
+  "psycopg[binary,pool]~=3.3.4",
+  "pydantic-settings~=2.14.1",
+  "django-cors-headers~=4.9.0",
+  "clerk-backend-api~=5.0.6",
+  "whitenoise~=6.12.0",
+]
+
+[dependency-groups]
+dev = [
+  "pytest~=9.0.3",
+  "pytest-django~=4.12.0",
+  "pytest-cov~=7.1.0",
+  "factory-boy~=3.3.3",
+  "ruff~=0.15.13",
+  "mypy~=1.20.2",
+  "django-stubs[compatible-mypy]~=6.0.4",
+  "djangorestframework-stubs[compatible-mypy]~=3.17.0",
+  "types-requests~=2.33.0",
+]
+prod = ["gunicorn~=26.0.0"]
+
+[tool.uv]
+package = false
+default-groups = ["dev"]
+
+[tool.ruff]
+extend = "../../pyproject.toml"
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+mypy_path = "."
+explicit_package_bases = true
+exclude = ["^build/", "^dist/", "^.venv/", "^tests/conftest\\.py$"]
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+
+[tool.django-stubs]
+django_settings_module = "web_api.settings.dev"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "web_api.settings.dev"
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-ra --strict-markers --strict-config --cov=web_api --cov-report=term-missing"
+testpaths = ["tests"]
+filterwarnings = [
+  "error",
+  "ignore::DeprecationWarning:django.*",
+  "ignore::DeprecationWarning:rest_framework.*",
+  "ignore::UserWarning:whitenoise.*",
+]

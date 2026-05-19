@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@outbound/typescript-config/react",
+  "compilerOptions": {
+    "paths": {
+      "@outbound/ui/*": ["${configDir}/src/*"]
+    }
+  },
+  "include": ["src", "*.config.ts"]
+}

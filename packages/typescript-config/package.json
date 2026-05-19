@@ -1,0 +1,20 @@
+{
+  "name": "@outbound/typescript-config",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "files": [
+    "base.json",
+    "react.json",
+    "vite-app.json",
+    "library.json"
+  ],
+  "scripts": {
+    "lint": "node -e \"['base','react','vite-app','library'].forEach(f => JSON.parse(require('fs').readFileSync(f + '.json','utf8')))\"",
+    "typecheck": "echo 'typescript-config is pure JSON — nothing to typecheck'",
+    "test": "echo 'typescript-config has no tests'"
+  }
+}

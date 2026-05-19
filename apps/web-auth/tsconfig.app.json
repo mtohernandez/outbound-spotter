@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@outbound/typescript-config/vite-app",
+  "compilerOptions": {
+    "tsBuildInfoFile": "${configDir}/node_modules/.cache/tsbuildinfo.app.json",
+    "paths": {
+      "@/*": ["${configDir}/src/*"]
+    }
+  },
+  "include": ["src"]
+}
