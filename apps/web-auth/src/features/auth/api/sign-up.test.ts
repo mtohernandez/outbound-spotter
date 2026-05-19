@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
+
+import { asSignUp, buildSignUpResource } from "@/testing/clerk-mocks";
 
 import {
   resendVerificationCode,
@@ -7,118 +9,108 @@ import {
   verifySignUpCode,
 } from "./sign-up";
 
-import type { SignUpResource } from "@clerk/shared/types";
-
-function makeSignUpResource(overrides: Partial<SignUpResource> = {}): SignUpResource {
-  return {
-    create: vi.fn(),
-    prepareEmailAddressVerification: vi.fn(),
-    attemptEmailAddressVerification: vi.fn(),
-    authenticateWithRedirect: vi.fn(),
-    ...overrides,
-  } as unknown as SignUpResource;
-}
-
 describe("startSignUp", () => {
-  it("requests an email_code verification after a successful create", async () => {
-    const prepare = vi.fn().mockResolvedValue({});
-    const signUp = makeSignUpResource({
-      create: vi.fn().mockResolvedValue({ status: "missing_requirements", createdSessionId: null }),
-      prepareEmailAddressVerification: prepare,
+  it("calls password and then ships an email code when verification is needed", async () => {
+    const mock = buildSignUpResource({
+      status: "missing_requirements",
+      createdSessionId: null,
     });
 
-    const result = await startSignUp(signUp, { emailAddress: "a@b.co", password: "Strong-9!" });
+    const result = await startSignUp(asSignUp(mock), {
+      emailAddress: "a@b.co",
+      password: "Strong-9!",
+    });
 
-    expect(prepare).toHaveBeenCalledWith({ strategy: "email_code" });
+    expect(mock.password).toHaveBeenCalledWith({
+      emailAddress: "a@b.co",
+      password: "Strong-9!",
+    });
+    expect(mock.verifications.sendEmailCode).toHaveBeenCalledOnce();
     expect(result).toEqual({ status: "needs_verification", emailAddress: "a@b.co" });
   });
 
-  it("returns complete when Clerk reports an immediate session", async () => {
-    const signUp = makeSignUpResource({
-      create: vi.fn().mockResolvedValue({ status: "complete", createdSessionId: "sess_1" }),
+  it("returns complete without sending an email code when Clerk activates immediately", async () => {
+    const mock = buildSignUpResource({ status: "complete", createdSessionId: "sess_1" });
+
+    const result = await startSignUp(asSignUp(mock), {
+      emailAddress: "a@b.co",
+      password: "Strong-9!",
     });
 
-    const result = await startSignUp(signUp, { emailAddress: "a@b.co", password: "Strong-9!" });
-
+    expect(mock.verifications.sendEmailCode).not.toHaveBeenCalled();
     expect(result).toEqual({ status: "complete", createdSessionId: "sess_1" });
   });
 
-  it("returns the Clerk error envelope on rejected create", async () => {
-    const errors = [{ code: "form_password_pwned", message: "compromised", meta: {} }];
-    const signUp = makeSignUpResource({
-      create: vi.fn().mockRejectedValue({ errors }),
-    });
+  it("surfaces a ClerkError from signUp.password", async () => {
+    const error = { code: "form_password_pwned", message: "compromised" };
+    const mock = buildSignUpResource();
+    mock.password.mockResolvedValueOnce({ error });
 
-    const result = await startSignUp(signUp, { emailAddress: "a@b.co", password: "Strong-9!" });
+    const result = await startSignUp(asSignUp(mock), {
+      emailAddress: "a@b.co",
+      password: "Strong-9!",
+    });
 
     expect(result.status).toBe("error");
     if (result.status === "error") {
-      expect(result.errors).toBe(errors);
+      expect(result.errors[0]).toBe(error);
     }
   });
 });
 
 describe("verifySignUpCode", () => {
-  it("returns complete when the attempted verification succeeds", async () => {
-    const signUp = makeSignUpResource({
-      attemptEmailAddressVerification: vi
-        .fn()
-        .mockResolvedValue({ status: "complete", createdSessionId: "sess_2" }),
-    });
+  it("returns complete after a successful verification", async () => {
+    const mock = buildSignUpResource({ status: "complete", createdSessionId: "sess_2" });
 
-    const result = await verifySignUpCode(signUp, { code: "123456" });
+    const result = await verifySignUpCode(asSignUp(mock), { code: "123456" });
 
+    expect(mock.verifications.verifyEmailCode).toHaveBeenCalledWith({ code: "123456" });
     expect(result).toEqual({ status: "complete", createdSessionId: "sess_2" });
   });
 
-  it("returns incomplete when Clerk reports a non-complete status", async () => {
-    const signUp = makeSignUpResource({
-      attemptEmailAddressVerification: vi
-        .fn()
-        .mockResolvedValue({ status: "missing_requirements", createdSessionId: null }),
+  it("returns incomplete when status is not complete after verifyEmailCode", async () => {
+    const mock = buildSignUpResource({
+      status: "missing_requirements",
+      createdSessionId: null,
     });
 
-    const result = await verifySignUpCode(signUp, { code: "123456" });
+    const result = await verifySignUpCode(asSignUp(mock), { code: "123456" });
 
     expect(result).toEqual({ status: "incomplete" });
   });
 
-  it("surfaces Clerk errors", async () => {
-    const errors = [{ code: "verification_failed", message: "bad code", meta: {} }];
-    const signUp = makeSignUpResource({
-      attemptEmailAddressVerification: vi.fn().mockRejectedValue({ errors }),
-    });
+  it("surfaces a ClerkError from verifyEmailCode", async () => {
+    const error = { code: "verification_failed", message: "bad code" };
+    const mock = buildSignUpResource();
+    mock.verifications.verifyEmailCode.mockResolvedValueOnce({ error });
 
-    const result = await verifySignUpCode(signUp, { code: "000000" });
+    const result = await verifySignUpCode(asSignUp(mock), { code: "000000" });
 
     expect(result.status).toBe("error");
-    if (result.status === "error") {
-      expect(result.errors).toBe(errors);
-    }
   });
 });
 
 describe("resendVerificationCode", () => {
-  it("re-prepares the email_code verification", async () => {
-    const signUp = makeSignUpResource();
-    await resendVerificationCode(signUp);
-    expect(signUp.prepareEmailAddressVerification).toHaveBeenCalledWith({ strategy: "email_code" });
+  it("calls signUp.verifications.sendEmailCode", async () => {
+    const mock = buildSignUpResource();
+    await resendVerificationCode(asSignUp(mock));
+    expect(mock.verifications.sendEmailCode).toHaveBeenCalledOnce();
   });
 });
 
 describe("startSignUpGoogleOAuth", () => {
-  it("forwards the strategy + redirect URLs", async () => {
-    const signUp = makeSignUpResource();
+  it("forwards the strategy + redirect URLs to signUp.sso", async () => {
+    const mock = buildSignUpResource();
 
-    await startSignUpGoogleOAuth(signUp, {
-      redirectUrl: "/sso-callback",
-      redirectUrlComplete: "https://app.example.com",
+    await startSignUpGoogleOAuth(asSignUp(mock), {
+      redirectUrl: "https://app.example.com",
+      redirectCallbackUrl: "/sso-callback",
     });
 
-    expect(signUp.authenticateWithRedirect).toHaveBeenCalledWith({
+    expect(mock.sso).toHaveBeenCalledWith({
       strategy: "oauth_google",
-      redirectUrl: "/sso-callback",
-      redirectUrlComplete: "https://app.example.com",
+      redirectUrl: "https://app.example.com",
+      redirectCallbackUrl: "/sso-callback",
     });
   });
 });

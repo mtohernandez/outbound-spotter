@@ -1,37 +1,44 @@
-import { extractClerkErrors } from "../utils/clerk-error";
+import type { AuthError } from "../types/flow-state";
+import type { SignInFutureResource } from "@clerk/shared/types";
 
-import type { ClerkAPIError, SignInResource } from "@clerk/shared/types";
+// Clerk Core 3 / @clerk/react v6 surface: `useSignIn()` returns `signIn: SignInFutureResource`,
+// which exposes `password({ identifier, password })`, `sso({ strategy, redirectUrl, redirectCallbackUrl })`,
+// and `finalize()`. Resource methods resolve to `{ error: ClerkError | null }` rather than throwing.
+// Reference: https://clerk.com/docs/guides/development/custom-flows/authentication/email-password
 
 export type SignInResult =
   | { status: "complete"; createdSessionId: string }
   | { status: "needs_factor"; nextFactor: string }
-  | { status: "error"; errors: ClerkAPIError[] };
+  | { status: "error"; errors: AuthError[] };
 
 export async function signInWithPassword(
-  signIn: SignInResource,
+  signIn: SignInFutureResource,
   args: { identifier: string; password: string },
 ): Promise<SignInResult> {
-  try {
-    const result = await signIn.create({
-      identifier: args.identifier,
-      password: args.password,
-    });
-    if (result.status === "complete" && result.createdSessionId) {
-      return { status: "complete", createdSessionId: result.createdSessionId };
-    }
-    return { status: "needs_factor", nextFactor: result.status ?? "unknown" };
-  } catch (error) {
-    return { status: "error", errors: extractClerkErrors(error) };
+  const { error } = await signIn.password({
+    identifier: args.identifier,
+    password: args.password,
+  });
+  if (error) return { status: "error", errors: [error] };
+  if (signIn.status === "complete" && signIn.createdSessionId) {
+    return { status: "complete", createdSessionId: signIn.createdSessionId };
   }
+  return { status: "needs_factor", nextFactor: signIn.status };
+}
+
+export async function finalizeSignIn(signIn: SignInFutureResource): Promise<AuthError | null> {
+  const { error } = await signIn.finalize();
+  return error;
 }
 
 export async function startGoogleOAuth(
-  signIn: SignInResource,
-  args: { redirectUrl: string; redirectUrlComplete: string },
-): Promise<void> {
-  await signIn.authenticateWithRedirect({
+  signIn: SignInFutureResource,
+  args: { redirectUrl: string; redirectCallbackUrl: string },
+): Promise<AuthError | null> {
+  const { error } = await signIn.sso({
     strategy: "oauth_google",
     redirectUrl: args.redirectUrl,
-    redirectUrlComplete: args.redirectUrlComplete,
+    redirectCallbackUrl: args.redirectCallbackUrl,
   });
+  return error;
 }

@@ -1,47 +1,75 @@
 import { vi, type Mock } from "vitest";
 
-import type { SignInResource, SignUpResource } from "@clerk/shared/types";
+import type { SignInFutureResource, SignUpFutureResource } from "@clerk/shared/types";
 
-// Hand-rolled factories that build a SignIn/SignUp resource scaffold with vi-mocked methods.
-// `@clerk/testing` v2.x ships Cypress/Playwright helpers only — it does not cover Vitest mocks,
-// so the unit/integration layer hand-rolls these shims (recorded as the C5 decision in the PR body).
+// Hand-rolled factories that mimic the SignInFuture / SignUpFuture surface for Vitest tests.
+// `@clerk/testing` v2.x only covers Cypress/Playwright integration, so the Vitest layer ships
+// its own shims (recorded as a spec-02 decision in the PR body).
 
-export interface MockSignIn extends SignInResource {
+export interface MockSignIn {
+  status: SignInFutureResource["status"];
+  createdSessionId: string | null;
+  password: Mock;
+  sso: Mock;
   create: Mock;
-  authenticateWithRedirect: Mock;
-  attemptFirstFactor: Mock;
-  resetPassword: Mock;
+  finalize: Mock;
+  resetPasswordEmailCode: {
+    sendCode: Mock;
+    verifyCode: Mock;
+    submitPassword: Mock;
+  };
 }
 
-export interface MockSignUp extends SignUpResource {
-  create: Mock;
-  prepareEmailAddressVerification: Mock;
-  attemptEmailAddressVerification: Mock;
-  authenticateWithRedirect: Mock;
+export interface MockSignUp {
+  status: SignUpFutureResource["status"];
+  createdSessionId: string | null;
+  password: Mock;
+  sso: Mock;
+  finalize: Mock;
+  verifications: {
+    sendEmailCode: Mock;
+    verifyEmailCode: Mock;
+  };
 }
+
+const ok = () => Promise.resolve({ error: null });
 
 export function buildSignInResource(overrides: Partial<MockSignIn> = {}): MockSignIn {
   return {
-    create: vi.fn().mockResolvedValue({ status: "complete", createdSessionId: "sess_mock" }),
-    authenticateWithRedirect: vi.fn().mockResolvedValue(undefined),
-    attemptFirstFactor: vi.fn().mockResolvedValue({}),
-    resetPassword: vi.fn().mockResolvedValue({ status: "complete", createdSessionId: "sess_mock" }),
+    status: "complete",
+    createdSessionId: "sess_mock",
+    password: vi.fn(ok),
+    sso: vi.fn(ok),
+    create: vi.fn(ok),
+    finalize: vi.fn(ok),
+    resetPasswordEmailCode: {
+      sendCode: vi.fn(ok),
+      verifyCode: vi.fn(ok),
+      submitPassword: vi.fn(ok),
+    },
     ...overrides,
-  } as unknown as MockSignIn;
+  };
 }
 
 export function buildSignUpResource(overrides: Partial<MockSignUp> = {}): MockSignUp {
   return {
-    create: vi.fn().mockResolvedValue({ status: "missing_requirements", createdSessionId: null }),
-    prepareEmailAddressVerification: vi.fn().mockResolvedValue(undefined),
-    attemptEmailAddressVerification: vi
-      .fn()
-      .mockResolvedValue({ status: "complete", createdSessionId: "sess_mock" }),
-    authenticateWithRedirect: vi.fn().mockResolvedValue(undefined),
+    status: "complete",
+    createdSessionId: "sess_mock",
+    password: vi.fn(ok),
+    sso: vi.fn(ok),
+    finalize: vi.fn(ok),
+    verifications: {
+      sendEmailCode: vi.fn(ok),
+      verifyEmailCode: vi.fn(ok),
+    },
     ...overrides,
-  } as unknown as MockSignUp;
+  };
 }
 
-export function buildSetActive(): Mock {
-  return vi.fn().mockResolvedValue(undefined);
+// Forced cast helper — the mocks satisfy the methods we touch; the rest of the resource is unused.
+export function asSignIn(mock: MockSignIn): SignInFutureResource {
+  return mock as unknown as SignInFutureResource;
+}
+export function asSignUp(mock: MockSignUp): SignUpFutureResource {
+  return mock as unknown as SignUpFutureResource;
 }

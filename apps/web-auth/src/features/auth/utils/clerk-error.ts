@@ -1,25 +1,25 @@
-import type { ErrorSurface } from "../types/flow-state";
-import type { ClerkAPIError } from "@clerk/shared/types";
+import type { AuthError, ErrorSurface } from "../types/flow-state";
 
-interface MaybeClerkError {
-  errors?: ClerkAPIError[];
+interface WithErrors {
+  errors?: AuthError[];
 }
 
-export function extractClerkErrors(error: unknown): ClerkAPIError[] {
-  if (error && typeof error === "object" && Array.isArray((error as MaybeClerkError).errors)) {
-    return (error as MaybeClerkError).errors ?? [];
+export function extractClerkErrors(error: unknown): AuthError[] {
+  if (error && typeof error === "object" && Array.isArray((error as WithErrors).errors)) {
+    return (error as WithErrors).errors ?? [];
   }
   return [];
 }
 
-export function splitClerkErrors(errors: ClerkAPIError[]): ErrorSurface {
-  const banner: ClerkAPIError[] = [];
+export function splitClerkErrors(errors: AuthError[]): ErrorSurface {
+  const banner: AuthError[] = [];
   const field: Record<string, string> = {};
 
   for (const error of errors) {
-    const paramName = (error.meta as { paramName?: string } | undefined)?.paramName;
-    if (paramName) {
-      field[paramName] = error.longMessage ?? error.message;
+    const meta = (error as { meta?: { paramName?: string } }).meta;
+    const longMessage = (error as { longMessage?: string }).longMessage;
+    if (meta?.paramName) {
+      field[meta.paramName] = longMessage ?? error.message;
     } else {
       banner.push(error);
     }
