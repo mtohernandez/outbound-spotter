@@ -5,7 +5,7 @@ The Clerk-backed auth UI. Vite + React 19 + TS 6 + Tailwind v4. Custom `<SignIn 
 ## Local dev
 
 ```bash
-cp .env.example .env.local
+cp .env.local.example .env.local
 pnpm --filter @outbound/web-auth dev
 ```
 
