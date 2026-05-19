@@ -31,9 +31,23 @@ describe("splitClerkErrors", () => {
 
     const result = splitClerkErrors(errors);
 
-    expect(result.field).toEqual({ identifier: "no user matches that identifier" });
+    // Clerk's `identifier` param normalizes to our UX field `email` so the server error
+    // lights up the email input rather than falling through to the banner.
+    expect(result.field).toEqual({ email: "no user matches that identifier" });
     expect(result.banner).toHaveLength(1);
     expect(result.banner[0]?.code).toBe("captcha_invalid");
+  });
+
+  it("normalizes Clerk's email_address paramName to the email field key", () => {
+    const errors = [
+      {
+        code: "form_param_format_invalid",
+        message: "bad email",
+        meta: { paramName: "email_address" },
+      },
+    ] as AuthError[];
+
+    expect(splitClerkErrors(errors).field).toEqual({ email: "bad email" });
   });
 
   it("falls back to message when longMessage is missing", () => {

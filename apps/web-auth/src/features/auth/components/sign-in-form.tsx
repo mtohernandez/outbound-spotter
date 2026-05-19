@@ -47,6 +47,9 @@ export function SignInForm(): React.ReactElement {
   const isBusy = form.formState.isSubmitting || fetchStatus === "fetching";
 
   const onSubmit = form.handleSubmit(async (values) => {
+    // Hook returns null until Clerk hydrates; types lie that it's always populated.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (!signIn) return;
     setServerErrors([]);
     const result = await signInWithPassword(signIn, {
       identifier: values.email,
@@ -67,6 +70,9 @@ export function SignInForm(): React.ReactElement {
   });
 
   const onGoogle = async () => {
+    // Hook returns null until Clerk hydrates; types lie that it's always populated.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (!signIn) return;
     setServerErrors([]);
     const error = await startGoogleOAuth(signIn, {
       redirectUrl: env.VITE_APP_URL,

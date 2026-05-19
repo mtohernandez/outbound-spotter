@@ -13,7 +13,7 @@ import {
 import { Field, FieldError, FieldGroup, FieldLabel } from "@outbound/ui/components/ui/field";
 import { Input } from "@outbound/ui/components/ui/input";
 import { Separator } from "@outbound/ui/components/ui/separator";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Link } from "react-router";
 
@@ -56,11 +56,20 @@ export function SignUpForm(): React.ReactElement {
     defaultValues: { email: "", password: "" },
   });
 
-  const passwordValue = useWatch({ control: form.control, name: "password" });
-  const emailValue = useWatch({ control: form.control, name: "email" });
+  const passwordValue = useWatch({ control: form.control, name: "password", defaultValue: "" });
+  const emailValue = useWatch({ control: form.control, name: "email", defaultValue: "" });
   const isBusy = form.formState.isSubmitting || fetchStatus === "fetching";
+  // Memoize the parent-supplied user inputs so the strength meter's debounce isn't bypassed
+  // by a fresh-array reference on every keystroke.
+  const userInputs = useMemo(
+    () => (emailValue ? [emailValue.split("@")[0] ?? ""] : []),
+    [emailValue],
+  );
 
   const onSubmit = form.handleSubmit(async (values) => {
+    // Hook returns null until Clerk hydrates; types lie that it's always populated.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (!signUp) return;
     setServerErrors([]);
     if (passwordScore < MIN_PASSWORD_SCORE) {
       form.setError("password", {
@@ -89,6 +98,9 @@ export function SignUpForm(): React.ReactElement {
   });
 
   const onGoogle = async () => {
+    // Hook returns null until Clerk hydrates; types lie that it's always populated.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (!signUp) return;
     setServerErrors([]);
     const error = await startSignUpGoogleOAuth(signUp, {
       redirectUrl: env.VITE_APP_URL,
@@ -167,7 +179,7 @@ export function SignUpForm(): React.ReactElement {
               />
               <PasswordStrengthMeter
                 value={passwordValue}
-                userInputs={emailValue ? [emailValue.split("@")[0] ?? ""] : []}
+                userInputs={userInputs}
                 onScoreChange={setPasswordScore}
               />
               <FieldError>{form.formState.errors.password?.message ?? field.password}</FieldError>

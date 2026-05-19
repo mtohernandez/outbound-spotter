@@ -11,15 +11,23 @@ export function extractClerkErrors(error: unknown): AuthError[] {
   return [];
 }
 
+// Clerk's `meta.paramName` uses Clerk's parameter names (`identifier`, `email_address`,
+// `password`, …) while our form fields use UX names (`email`, `password`). Normalize so a
+// server-side email error lights up the email Field instead of falling through to the banner.
+const PARAM_ALIAS: Record<string, string> = {
+  identifier: "email",
+  email_address: "email",
+};
+
 export function splitClerkErrors(errors: AuthError[]): ErrorSurface {
   const banner: AuthError[] = [];
   const field: Record<string, string> = {};
 
   for (const error of errors) {
-    const meta = (error as { meta?: { paramName?: string } }).meta;
-    const longMessage = (error as { longMessage?: string }).longMessage;
-    if (meta?.paramName) {
-      field[meta.paramName] = longMessage ?? error.message;
+    const paramName = error.meta?.paramName;
+    if (paramName) {
+      const key = PARAM_ALIAS[paramName] ?? paramName;
+      field[key] = error.longMessage ?? error.message;
     } else {
       banner.push(error);
     }

@@ -65,6 +65,9 @@ export function ForgotPasswordForm(): React.ReactElement {
     fetchStatus === "fetching";
 
   const onRequest = requestForm.handleSubmit(async (values) => {
+    // Hook returns null until Clerk hydrates; types lie that it's always populated.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (!signIn) return;
     setServerErrors([]);
     const result = await startPasswordReset(signIn, { emailAddress: values.email });
     if (result.status === "error") {
@@ -78,6 +81,9 @@ export function ForgotPasswordForm(): React.ReactElement {
   });
 
   const onReset = resetForm.handleSubmit(async (values) => {
+    // Hook returns null until Clerk hydrates; types lie that it's always populated.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (!signIn) return;
     setServerErrors([]);
     const result = await completePasswordReset(signIn, { password: values.password });
     if (result.status === "error") {
