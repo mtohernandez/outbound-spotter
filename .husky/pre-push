@@ -1,6 +1,10 @@
 #!/usr/bin/env sh
-# Block accidental pushes to protected branches and run typecheck + tests
-# against affected packages before the push hits the remote.
+# Block accidental direct pushes to protected branches and run typecheck +
+# tests against affected packages before the push hits the remote.
+#
+# The initial bootstrap push (when a branch has no upstream yet) is allowed
+# so a fresh repo can establish `main` and `develop` on the remote. After
+# that, those branches only move via PR merges on GitHub.
 
 set -e
 
@@ -8,9 +12,12 @@ protected_branch_re='^(main|develop)$'
 current_branch=$(git rev-parse --abbrev-ref HEAD)
 
 if echo "$current_branch" | grep -qE "$protected_branch_re"; then
-  echo "✗ Pushing directly to '$current_branch' is blocked by .husky/pre-push."
-  echo "  Open a PR from a feat/fix/chore branch into develop instead (gitflow)."
-  exit 1
+  if git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
+    echo "✗ Pushing directly to '$current_branch' is blocked by .husky/pre-push."
+    echo "  Open a PR from a feat/fix/chore branch into develop instead (gitflow)."
+    exit 1
+  fi
+  echo "▶ Initial bootstrap push of '$current_branch' (no upstream yet) — allowed once."
 fi
 
 echo "▶ pnpm turbo run typecheck --affected"
