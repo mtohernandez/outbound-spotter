@@ -1,11 +1,14 @@
-"""Trip endpoints — create + retrieve with ownership enforcement.
+"""Trip endpoints — create + retrieve + plan with ownership enforcement.
 
-``TripCreateView`` runs ORS validation BEFORE persisting any row: if the
-routing service rejects the coordinates (or is temporarily unavailable), the
-view returns the project ``{detail, errors}`` error envelope and no Trip is
-created. The FE renders the ``detail`` text as a toast so the form state is
-preserved and the user can retry without navigating away (senior-review
-directive, post-live-smoke).
+``TripCreateView`` runs ORS validation BEFORE persisting any row and runs
+the HOS planner inside the same atomic block (spec 06). Any failure — ORS
+4xx/5xx, ORS rate limit, planner ``ValueError`` — returns the project
+``{detail, errors}`` envelope; the row never persists. The FE renders
+``detail`` as a toast and preserves the form state (senior-review directive,
+post-live-smoke).
+
+``TripPlanView`` returns the persisted HOS plan envelope. ``get_queryset``
+filters on ``request.user_id`` so foreign trips surface as 404 (no oracle).
 """
 
 from __future__ import annotations
@@ -15,6 +18,7 @@ from typing import TYPE_CHECKING, ClassVar
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.generics import RetrieveAPIView
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -22,6 +26,7 @@ from rest_framework.views import APIView
 from web_api.apps.trips.models import Trip
 from web_api.apps.trips.serializers import (
     TripCreateRequestSerializer,
+    TripPlanSerializer,
     TripResponseSerializer,
 )
 from web_api.apps.trips.services import plan_trip
@@ -34,10 +39,15 @@ from web_api.integrations.openrouteservice import (
 if TYPE_CHECKING:
     import uuid
 
+    from django.db.models import QuerySet
     from rest_framework.request import Request
 
 
 _TRIP_NOT_FOUND = "Trip not found."
+_PLANNER_FAILED = (
+    "Couldn't plan this trip. The HOS planner refused these inputs."
+    " Try slightly different coordinates or a different start time."
+)
 
 
 def _request_user_id(request: Request) -> str:
@@ -109,6 +119,15 @@ class TripCreateView(APIView):
             trip = plan_trip(serializer.validated_data, _request_user_id(request))
         except (OrsRateLimitError, OrsRequestError, OrsUpstreamError) as exc:
             return _routing_error_response(exc)
+        except ValueError:
+            # The planner refused the inputs (PlannerInputs.__post_init__ or
+            # the fuel-stop polyline-vs-summary sanity check). The atomic
+            # block already rolled back the Trip insert. 422 distinguishes
+            # planner faults from routing faults.
+            return Response(
+                {"detail": _PLANNER_FAILED, "errors": None},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
 
         return Response(
             TripResponseSerializer(trip).data,
@@ -127,3 +146,26 @@ class TripRetrieveView(APIView):
         if trip is None:
             raise NotFound(_TRIP_NOT_FOUND)
         return Response(TripResponseSerializer(trip).data)
+
+
+class TripPlanView(RetrieveAPIView[Trip]):
+    """``GET /api/trips/<uuid:id>/plan/`` — the persisted HOS plan envelope.
+
+    ``get_queryset`` scopes to the requesting user so a foreign trip surfaces
+    as 404 (no oracle). The three reverse relations are prefetched so the
+    composed serializer issues a single batched query — the retrieve runs
+    in exactly 2 queries (assert via ``django_assert_num_queries(2)`` in the
+    view test).
+    """
+
+    permission_classes: ClassVar[list[type[BasePermission]]] = [IsAuthenticated]  # type: ignore[misc]
+    serializer_class = TripPlanSerializer
+    lookup_field = "id"
+    throttle_scope = "trip_plan_retrieve"
+
+    def get_queryset(self) -> QuerySet[Trip]:
+        return Trip.objects.filter(user_id=_request_user_id(self.request)).prefetch_related(
+            "stops",
+            "log_events",
+            "log_days",
+        )

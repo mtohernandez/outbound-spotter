@@ -2,11 +2,15 @@
 
 ``plan_trip`` is the only entry point. It looks up the SHA256-keyed
 ``TripRouteCache``, calls ORS Directions on a miss, then persists a single
-Trip row with the resolved route in one atomic insert.
+Trip row with the resolved route AND its HOS-compliant plan in one atomic
+block. ``hos_adapter.materialize_plan`` is the one-way bridge into the
+pure-Python planner (invariant #1).
 
 ORS errors propagate as ``OrsError`` subclasses — NO Trip row is created on
-failure. The view layer maps each subclass to an HTTP error response so the
-user stays on the form (post-live-smoke senior-review directive).
+failure. Planner failures (``ValueError`` from ``PlannerInputs.__post_init__``
+or the polyline-vs-summary sanity check) propagate too; the view layer maps
+each to an HTTP error response so the user stays on the form
+(post-live-smoke senior-review directive).
 """
 
 from __future__ import annotations
@@ -17,6 +21,7 @@ from typing import TYPE_CHECKING, Any, Final
 
 from django.db import transaction
 
+from web_api.apps.trips import hos_adapter
 from web_api.apps.trips.models import Trip, TripRouteCache
 from web_api.integrations.openrouteservice import (
     DirectionsResult,
@@ -43,17 +48,18 @@ _TripCoords = tuple[_Coord, _Coord, _Coord]
 
 
 def plan_trip(serializer_data: Mapping[str, Any], user_id: str) -> Trip:
-    """Resolve the route, then persist a Trip row.
+    """Resolve the route, persist a Trip row, and materialize its plan.
 
     Raises ``OrsRateLimitError`` / ``OrsRequestError`` / ``OrsUpstreamError``
-    on routing failure. The view layer translates these into HTTP responses;
-    no Trip row is persisted on failure (the user stays on the form).
+    on routing failure, or ``ValueError`` on planner failure. The view layer
+    translates each into an HTTP response; no Trip row is persisted on
+    failure (atomic rollback) so the user stays on the form.
     """
     coords = _coords_from_serializer(serializer_data)
     result = _resolve_directions(coords)
 
     with transaction.atomic():
-        return Trip.objects.create(
+        trip = Trip.objects.create(
             user_id=user_id,
             current_label=serializer_data["current"]["label"],
             current_lat=serializer_data["current"]["lat"],
@@ -65,10 +71,13 @@ def plan_trip(serializer_data: Mapping[str, Any], user_id: str) -> Trip:
             dropoff_lat=serializer_data["dropoff"]["lat"],
             dropoff_lon=serializer_data["dropoff"]["lon"],
             cycle_hours_used=serializer_data["cycle_hours_used"],
+            start_at=serializer_data["start_at"],
             route_polyline=result.polyline,
             route_segments=[asdict(s) for s in result.segments],
             route_summary=asdict(result.summary),
         )
+        hos_adapter.materialize_plan(trip)
+        return trip
 
 
 def _resolve_directions(coords: _TripCoords) -> DirectionsResult:
