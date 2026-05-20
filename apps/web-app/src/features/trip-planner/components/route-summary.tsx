@@ -104,7 +104,7 @@ function FailedSummary({ code }: { readonly code: RouteErrorCode }): React.React
       <EmptyDescription>{copy.body}</EmptyDescription>
       <Link
         to={paths.tripsNew satisfies string}
-        className="text-primary hover:underline focus-visible:underline"
+        className="text-primary focus-visible:ring-ring focus-visible:ring-offset-background rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-offset-2"
       >
         Plan a new trip
       </Link>

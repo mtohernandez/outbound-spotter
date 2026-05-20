@@ -97,8 +97,9 @@ def _resolve_directions(coords: _TripCoords) -> DirectionsResult:
         return _hydrate_payload(cached.payload)
 
     result = directions_hgv(list(coords))
-    # IntegrityError on a concurrent insert under the same key is benign —
-    # both rows hold the same payload. Swallowing it keeps the request green.
+    # Django's update_or_create wraps SELECT FOR UPDATE + INSERT in its own
+    # atomic block and retries on IntegrityError, so concurrent identical
+    # POSTs converge to a single row instead of raising.
     TripRouteCache.objects.update_or_create(
         cache_key=cache_key,
         defaults={"coords_canonical": canonical, "payload": asdict(result)},
