@@ -7,8 +7,23 @@ fuel / off-duty events. This is a deliberate deviation from the spec's
 single-event-per-leg pseudocode — long-haul trips require slicing, and the
 goldens explicitly assert sliced output (assessment_break_only is exactly
 8h DRIVING → 30-min break → 1h DRIVING, not one 9h DRIVING preceded by a
-break). The slicing happens here; the rule predicates in ``rules.py`` remain
-the spec-mandated public surface for unit testing.
+break).
+
+Two surfaces encode each §395 limit:
+
+1. ``rules.py::apply_*`` — predicate functions that ``test_rules.py`` exercises
+   and that ``_emit_static_leg`` calls for the cycle-cap check on non-driving
+   legs. These remain the spec-mandated public surface and the single source
+   of truth for the regulation interpretation.
+2. ``planner.py::_max_drive_chunk`` + ``_make_constraint_event`` — the slicing
+   loop that re-derives the same thresholds from the shared constants in
+   ``rules.py`` (DRIVE_LIMIT_PER_WINDOW, DRIVE_WINDOW_LIMIT, …). The slicer
+   imports the constants but not the predicates, because predicates answer
+   "should I emit?" while the slicer answers "how long until I must emit?".
+
+Both surfaces use the same constants; a change to a threshold must update
+``rules.py`` constants only, and both layers track in lockstep. The end-to-end
+goldens guard against drift between the two.
 """
 
 from __future__ import annotations
@@ -166,9 +181,11 @@ def _build_legs(inputs: PlannerInputs) -> list[PlannedLeg]:
 def _emit_static_leg(state: PlannerState, leg: PlannedLeg, events: list[LogEvent]) -> PlannerState:
     """Emit a pickup or dropoff event (1h ON_DUTY_NOT_DRIVING).
 
-    The cycle-cap rule may fire even on a static 1h event (when the driver is
-    at 69.5h+ cycle hours). The 14-hour window does not apply — driving is the
-    constraint, and pickup/dropoff are non-driving.
+    The cycle-cap rule may fire here when the driver is at 69h+ cycle hours.
+    The 14-hour window does *count* this on-duty time (``advance`` extends
+    ``drive_window_open_at``), but enforcement is lazy — §395.3(a)(2) bans
+    driving past 14h, not on-duty-not-driving. The next driving leg's slicer
+    catches a violation on the first iteration of ``_max_drive_chunk``.
     """
     cycle_event = apply_cycle_cap(state, leg)
     if cycle_event is not None:
@@ -272,6 +289,10 @@ def _max_drive_chunk(
     cycle_avail_hours = CYCLE_LIMIT_HOURS - state.cycle_hours_used_total
     if cycle_avail_hours <= Decimal(0):
         return 0, "cycle"
+    # ``Decimal * int`` returns ``Decimal``; ``int(Decimal)`` truncates toward zero.
+    # Safe given the integer-minute duration contract (decision 6) — cycle hours land on
+    # tenths-of-an-hour grid in the worst case, so the truncation never loses subsecond
+    # accuracy. If durations ever go sub-minute, requantize before this conversion.
     t_cycle = int(cycle_avail_hours * _SECONDS_PER_HOUR)
     if t_cycle < chunk_s:
         chunk_s = t_cycle

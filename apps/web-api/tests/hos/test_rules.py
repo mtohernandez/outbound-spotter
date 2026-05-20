@@ -106,6 +106,18 @@ def test_off_duty_window_fires_when_leg_would_cross_fourteen_hour_mark() -> None
     assert "§395.3(a)(2)" in event.note
 
 
+def test_off_duty_window_fires_when_window_already_expired() -> None:
+    """boundary-already-past: window opened > 14h ago; any positive driving leg fires."""
+    state = make_state(
+        now=DEFAULT_START_AT + timedelta(hours=15),
+        drive_window_open_at=DEFAULT_START_AT,
+    )
+    leg = _driving_leg(duration_s=60)  # 1 min — but window is already 1h past the 14h mark
+    event = apply_off_duty_window(state, leg)
+    assert event is not None
+    assert event.duration == timedelta(hours=10)
+
+
 def test_break_does_not_fire_below_eight_hours_drive_since_break() -> None:
     state = make_state(cum_drive_since_break=timedelta(hours=7, minutes=30))
     leg = _driving_leg(duration_s=20 * 60)  # 20 min — total 7h50m

@@ -92,6 +92,12 @@ def test_cycle_cap_subsumes_window() -> None:
     assert len(restart_indices) == 1, f"expected one 34h restart, got {len(restart_indices)}"
 
     restart_idx = restart_indices[0]
+    restart_event = events[restart_idx]
+    # Lock the restart event content — guards against a regression that emits a 10h
+    # OFF_DUTY masquerading as a 34h restart (test-automator review).
+    assert restart_event.duration == timedelta(hours=34)
+    assert restart_event.note == "34-hour restart (§395.3(c)(1))"
+
     # The event immediately preceding the restart must be DRIVING (cycle cap fires
     # at end of the last allowed driving chunk), NOT a 10h OFF_DUTY.
     preceding = events[restart_idx - 1]
@@ -100,9 +106,9 @@ def test_cycle_cap_subsumes_window() -> None:
     )
 
     # And no 10h OFF_DUTY event landed at the same moment as the restart.
-    restart_start = events[restart_idx].start
+    restart_start = restart_event.start
     for ev in events:
-        if ev.start == restart_start and ev is not events[restart_idx]:
+        if ev.start == restart_start and ev is not restart_event:
             pytest.fail(f"another event at the restart boundary: {ev!r}")
 
 

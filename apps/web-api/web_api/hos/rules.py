@@ -1,9 +1,20 @@
 """Per-rule §395 functions. Each emits at most one ``LogEvent`` per call.
 
-Composition order is set by ``planner.py``: cycle_cap → off_duty_window →
-drive_limit → break → fuel_stop → emit_leg. Cycle cap runs FIRST so its 34h
-restart subsumes any 10h off-duty the subsequent rules would otherwise emit
-at the same boundary (architect-review M2 in the spec).
+These predicates encode each regulation as a single source of truth.
+``apply_cycle_cap`` is called directly by ``planner._emit_static_leg`` on
+pickup / dropoff legs (which skip the slicing loop). The remaining five
+predicates (off-duty-window, drive-limit, break, fuel-stop, restart-recovery)
+are exercised by ``test_rules.py`` and serve as the auditable §395 surface
+for external readers; ``planner._max_drive_chunk`` re-derives the same
+thresholds from the shared module-level constants (``DRIVE_LIMIT_PER_WINDOW``
+etc.) so the slicing loop produces the same emit decisions without calling
+the predicates directly. Keeping the constants in one place ensures both
+surfaces track in lockstep.
+
+Composition order when both layers run on the same leg: cycle_cap →
+off_duty_window → drive_limit → break → fuel_stop → emit_leg. Cycle cap runs
+FIRST so its 34h restart subsumes any 10h off-duty the subsequent rules would
+otherwise emit at the same boundary (architect-review M2 in the spec).
 """
 
 from __future__ import annotations
