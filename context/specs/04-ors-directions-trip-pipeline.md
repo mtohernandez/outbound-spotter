@@ -38,6 +38,7 @@ These were resolved during the spec-04 planning session and are recorded here so
    - 429 → `OrsRateLimitError(window="per-minute")`.
    - 403 with body message containing `"quota"` (case-insensitive) → `OrsRateLimitError(window="daily")`.
    - 403 with body message NOT containing `"quota"` → `OrsRequestError` (auth/config — louder log; deserves operator attention, not user-facing rate-limit copy).
+   - 401 → `OrsRequestError` (auth — treated identically to non-quota 403; ORS conflates these but the public docs are inconsistent, so we map both to "operator attention").
    - 400 → `OrsRequestError`.
    - 5xx (after one retry) → `OrsUpstreamError`.
 
@@ -206,7 +207,7 @@ Order matters: backend lands first so the FE can drive against real data; the sc
    - Add `class TripStatus(models.TextChoices): PLANNING = "planning", "Planning"; PLANNED = "planned", "Planned"; FAILED = "failed", "Failed"`.
    - Add the four route fields + flip `Trip.status` default to `TripStatus.PLANNING`. Keep `max_length=16`.
    - Add `class TripRouteCache(models.Model): cache_key (PK), coords_canonical, payload, created_at`.
-2. `uv run python manage.py makemigrations trips`. Inspect the generated migration; ADD a `RunPython` operation at the start:
+2. `uv run python manage.py makemigrations trips`. Inspect the generated migration; ADD a `RunPython` operation **between the `AddField` operations and the `AlterField` for `status` choices** (forward order: `AddField` ×4 → `RunPython` → `AlterField` → `CreateModel TripRouteCache`):
 
    ```python
    def forward_pending_to_planning(apps, schema_editor):
@@ -218,7 +219,7 @@ Order matters: backend lands first so the FE can drive against real data; the sc
        Trip.objects.filter(status="planning", route_polyline__isnull=True).update(status="pending")
    ```
 
-   Run order: `RunPython` → `AddField` operations → `AlterField` for `status` choices. Commit the migration verbatim; never re-edit post-apply.
+   **Why this order, not "RunPython first":** the reverse `RunPython` filters `route_polyline__isnull=True`. Django executes migration operations in reverse order on a backward migration; if `RunPython` were the first forward op, it would be the last reverse op — running AFTER `AddField` has been reversed and the `route_polyline` column has been dropped, causing `ProgrammingError` on reverse. Placing `RunPython` after the `AddField` ops keeps both directions symmetric. Commit the migration verbatim; never re-edit post-apply.
 
 3. `uv run python manage.py migrate`. Verify on the existing local DB that the spec-03 row's `status` transitioned from `"pending"` → `"planning"`.
 
