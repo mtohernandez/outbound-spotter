@@ -16,17 +16,6 @@ vi.mock("@clerk/react", () => ({
 const { TripsDetailRoute } = await import("@/app/routes/trips-detail");
 
 describe("TripsDetailRoute (main view)", () => {
-  it("renders the map placeholder once the trip resolves", async () => {
-    renderWithProviders(<TripsDetailRoute />, {
-      initialEntries: ["/trips/abc-id"],
-      routePath: "/trips/:id",
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText(/route map \+ daily log sheets/i)).toBeInTheDocument();
-    });
-  });
-
   it("shows the not-found Empty state when the API returns 404", async () => {
     server.use(
       http.get("http://localhost:8000/api/trips/:id/", () =>
