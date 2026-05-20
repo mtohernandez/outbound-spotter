@@ -30,7 +30,7 @@ Each version below was pinned to the latest stable release at the time of select
 
 ## System Boundaries
 
-- `apps/web-app/` — trip-planner SPA. Owns the trip form, map, log SVG renderer, PDF export, saved-trip browser. Never talks to ORS directly; always proxies through web-api so the ORS API key stays server-side.
+- `apps/web-app/` — trip-planner SPA. Owns the trip form, map, log SVG renderer, PDF export, saved-trip browser. Never talks to ORS directly; always proxies through web-api so the ORS API key stays server-side. **`<TripMap />` is `React.lazy`-loaded from `/trips/:id` only**; Vite's natural lazy-import chunking pulls `leaflet` + `react-leaflet` + `@react-leaflet/core` + `leaflet/dist/leaflet.css` into a dedicated `trip-map-*.js` (~160 KB raw / 48 KB gzip) + `trip-map-*.css` (~15 KB raw / 6 KB gzip) chunk. Non-`/trips/:id` routes never load the leaflet bundle. A previously-tried explicit `manualChunks` carve-out for `leaflet-vendor` caused Rolldown to hoist shared React deps into the leaflet chunk via cross-chunk imports — the natural lazy-import split is correct (spec 07 perf-engineer CRITICAL).
 - `apps/web-auth/` — Clerk-rendered auth pages styled with shadcn blocks. Issues the Clerk session that both web-app and web-api consume. Owns nothing trip-related.
 - `apps/web-api/` — Django + DRF service. Owns the HOS planner (a pure Python module under `web_api/hos/`), the ORS client, all DB writes, and JWT verification via Clerk's JWKS.
 - `apps/web-api/web_api/hos/` — pure-Python HOS calculator. No Django imports. Inputs: route legs + cycle-hours-used + start time. Outputs: a deterministic list of `LogEvent` dataclasses. This is the accuracy-critical surface and must stay framework-free so it's trivially testable.
