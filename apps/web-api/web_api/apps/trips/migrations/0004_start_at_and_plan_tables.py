@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING, ClassVar
 
 import django.db.models.deletion
 from django.db import migrations, models
+from django.db.models.functions import Coalesce, Now
 
 if TYPE_CHECKING:
     from django.apps.registry import Apps
@@ -32,14 +33,20 @@ if TYPE_CHECKING:
 
 
 def forward_backfill_start_at(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -> None:
-    """Set ``start_at = created_at`` for every existing Trip row.
+    """Set ``start_at = COALESCE(created_at, NOW())`` for every existing row.
 
-    Spec 03 / 04 local-dev rows lack ``start_at``; the safest reversible
-    default is the existing creation timestamp. A future re-plan spec will
-    rewrite the value if the driver edits the trip.
+    Spec 03 / 04 rows lack ``start_at``; ``created_at`` is always populated
+    via ``auto_now_add=True`` on every ORM-persisted row. The ``Coalesce`` to
+    ``Now()`` is a defensive belt-and-suspenders against rows inserted via
+    raw SQL bypassing Django — without it, a NULL ``created_at`` would
+    silently leave ``start_at`` NULL and the subsequent ``AlterField`` to
+    ``null=False`` would raise ``NotNullViolation`` mid-migration
+    (code-reviewer C2).
     """
     Trip = apps.get_model("trips", "Trip")
-    Trip.objects.filter(start_at__isnull=True).update(start_at=models.F("created_at"))
+    Trip.objects.filter(start_at__isnull=True).update(
+        start_at=Coalesce("created_at", Now()),
+    )
 
 
 def reverse_clear_start_at(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -> None:

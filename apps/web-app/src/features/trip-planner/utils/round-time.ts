@@ -21,9 +21,14 @@ export function toDatetimeLocalValue(date: Date): string {
 
 /**
  * Inverse: take the value an `<input type="datetime-local">` produced and
- * return an ISO 8601 string with offset reflecting the user's local TZ.
+ * return an ISO 8601 string (UTC, `Z`-suffixed). The instant preserved is
+ * exactly what the user picked in their local clock — the BE re-renders
+ * via `Intl.DateTimeFormat` in the trip's home-terminal TZ, so what they
+ * see post-submit matches what they typed (modulo the home-terminal TZ
+ * differing from theirs, by design). `z.iso.datetime({ offset: true })`
+ * accepts `Z` as a valid offset alternative, so the wire contract holds.
  */
 export function fromDatetimeLocalValue(value: string): string {
-  // `new Date(localValue)` parses as local-time per spec.
+  // `new Date(localValue)` parses as local-time per the HTML spec.
   return new Date(value).toISOString();
 }

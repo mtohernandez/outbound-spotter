@@ -1,9 +1,10 @@
 """DRF tests for ``TripPlanView`` (``GET /api/trips/<uuid:id>/plan/``).
 
 Ownership: 404 on missing AND on foreign (no oracle). Throttle: per-user
-keyed via ``PerUserScopedThrottle``. N+1 closure: assert exactly 2 queries
-on a successful retrieve (one for the Trip row + ownership filter, one for
-the prefetch batch covering stops / log_events / log_days).
+keyed via ``PerUserScopedThrottle``. N+1 closure: assert exactly 4 queries
+on a successful retrieve (one Trip lookup + one prefetch batch per reverse
+relation: stops / log_events / log_days; Django does NOT batch multiple
+``prefetch_related`` targets into one SQL statement).
 """
 
 from __future__ import annotations
@@ -143,12 +144,12 @@ def test_plan_throttle_enforces_per_user_limit(
 
 
 @pytest.mark.django_db
-def test_plan_runs_in_two_queries(
+def test_plan_runs_in_four_queries_via_prefetch(
     authenticated_client: APIClient,
     trip_factory: type[TripFactory],
     django_assert_num_queries: DjangoAssertNumQueries,
 ) -> None:
-    """prefetch_related closes the N+1 — one Trip lookup + one prefetch batch."""
+    """prefetch_related closes the N+1 — 1 Trip lookup + 3 prefetch batches."""
     trip = trip_factory.create()
     _seed_plan(trip)
     # Add a few more rows to make the N+1 visible if the prefetch is missing.

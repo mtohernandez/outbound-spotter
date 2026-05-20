@@ -44,14 +44,14 @@ describe("StartAtField", () => {
     expect(screen.getByText(/15-minute increments/i)).toBeInTheDocument();
   });
 
-  it("clamps the input's min attribute to a rounded-up future quarter", () => {
+  it("does NOT pin a `min` attribute — zod refine is the past-time source of truth", () => {
+    // typescript-pro M1: capturing now-at-mount would lie to the user if
+    // they linger past the default time. Submit-time validation rejects
+    // past values; the picker stays open-ended.
     render(<Harness />);
 
     const input = screen.getByLabelText(/start time/i);
-    // FIXED_NOW = 15:07 UTC → rounded up to 15:15 UTC. The datetime-local value
-    // is local-time formatted; we only assert shape here (TZ-dependent values).
-    expect(input).toHaveAttribute("min");
-    expect(input.getAttribute("min")).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+    expect(input).not.toHaveAttribute("min");
   });
 
   it("accepts a change event and propagates the new local value", () => {

@@ -135,8 +135,9 @@ class TripPlanSerializer(serializers.Serializer[Trip]):
 
     ``to_representation`` reads the three reverse relations that
     ``TripPlanView`` already prefetched, so the serializer adds zero queries
-    (``django_assert_num_queries(2)`` verifies — one for the Trip lookup +
-    one prefetch batch for stops / events / days).
+    of its own. The retrieve runs in 4 queries total (1 Trip lookup + 3
+    prefetch batches — one per reverse relation; Django does not batch
+    multiple prefetch targets into a single SQL statement).
     """
 
     def to_representation(self, instance: Trip) -> dict[str, Any]:

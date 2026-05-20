@@ -6,7 +6,6 @@ import { useController, type Control } from "react-hook-form";
 import type { TripInput } from "@/features/trip-planner/schemas/trip-input";
 import {
   fromDatetimeLocalValue,
-  roundUpToNext15Min,
   toDatetimeLocalValue,
 } from "@/features/trip-planner/utils/round-time";
 
@@ -19,29 +18,29 @@ export function StartAtField({ control }: Props): React.ReactElement {
   const errorId = `${inputId}-error`;
   const descriptionId = `${inputId}-description`;
 
-  // Single computation at mount — no setInterval ticker (spec 06 anti-pattern #7).
-  // If the driver lingers on the form past the default time, the past-time zod
-  // refinement catches it at submit.
-  const defaults = useMemo(() => {
-    const rounded = roundUpToNext15Min(new Date());
-    return { iso: rounded.toISOString(), localMin: toDatetimeLocalValue(rounded) };
-  }, []);
+  // Source-of-truth for "must be in the future" is the zod refinement on
+  // `startAtSchema` (re-reads `Date.now()` every parse). We deliberately
+  // do NOT pin a `min` attribute on the input — capturing now-at-mount
+  // would lie to the user if they linger on the form past the default
+  // time (typescript-pro M1). The picker stays open-ended; submit-time
+  // validation rejects past values with a visible FieldError.
 
-  const { field, fieldState } = useController({
-    control,
-    name: "startAt",
-    defaultValue: defaults.iso,
-  });
+  // `useController` defaultValue is omitted — the parent form's
+  // `defaultValues.startAt` already seeds the initial ISO with one
+  // `roundUpToNext15Min(...)` computation at form mount, which is the
+  // single source for the default (typescript-pro M3 closure).
+  const { field, fieldState } = useController({ control, name: "startAt" });
   const invalid = Boolean(fieldState.error);
 
-  // Display the current ISO value as a local-time picker value. RHF's stored
-  // value is always ISO 8601 with offset (matches the BE contract); the local
-  // form value is derived for display only.
+  // Display the stored ISO (UTC, what `.toISOString()` produces, what the
+  // BE receives) as a local-clock value for the native datetime-local
+  // picker. The picker emits a local-naive string on change; we re-convert
+  // to ISO on its way back to form state.
   const localValue = useMemo(() => {
-    if (!field.value) return defaults.localMin;
+    if (!field.value) return "";
     const date = new Date(field.value);
-    return Number.isNaN(date.valueOf()) ? defaults.localMin : toDatetimeLocalValue(date);
-  }, [field.value, defaults.localMin]);
+    return Number.isNaN(date.valueOf()) ? "" : toDatetimeLocalValue(date);
+  }, [field.value]);
 
   return (
     <Field data-invalid={invalid ? "true" : undefined}>
@@ -56,7 +55,6 @@ export function StartAtField({ control }: Props): React.ReactElement {
         id={inputId}
         type="datetime-local"
         step={900}
-        min={defaults.localMin}
         value={localValue}
         aria-describedby={`${descriptionId}${invalid ? ` ${errorId}` : ""}`}
         aria-invalid={invalid}
