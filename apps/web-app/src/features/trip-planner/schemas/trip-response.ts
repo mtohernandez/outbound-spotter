@@ -18,6 +18,7 @@ export const tripResponseSchema = z.object({
   // Server-side model guarantees UUID4; FE treats the id as opaque.
   id: z.string(),
   created_at: z.string(),
+  start_at: z.string(),
   current_label: z.string(),
   current_lat: z.number(),
   current_lon: z.number(),

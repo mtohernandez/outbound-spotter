@@ -8,6 +8,7 @@ import { renderWithProviders } from "@/testing/render";
 const PLANNED_TRIP: TripResponse = {
   id: "trip-1",
   created_at: "2026-05-20T00:00:00Z",
+  start_at: "2026-05-21T14:00:00-04:00",
   current_label: "Richmond, VA",
   current_lat: 37.5407,
   current_lon: -77.436,

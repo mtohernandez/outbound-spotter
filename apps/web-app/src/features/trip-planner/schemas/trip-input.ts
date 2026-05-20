@@ -13,11 +13,22 @@ export const cycleHoursUsedSchema = z
   .max(70, "Cannot exceed 70 hours")
   .multipleOf(0.5, "Use half-hour increments");
 
+// 5 min of past slack mirrors the BE validator (architect-review M1 on spec
+// 06) — absorbs clock skew between client and server.
+const START_AT_PAST_SLACK_MS = 5 * 60 * 1000;
+
+export const startAtSchema = z.iso
+  .datetime({ offset: true, message: "Pick a valid date and time" })
+  .refine((iso) => new Date(iso).valueOf() >= Date.now() - START_AT_PAST_SLACK_MS, {
+    message: "Start time cannot be in the past.",
+  });
+
 export const tripInputSchema = z.object({
   current: resolvedAddressSchema,
   pickup: resolvedAddressSchema,
   dropoff: resolvedAddressSchema,
   cycleHoursUsed: cycleHoursUsedSchema,
+  startAt: startAtSchema,
 });
 
 export type ResolvedAddress = z.infer<typeof resolvedAddressSchema>;

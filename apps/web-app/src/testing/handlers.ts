@@ -35,11 +35,16 @@ export const DEFAULT_FEATURES: PeliasFeature[] = [
 
 const DEFAULT_TRIP_ID = "00000000-0000-4000-8000-000000000001";
 const DEFAULT_CREATED_AT = "2026-05-20T00:00:00Z";
+// A fixed driver-chosen shift start in the home-terminal time zone. The
+// envelope reads this back unchanged so view tests can assert the "Departs"
+// formatting deterministically.
+const DEFAULT_START_AT = "2026-05-21T14:00:00-04:00";
 
 function tripShape(overrides?: Partial<TripResponse>): TripResponse {
   const base: TripResponse = {
     id: DEFAULT_TRIP_ID,
     created_at: DEFAULT_CREATED_AT,
+    start_at: DEFAULT_START_AT,
     current_label: "Richmond, VA",
     current_lat: 37.5407,
     current_lon: -77.436,
@@ -109,6 +114,7 @@ export const handlers = [
         dropoff_lat: (body.dropoff as { lat: number }).lat,
         dropoff_lon: (body.dropoff as { lon: number }).lon,
         cycle_hours_used: String(body.cycle_hours_used),
+        start_at: typeof body.start_at === "string" ? body.start_at : DEFAULT_START_AT,
       }),
       { status: 201 },
     );

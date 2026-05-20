@@ -7,11 +7,13 @@ import { useForm } from "react-hook-form";
 import { usePlanTrip } from "@/features/trip-planner/api/plan-trip";
 import { AddressField } from "@/features/trip-planner/components/address-field";
 import { CycleHoursField } from "@/features/trip-planner/components/cycle-hours-field";
+import { StartAtField } from "@/features/trip-planner/components/start-at-field";
 import {
   emptyResolvedAddress,
   tripInputSchema,
   type TripInput,
 } from "@/features/trip-planner/schemas/trip-input";
+import { roundUpToNext15Min } from "@/features/trip-planner/utils/round-time";
 
 export function TripInputForm(): React.ReactElement {
   const planTrip = usePlanTrip();
@@ -24,6 +26,7 @@ export function TripInputForm(): React.ReactElement {
       pickup: emptyResolvedAddress,
       dropoff: emptyResolvedAddress,
       cycleHoursUsed: 0,
+      startAt: roundUpToNext15Min(new Date()).toISOString(),
     },
   });
 
@@ -63,6 +66,7 @@ export function TripInputForm(): React.ReactElement {
           placeholder="Where you'll deliver the load"
         />
         <CycleHoursField control={form.control} />
+        <StartAtField control={form.control} />
       </FieldGroup>
       <Button
         type="submit"
