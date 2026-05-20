@@ -212,37 +212,48 @@
    * markers fail WCAG 1.4.11 against many tiles (ui-visual-validator C-1). */
   filter: drop-shadow(0 0 2px oklch(1 0 0 / 0.9)) drop-shadow(0 0 1px oklch(1 0 0 / 0.75));
 }
+/* Each kind sets BOTH a custom property (the kind color, for downstream
+ * cascade — e.g. the popup Badge border) AND `color` itself (which paints
+ * the inline SVG via fill="currentColor" on the marker). Using a custom
+ * property keeps the kind color available even when a descendant rule
+ * (the popup Badge text-color override below) overrides `color`. */
 .trip-marker__icon--pickup {
-  color: var(--teal-500);
+  --trip-marker-color: var(--teal-500);
+  color: var(--trip-marker-color);
 }
 .trip-marker__icon--dropoff {
-  color: var(--red-500);
+  --trip-marker-color: var(--red-500);
+  color: var(--trip-marker-color);
 }
 .trip-marker__icon--fuel {
-  color: var(--teal-300);
+  --trip-marker-color: var(--teal-300);
+  color: var(--trip-marker-color);
 }
 .trip-marker__icon--break {
-  color: var(--teal-400);
+  --trip-marker-color: var(--teal-400);
+  color: var(--trip-marker-color);
 }
 .trip-marker__icon--sleeper {
-  color: var(--teal-700);
+  --trip-marker-color: var(--teal-700);
+  color: var(--trip-marker-color);
 }
 .trip-marker__icon--restart {
-  color: var(--teal-800);
+  --trip-marker-color: var(--teal-800);
+  color: var(--trip-marker-color);
 }
 
-/* Popup Badge: kind class sets `color` on the wrapping span which would also
- * tint the badge TEXT (failing WCAG 1.4.3 for the lighter teals against the
- * popover background — ui-visual-validator C-2). Restore foreground text
- * color in the popup context while keeping the border tinted via the kind
- * color carried in `currentColor` from the outer marker icon scope. */
+/* Popup Badge: text color overridden to `--foreground` so the label stays
+ * WCAG 4.5:1 against the popover background (ui-visual-validator C-2 —
+ * lighter teals would fail at 12px otherwise). Border keeps the kind color
+ * via the `--trip-marker-color` custom property — `border-color: currentColor`
+ * would resolve to the overridden `color` instead. */
 .leaflet-popup-themed [data-slot="badge"].trip-marker__icon--pickup,
 .leaflet-popup-themed [data-slot="badge"].trip-marker__icon--dropoff,
 .leaflet-popup-themed [data-slot="badge"].trip-marker__icon--fuel,
 .leaflet-popup-themed [data-slot="badge"].trip-marker__icon--break,
 .leaflet-popup-themed [data-slot="badge"].trip-marker__icon--sleeper,
 .leaflet-popup-themed [data-slot="badge"].trip-marker__icon--restart {
-  border-color: currentColor;
+  border-color: var(--trip-marker-color);
   color: var(--foreground);
   /* Suppress the marker fade-in animation for the popup-badge use site —
    * the badge appears with the popup, not with the marker. */

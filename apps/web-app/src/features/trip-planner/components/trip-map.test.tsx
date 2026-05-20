@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useEffect } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { TripPlan } from "@/features/trip-planner/schemas/trip-plan";
@@ -23,19 +24,24 @@ vi.mock("react-leaflet", () => ({
   MapContainer: ({
     children,
     ref,
-    "aria-label": ariaLabel,
     className,
   }: {
     children?: React.ReactNode;
     ref?: { current: unknown } | ((map: unknown) => void);
-    "aria-label"?: string;
     className?: string;
   }) => {
-    if (typeof ref === "function") {
-      ref(mockMap);
-    } else if (ref) {
-      ref.current = mockMap;
-    }
+    // Defer ref-setting to a post-mount effect so the rendered <div> is in the
+    // DOM by the time consumers call mockMap.getContainer(). Mirrors
+    // react-leaflet 5's actual behaviour: the L.Map instance is created in a
+    // ref-callback on the wrapper div, then setContext → re-render →
+    // useImperativeHandle forwards the instance to the parent ref.
+    useEffect(() => {
+      if (typeof ref === "function") {
+        ref(mockMap);
+      } else if (ref) {
+        ref.current = mockMap;
+      }
+    }, [ref]);
     return (
       // Leaflet's keyboard handler auto-assigns tabindex="0" + role on the
       // underlying div at runtime; the mock mirrors that so focus tests work
@@ -44,7 +50,6 @@ vi.mock("react-leaflet", () => ({
         data-testid="map-container"
         // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
         tabIndex={0}
-        aria-label={ariaLabel}
         className={className}
       >
         {children}

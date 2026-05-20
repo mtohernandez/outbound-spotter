@@ -56,15 +56,18 @@ export default function TripMap({ trip, plan }: Props): React.ReactElement {
     map.fitBounds(pts, { padding: [48, 48] });
   }, []);
 
-  // Forward aria-label to the underlying Leaflet container post-mount.
-  // react-leaflet 5's MapContainer only spreads {className, id, style} to the
-  // wrapper <div>; arbitrary aria-* / data-* attributes are dropped. Setting
-  // via the imperative handle is the supported escape hatch and keeps the
-  // accessible name on the focusable element (spec decision 15).
-  useEffect(() => {
-    const el = mapRef.current?.getContainer();
-    if (!el) return;
-    el.setAttribute("aria-label", MAP_ARIA_LABEL);
+  // Callback ref: react-leaflet 5's MapContainer forwards the L.Map instance
+  // via useImperativeHandle on the second render (after its internal
+  // setContext re-render); a plain ref + useEffect([]) would see `null`
+  // because the parent's mount effect fires before that second render.
+  // The callback also handles the aria-label that MapContainer would
+  // otherwise drop (it only spreads {className, id, style} to its wrapper
+  // <div>) — spec decision 15.
+  const setMapRef = useCallback((map: LeafletMap | null) => {
+    mapRef.current = map;
+    if (map) {
+      map.getContainer().setAttribute("aria-label", MAP_ARIA_LABEL);
+    }
   }, []);
 
   // R-keystroke recenter. Fires when focus is on the map container OR any
@@ -92,7 +95,7 @@ export default function TripMap({ trip, plan }: Props): React.ReactElement {
   return (
     <div className="relative size-full">
       <MapContainer
-        ref={mapRef}
+        ref={setMapRef}
         className="bg-background size-full"
         center={FALLBACK_CENTER}
         zoom={FALLBACK_ZOOM}
