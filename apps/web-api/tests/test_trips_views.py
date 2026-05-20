@@ -3,14 +3,17 @@
 The Trip model is exercised against the SQLite test DB. Ownership is the
 load-bearing rule under test — only the request's ``user_id`` can read its
 own trips. ``TripCreateView`` runs the ``plan_trip`` pipeline (which calls
-ORS), so tests mock ``directions_hgv`` at the boundary; ORS-error scenarios
-expect HTTP error envelopes (no Trip row created).
+ORS and the HOS planner adapter), so tests mock ``directions_hgv`` AND
+``hos_adapter.materialize_plan`` at the boundary; planner correctness lives
+in ``tests/test_hos_adapter.py``. ORS-error scenarios expect HTTP error
+envelopes (no Trip row created).
 """
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 import uuid
 
 import pytest
@@ -25,9 +28,14 @@ from web_api.integrations.openrouteservice import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from rest_framework.test import APIClient
 
     from tests.conftest import TripFactory
+
+
+_FUTURE_START_AT_ISO = "2030-01-15T08:00:00-05:00"
 
 
 def _ors_result() -> DirectionsResult:
@@ -46,7 +54,28 @@ VALID_PAYLOAD: dict[str, object] = {
     "pickup": {"label": "Fredericksburg, VA", "lat": 38.3032, "lon": -77.4605, "confidence": 0.91},
     "dropoff": {"label": "Newark, NJ", "lat": 40.7357, "lon": -74.1724, "confidence": 0.94},
     "cycle_hours_used": "35.0",
+    "start_at": _FUTURE_START_AT_ISO,
 }
+
+
+@pytest.fixture(autouse=True)
+def _stub_materialize_plan() -> Iterator[MagicMock]:
+    """View tests skip the planner; correctness is exercised in
+    ``tests/test_hos_adapter.py``. Tests that exercise the 422 planner-error
+    branch override this via inner ``with patch(...)``.
+    """
+    with patch("web_api.apps.trips.services.hos_adapter.materialize_plan") as m:
+        yield m
+
+
+@pytest.fixture(autouse=True)
+def _freeze_now_for_validator() -> Iterator[None]:
+    """Pin ``timezone.now`` so ``_validate_start_at_not_past`` is deterministic
+    in tests that use ``_FUTURE_START_AT_ISO`` as the request body.
+    """
+    fixed_now = datetime(2030, 1, 14, 0, 0, 0, tzinfo=UTC)
+    with patch("django.utils.timezone.now", return_value=fixed_now):
+        yield
 
 
 def test_create_without_token_returns_401(unauthenticated_client: APIClient) -> None:

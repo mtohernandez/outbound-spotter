@@ -147,3 +147,29 @@ def test_allowed_top_level_is_finite_set() -> None:
     """Sanity: the allowlist is a contract, not a moving target."""
     assert isinstance(ALLOWED_TOP_LEVEL, frozenset)
     assert len(ALLOWED_TOP_LEVEL) == 11
+
+
+def test_duty_status_parity_with_django_choices() -> None:
+    """Spec 06 architect-review m4 — enum parity is part of the spec-05 boundary.
+
+    Co-locating this assertion in the same file that gates planner imports
+    means a planner-side ``DutyStatus`` addition fails CI BEFORE a migration
+    that doesn't carry the matching ``DutyStatusChoices`` member ever lands.
+    Extending the enum requires updating both halves AND a migration.
+    """
+    from web_api.apps.trips.models import DutyStatusChoices  # noqa: PLC0415
+    from web_api.hos.types import DutyStatus  # noqa: PLC0415
+
+    planner_names = set(DutyStatus.__members__.keys())
+    django_names = set(DutyStatusChoices.__members__.keys())
+    assert planner_names == django_names, (
+        f"DutyStatus / DutyStatusChoices member-name drift: "
+        f"planner={planner_names} django={django_names}"
+    )
+
+    planner_values = {member.value for member in DutyStatus}
+    django_values = {member.value for member in DutyStatusChoices}
+    assert planner_values == django_values, (
+        f"DutyStatus / DutyStatusChoices value drift: "
+        f"planner={planner_values} django={django_values}"
+    )

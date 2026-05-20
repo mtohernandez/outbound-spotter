@@ -17,6 +17,7 @@ function toWirePayload(input: TripInput): Record<string, unknown> {
     pickup: pickAddress(input.pickup),
     dropoff: pickAddress(input.dropoff),
     cycle_hours_used: input.cycleHoursUsed.toFixed(1),
+    start_at: input.startAt,
   };
 }
 

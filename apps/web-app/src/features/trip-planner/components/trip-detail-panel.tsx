@@ -11,6 +11,7 @@ import { useParams } from "react-router";
 import { useTripById } from "@/features/trip-planner/api/trip-by-id";
 import { formatDistance } from "@/features/trip-planner/utils/format-distance";
 import { formatDuration } from "@/features/trip-planner/utils/format-duration";
+import { formatStartAt } from "@/features/trip-planner/utils/format-start-at";
 
 export function TripDetailPanel(): React.ReactElement {
   const { id } = useParams<{ id: string }>();
@@ -64,9 +65,14 @@ export function TripDetailPanel(): React.ReactElement {
         <SidebarGroup className="px-0">
           <SidebarGroupLabel>Route</SidebarGroupLabel>
           <SidebarGroupContent>
-            <span className="font-mono text-sm">
-              {formatDistance(distance_mi)} · {formatDuration(duration_s)}
-            </span>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-sm">
+              <dt className="text-muted-foreground">Total</dt>
+              <dd className="font-mono">
+                {formatDistance(distance_mi)} · {formatDuration(duration_s)}
+              </dd>
+              <dt className="text-muted-foreground">Departs</dt>
+              <dd className="font-mono">{formatStartAt(data.start_at)}</dd>
+            </dl>
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup className="px-0">

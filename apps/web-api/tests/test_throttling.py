@@ -9,6 +9,7 @@ throttle bucket. The production rates are smoke-asserted at the bottom.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 from unittest.mock import patch
 
@@ -34,6 +35,7 @@ _VALID_TRIP_PAYLOAD: dict[str, Any] = {
     "pickup": {"label": "Fredericksburg, VA", "lat": 38.3032, "lon": -77.4605, "confidence": 0.91},
     "dropoff": {"label": "Newark, NJ", "lat": 40.7357, "lon": -74.1724, "confidence": 0.94},
     "cycle_hours_used": "35.0",
+    "start_at": "2030-01-15T08:00:00-05:00",
 }
 
 
@@ -67,11 +69,34 @@ def _clear_throttle_cache() -> Iterator[None]:
     cache.clear()
 
 
+@pytest.fixture(autouse=True)
+def _freeze_now_for_validator() -> Iterator[None]:
+    """Pin ``timezone.now`` so the ``_validate_start_at_not_past`` cutoff
+    sits before the test's ``start_at`` and trip-create POSTs succeed.
+    """
+    fixed_now = datetime(2030, 1, 14, 0, 0, 0, tzinfo=UTC)
+    with patch("django.utils.timezone.now", return_value=fixed_now):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def _stub_materialize_plan() -> Iterator[None]:
+    """Throttle tests don't exercise the planner — stub it so the trip-
+    create path doesn't trip the fuel-stop polyline sanity check.
+    """
+    with patch("web_api.apps.trips.services.hos_adapter.materialize_plan"):
+        yield
+
+
 def _set_test_rates(monkeypatch: pytest.MonkeyPatch, **overrides: str) -> None:
+    # Keep this dict in lockstep with ``DEFAULT_THROTTLE_RATES`` in
+    # ``settings/base.py`` so a future test that exercises a scope alongside
+    # an override still sees the production rate, not silence (django-pro M1).
     base = {
         "geocode_autocomplete": "60/min",
         "geocode_search": "20/min",
         "trip_create": "30/hour",
+        "trip_plan_retrieve": "120/min",
     }
     monkeypatch.setattr(SimpleRateThrottle, "THROTTLE_RATES", {**base, **overrides})
 
@@ -160,3 +185,4 @@ def test_production_throttle_rates_are_intact() -> None:
     assert rates["geocode_autocomplete"] == "60/min"
     assert rates["geocode_search"] == "20/min"
     assert rates["trip_create"] == "30/hour"
+    assert rates["trip_plan_retrieve"] == "120/min"

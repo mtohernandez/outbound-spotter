@@ -82,6 +82,9 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    # GZip the JSON envelopes (~5-7x ratio on the plan endpoint's repetitive
+    # key set). WhiteNoise gzips static assets only. Performance-engineer M1.
+    "django.middleware.gzip.GZipMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.middleware.common.CommonMiddleware",
 ]
@@ -146,6 +149,7 @@ REST_FRAMEWORK = {
         "geocode_autocomplete": "60/min",
         "geocode_search": "20/min",
         "trip_create": "30/hour",
+        "trip_plan_retrieve": "120/min",
     },
     "EXCEPTION_HANDLER": "web_api.exception_handler.exception_handler",
 }

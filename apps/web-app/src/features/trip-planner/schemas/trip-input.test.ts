@@ -59,12 +59,18 @@ describe("tripInputSchema", () => {
     confidence: null,
   };
 
-  it("accepts three resolved addresses + cycle hours", () => {
+  // 1 hour into the future — well past the 5-min past-slack on the validator.
+  function futureIso(): string {
+    return new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  }
+
+  it("accepts three resolved addresses + cycle hours + a future start_at", () => {
     const result = tripInputSchema.safeParse({
       current: valid,
       pickup: valid,
       dropoff: valid,
       cycleHoursUsed: 12,
+      startAt: futureIso(),
     });
 
     expect(result.success).toBe(true);
@@ -76,8 +82,26 @@ describe("tripInputSchema", () => {
       pickup: valid,
       dropoff: valid,
       cycleHoursUsed: 0,
+      startAt: futureIso(),
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it("rejects a start_at more than 5 minutes in the past", () => {
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const result = tripInputSchema.safeParse({
+      current: valid,
+      pickup: valid,
+      dropoff: valid,
+      cycleHoursUsed: 0,
+      startAt: tenMinutesAgo,
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const startAtIssue = result.error.issues.find((issue) => issue.path.includes("startAt"));
+      expect(startAtIssue?.message).toMatch(/past/i);
+    }
   });
 });

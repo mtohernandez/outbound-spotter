@@ -46,7 +46,11 @@ Each version below was pinned to the latest stable release at the time of select
   - `trips` (UUID id, Clerk `user_id` string, three flat address triples `(current|pickup|dropoff)_(label,lat,lon)`, `cycle_hours_used` Decimal(3,1), `route_polyline` JSONField (list of `[lon, lat]` pairs), `route_segments` JSONField (per-leg `{distance_mi, duration_s, from_index, to_index}`), `route_summary` JSONField (`{distance_mi, duration_s}`), `created_at` auto). Index on `(user_id, -created_at)`. **A row exists ⇔ the route was successfully resolved by ORS**: `TripCreateView` validates the route BEFORE persisting and propagates routing failures as HTTP 4xx/5xx so no row is ever created on rejection. **Future lift**: when spec 09 ships per-trip re-planning, the route fields move to a sibling `trip_route_versions` table keyed `(trip_id, version)` so each retry persists.
   - `trip_route_cache` (PK `cache_key` CharField(64) = SHA256 hex of `f"v1|driving-hgv|recommended|mi|{lon:.5f},{lat:.5f}|…"`, `coords_canonical` CharField(255) denormalized for operator inspection, `payload` JSONField storing `dataclasses.asdict(DirectionsResult)`, `created_at` auto). No additional index — PK lookup. No TTL — eviction is "bump `_CACHE_KEY_VERSION` in `web_api/apps/trips/services.py`".
   - `users` (Clerk user id + display name) — not yet materialised; the Clerk JWT `sub` is the canonical user id today and rows are stamped directly with it.
-  - `trip_stops` (typed stops with lat/lon + sequence), `log_events` (one row per duty-status change), `log_days` (per-24h rollup) — land with spec 06+ once the HOS planner exists.
+  - `trip_stops` (UUID id, `trip_id` FK→`trips` CASCADE, `kind` CharField(16) in `{pickup, dropoff, fuel, break, sleeper, restart}`, `sequence` PositiveSmallInt, `polyline_index` PositiveInt, `lat`/`lon` Decimal(9,6), `label` CharField(128), `scheduled_at` DateTime, `duration_s` PositiveInt). Index on `(trip, sequence)`; unique on the same. The driver-facing marker payload spec 07 draws on the map.
+  - `log_events` (UUID id, `trip_id` FK→`trips` CASCADE, `sequence` PositiveSmallInt, `status` CharField(32) in `{off_duty, sleeper_berth, driving, on_duty_not_driving}`, `start` DateTime, `duration_s` PositiveInt, `location` CharField(128), `note` CharField(255)). Two indexes: `(trip, sequence)` and `(trip, start)`. Unique on `(trip, sequence)`. One row per duty-status change (invariant #2).
+  - `log_days` (UUID id, `trip_id` FK→`trips` CASCADE, `date` Date in home-terminal-local TZ, four per-status `*_s` PositiveInt fields, `total_miles` Decimal(7,1)). Index + unique on `(trip, date)`. Denormalised at write time by `hos_adapter.materialize_plan`; midnight-crossing events split their seconds + miles across two `log_days` rows so spec 08's §395.8 grid header sums correctly.
+  - **`Trip.start_at`** (DateTime, tz-aware) — driver-chosen shift start. Required at create time; migration 0004 backfills any pre-spec-06 row from `created_at` via `Coalesce("created_at", Now())`.
+  - **Plan-table invariant (spec 06):** every `trips` row that exists has matching `trip_stops` + `log_events` + `log_days` rows. `services.plan_trip` wraps `Trip.objects.create` AND `hos_adapter.materialize_plan(trip)` in one `transaction.atomic` block; any failure (ORS error, planner `ValueError`, DB constraint) rolls back the entire write so no half-resolved Trip persists. The view layer maps each failure mode to its HTTP envelope (4xx/5xx) and the FE keeps form state.
 - **No blob storage in v1.** PDFs are generated client-side and never persisted server-side.
 - **ORS response cache (`trip_route_cache`)** is the only cache layer in v1; it backstops the HeiGIT 2000/day Directions quota during the assessment review.
 
@@ -66,6 +70,7 @@ Each version below was pinned to the latest stable release at the time of select
   - `geocode_autocomplete = 60/min` (`GeocodeAutocompleteView`).
   - `geocode_search = 20/min` (`GeocodeSearchView`).
   - `trip_create = 30/hour` (`TripCreateView`). 30 × 24 ≈ 720 worst-case, well under the HeiGIT 2000/day cap with the `trip_route_cache` short-circuit handling repeated input.
+  - `trip_plan_retrieve = 120/min` (`TripPlanView`). Spec 07 will poll `GET /api/trips/<uuid:id>/plan/` on tab focus via TanStack Query; 2/sec sustained covers an aggressive user without becoming an oracle. The plan is immutable post-creation in v1, so a `Cache-Control: private, max-age=60` follow-up could absorb most refetches at the browser layer.
 - Storage backend: Django's default cache (LocMem in dev, single-process). **Production deployment must back DRF's cache with Redis** before scaling beyond one gunicorn worker, otherwise each worker keeps its own counter.
 
 ## External integrations
@@ -86,7 +91,7 @@ Each version below was pinned to the latest stable release at the time of select
 
 ## Invariants
 
-1. **The HOS planner is a pure function.** No Django, ORM, or HTTP imports inside `apps/web-api/web_api/hos/`. Anything Django needs from it goes through a thin adapter. Enforced by `apps/web-api/tests/hos/test_boundary.py`, which AST-walks the module and asserts every import lives in the allowlist below. Public API: `plan_logs(inputs: PlannerInputs) -> list[LogEvent]`. Imports are restricted to:
+1. **The HOS planner is a pure function.** No Django, ORM, or HTTP imports inside `apps/web-api/web_api/hos/`. Anything Django needs from it goes through a thin one-way adapter at `apps/web-api/web_api/apps/trips/hos_adapter.py` — the adapter imports `web_api.hos`, but `web_api.hos.*` does NOT import the adapter. The cross-module note-string contract (planner emits `LogEvent.note` strings the adapter classifies via `_NOTE_TO_KIND`) is pinned by `apps/web-api/tests/hos/test_note_contract.py`. Public API: `plan_logs(inputs: PlannerInputs) -> list[LogEvent]`. Enforced by `apps/web-api/tests/hos/test_boundary.py`, which AST-walks the module and asserts every import lives in the allowlist below. Imports are restricted to:
 
    ```python
    # senior-review-hook: any addition to this set requires architect-review re-approval
@@ -101,7 +106,7 @@ Each version below was pinned to the latest stable release at the time of select
 
    `web_api.integrations.openrouteservice` is a data-contract import only — `DirectionsResult` / `DirectionsSegment` / `DirectionsSummary` must be imported under `if TYPE_CHECKING:` (the upstream module pulls Django + requests at module top, so a runtime import would silently break the planner's stdlib-only contract). `_smoke.py` is the one boundary-exempt file inside the module (it is not transitively imported by the planner's library path); see the inline comment in `test_boundary.py`.
 
-2. **Every duty-status change writes a `LogEvent` row.** The UI is never the source of truth for log content — it renders what the API stored.
+2. **Every duty-status change writes a `LogEvent` row.** The UI is never the source of truth for log content — it renders what the API stored. Midnight-crossing events stay as ONE `log_events` row (the duty-status change happens once); only the per-day rollup in `log_days` is split across calendar dates by `hos_adapter._attribute_to_days`.
 3. **No raw ORS calls from the browser.** The ORS API key never reaches the client.
 4. **No client-side HOS math.** web-app renders log events; it does not decide where breaks go.
 5. **Every mutation checks ownership.** A request without a valid Clerk JWT, or for a trip the JWT subject does not own, returns 401 / 403.

@@ -23,6 +23,18 @@ import type { TripInput } from "@/features/trip-planner/schemas/trip-input";
 
 const DEBOUNCE_MS = 250;
 
+// RHF surfaces nested-object errors as a tree (e.g., `{ label: { message: "..." } }`)
+// because `resolvedAddressSchema` validates an object. The top-level
+// `fieldState.error?.message` is therefore `undefined` even when the field IS
+// invalid (zod reports the violation on `.label`). Without this drill-in,
+// the `<FieldError>` rendered an empty node — screen readers heard
+// "invalid" with no reason, and sighted users got no in-page hint either.
+function leafErrorMessage(
+  error: { message?: string; label?: { message?: string } } | undefined,
+): string | null {
+  return error?.message ?? error?.label?.message ?? null;
+}
+
 interface Props {
   readonly control: Control<TripInput>;
   readonly name: "current" | "pickup" | "dropoff";
@@ -49,7 +61,8 @@ export function AddressField({
   const query = useGeocodeAutocomplete(debouncedSearch);
 
   const hasValue = field.value.label !== "";
-  const invalid = Boolean(fieldState.error);
+  const errorMessage = leafErrorMessage(fieldState.error);
+  const invalid = errorMessage !== null;
 
   function handleSelect(feature: GeocodeFeature): void {
     field.onChange({
@@ -125,7 +138,7 @@ export function AddressField({
           </Command>
         </PopoverContent>
       </Popover>
-      {invalid ? <FieldError id={errorId}>{fieldState.error?.message}</FieldError> : null}
+      {invalid ? <FieldError id={errorId}>{errorMessage}</FieldError> : null}
     </Field>
   );
 }

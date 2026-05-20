@@ -7,6 +7,7 @@ and a ``TripFactory`` that round-trips through the ``Trip`` ORM.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, ClassVar
 from unittest.mock import patch
@@ -24,6 +25,12 @@ if TYPE_CHECKING:
 
 TEST_USER_ID = "user_test_123"
 
+# Far-future fixed datetime so the start_at validator never rejects a factory
+# instance for being in the past. Used by ``TripFactory`` and by the create-
+# endpoint tests that POST JSON payloads.
+TEST_START_AT_ISO = "2030-01-15T08:00:00-05:00"
+TEST_START_AT = datetime(2030, 1, 15, 13, 0, 0, tzinfo=UTC)  # 08:00 EST
+
 
 class TripFactory(factory.django.DjangoModelFactory[Trip]):
     class Meta:
@@ -40,6 +47,7 @@ class TripFactory(factory.django.DjangoModelFactory[Trip]):
     dropoff_lat = 40.7357
     dropoff_lon = -74.1724
     cycle_hours_used = Decimal("0.0")
+    start_at = TEST_START_AT
     # Stored values shared across factory instances are immutable from the
     # tests' perspective (no mutation in the suite); cheap and avoids the
     # untyped `factory.LazyFunction` shim.
