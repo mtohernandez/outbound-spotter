@@ -4,7 +4,8 @@
   "compilerOptions": {
     "paths": {
       "@outbound/ui/*": ["${configDir}/src/*"]
-    }
+    },
+    "exactOptionalPropertyTypes": false
   },
   "include": ["src", "*.config.ts"]
 }

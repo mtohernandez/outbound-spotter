@@ -42,7 +42,10 @@ Each version below was pinned to the latest stable release at the time of select
 
 ## Storage Model
 
-- **PostgreSQL** owns: `users` (Clerk user id + display name), `trips` (inputs + computed summary), `trip_stops` (typed stops with lat/lon and sequence), `log_events` (one row per duty-status change), `log_days` (per-24h-period rollup with totals). Indexes on `(user_id, created_at desc)` and `(trip_id, sequence)`.
+- **PostgreSQL** owns:
+  - `trips` (UUID id, Clerk `user_id` string, three flat address triples `(current|pickup|dropoff)_(label,lat,lon)`, `cycle_hours_used` Decimal(3,1), `status` Char(16) default `"pending"`, `created_at` auto). Index on `(user_id, -created_at)`. **Stub stage** (spec 03); spec 04 extends with `route_polyline`, `route_segments`, `route_summary`.
+  - `users` (Clerk user id + display name) — not yet materialised; the Clerk JWT `sub` is the canonical user id today and rows are stamped directly with it.
+  - `trip_stops` (typed stops with lat/lon + sequence), `log_events` (one row per duty-status change), `log_days` (per-24h rollup) — land with spec 06+ once the HOS planner exists.
 - **No blob storage in v1.** PDFs are generated client-side and never persisted server-side.
 - **No cache layer in v1.** ORS responses for the same input triple are cached in Postgres against a SHA256 of the request to avoid burning the ORS daily quota during the review.
 
