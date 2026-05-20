@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 
+import type { TripPlan } from "@/features/trip-planner/schemas/trip-plan";
 import type { TripResponse } from "@/features/trip-planner/schemas/trip-response";
 
 const BASE = "http://localhost:8000";
@@ -75,6 +76,108 @@ export function mockTripPlanned(overrides?: Partial<TripResponse>) {
   );
 }
 
+// Default plan envelope shape modelled on the spec-05 `assessment_simple`
+// golden trip (Richmond → Fredericksburg → Newark, ~342 mi, ~8.5h elapsed).
+// Two TripStops (pickup + dropoff), seven LogEvents, one LogDay. Decimal
+// fields ship as strings to mirror DRF serialization.
+function samplePlanShape(tripId?: string, overrides?: Partial<TripPlan>): TripPlan {
+  const id = tripId ?? DEFAULT_TRIP_ID;
+  const base: TripPlan = {
+    trip_id: id,
+    start_at: DEFAULT_START_AT,
+    home_terminal_tz: "America/New_York",
+    stops: [
+      {
+        id: "00000000-0000-4000-8000-000000000101",
+        kind: "pickup",
+        sequence: 0,
+        polyline_index: 1,
+        lat: 38.3032,
+        lon: -77.4605,
+        label: "Fredericksburg, VA",
+        scheduled_at: "2026-05-21T15:30:00-04:00",
+        duration_s: 3600,
+      },
+      {
+        id: "00000000-0000-4000-8000-000000000102",
+        kind: "dropoff",
+        sequence: 1,
+        polyline_index: 2,
+        lat: 40.7357,
+        lon: -74.1724,
+        label: "Newark, NJ",
+        scheduled_at: "2026-05-21T21:30:00-04:00",
+        duration_s: 3600,
+      },
+    ],
+    events: [
+      {
+        id: "00000000-0000-4000-8000-000000000201",
+        sequence: 0,
+        status: "on_duty_not_driving",
+        start: "2026-05-21T14:00:00-04:00",
+        duration_s: 900,
+        location: "Richmond, VA",
+        note: "Pre-trip inspection",
+      },
+      {
+        id: "00000000-0000-4000-8000-000000000202",
+        sequence: 1,
+        status: "driving",
+        start: "2026-05-21T14:15:00-04:00",
+        duration_s: 4500,
+        location: "Richmond, VA",
+        note: "En route",
+      },
+      {
+        id: "00000000-0000-4000-8000-000000000203",
+        sequence: 2,
+        status: "on_duty_not_driving",
+        start: "2026-05-21T15:30:00-04:00",
+        duration_s: 3600,
+        location: "Fredericksburg, VA",
+        note: "Pickup",
+      },
+      {
+        id: "00000000-0000-4000-8000-000000000204",
+        sequence: 3,
+        status: "driving",
+        start: "2026-05-21T16:30:00-04:00",
+        duration_s: 18000,
+        location: "Fredericksburg, VA",
+        note: "En route",
+      },
+      {
+        id: "00000000-0000-4000-8000-000000000205",
+        sequence: 4,
+        status: "on_duty_not_driving",
+        start: "2026-05-21T21:30:00-04:00",
+        duration_s: 3600,
+        location: "Newark, NJ",
+        note: "Dropoff",
+      },
+    ],
+    days: [
+      {
+        id: "00000000-0000-4000-8000-000000000301",
+        date: "2026-05-21",
+        off_duty_s: 0,
+        sleeper_s: 0,
+        driving_s: 22500,
+        on_duty_not_driving_s: 8100,
+        total_miles: 342.7,
+      },
+    ],
+  };
+  return { ...base, ...overrides };
+}
+
+export function mockTripPlan(overrides?: Partial<TripPlan>) {
+  return http.get(`${BASE}/api/trips/:id/plan/`, ({ params }) =>
+    HttpResponse.json(samplePlanShape(String(params.id), overrides)),
+  );
+}
+
 export const handlers = [
   http.get(`${BASE}/api/geocode/autocomplete/`, ({ request }) => {
     const url = new URL(request.url);
@@ -123,4 +226,6 @@ export const handlers = [
   http.get(`${BASE}/api/trips/:id/`, ({ params }) =>
     HttpResponse.json(tripShape({ id: String(params.id) })),
   ),
+
+  mockTripPlan(),
 ];
