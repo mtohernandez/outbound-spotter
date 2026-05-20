@@ -53,44 +53,42 @@ export function SpotterLoader({
   );
 }
 
-// Inline keyframes per instance so the loader stays self-contained and reduced-motion users see the
-// base layout without any transforms applied (per W3C technique C39).
+// Each circle traces the L-shape (TL → BL → BM → BR) over the first three quarters of the cycle,
+// then holds at the fourth position for the final quarter. The cycle-boundary snap back to the
+// starting position is instant (CSS does not interpolate between iterations), which avoids the
+// diagonal teleport the previous keyframes showed during the 75% → 100% segment.
 function buildStyle(scopeId: string): string {
   return `
 @keyframes ${scopeId}-orbit-red {
-  0%   { transform: translate(0, 0); }
-  25%  { transform: translate(0, 66.666px); }
-  50%  { transform: translate(66.748px, 66.666px); }
-  75%  { transform: translate(133.517px, 66.666px); }
-  100% { transform: translate(0, 0); }
+  0%        { transform: translate(0, 0); }
+  25%       { transform: translate(0, 66.666px); }
+  50%       { transform: translate(66.748px, 66.666px); }
+  75%, 100% { transform: translate(133.517px, 66.666px); }
 }
 @keyframes ${scopeId}-orbit-teal {
-  0%   { transform: translate(0, 0); }
-  25%  { transform: translate(66.748px, 0); }
-  50%  { transform: translate(133.517px, 0); }
-  75%  { transform: translate(0, -66.666px); }
-  100% { transform: translate(0, 0); }
+  0%        { transform: translate(0, 0); }
+  25%       { transform: translate(66.748px, 0); }
+  50%       { transform: translate(133.517px, 0); }
+  75%, 100% { transform: translate(0, -66.666px); }
 }
 @keyframes ${scopeId}-orbit-bm {
-  0%   { transform: translate(0, 0); }
-  25%  { transform: translate(66.769px, 0); }
-  50%  { transform: translate(-66.748px, -66.666px); }
-  75%  { transform: translate(-66.748px, 0); }
-  100% { transform: translate(0, 0); }
+  0%        { transform: translate(0, 0); }
+  25%       { transform: translate(66.769px, 0); }
+  50%       { transform: translate(-66.748px, -66.666px); }
+  75%, 100% { transform: translate(-66.748px, 0); }
 }
 @keyframes ${scopeId}-orbit-br {
-  0%   { transform: translate(0, 0); }
-  25%  { transform: translate(-133.517px, -66.666px); }
-  50%  { transform: translate(-133.517px, 0); }
-  75%  { transform: translate(-66.769px, 0); }
-  100% { transform: translate(0, 0); }
+  0%        { transform: translate(0, 0); }
+  25%       { transform: translate(-133.517px, -66.666px); }
+  50%       { transform: translate(-133.517px, 0); }
+  75%, 100% { transform: translate(-66.769px, 0); }
 }
 @media (prefers-reduced-motion: no-preference) {
   #${scopeId}-red,
   #${scopeId}-teal,
   #${scopeId}-bm,
   #${scopeId}-br {
-    animation-duration: 1200ms;
+    animation-duration: 1600ms;
     animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     animation-iteration-count: infinite;
   }

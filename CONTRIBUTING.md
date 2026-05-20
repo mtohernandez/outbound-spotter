@@ -90,10 +90,12 @@ The `pre-push` hook runs `turbo run typecheck --affected` + `turbo run test --af
 
 ## 6. Env conventions
 
-Per-app environment templates live at `apps/<name>/.env.local.example`. Copy to `.env.local` (gitignored) and fill in. The schema is enforced at runtime by the app's `src/config/env.ts` (zod).
+**No `.env*` files are tracked in this repo.** The root `.gitignore` ignores every shape (`.env`, `.env.local`, `.env.example`, `.env.production`, …). This applies in perpetuity — never reintroduce a template.
 
-- **Never author new `.env.example` files.** The root `.gitignore` only allowlists `.env.local.example`; anything else under `.env*` is ignored. Legacy `.env.example` files in `apps/web-app/` and `apps/web-api/` are scheduled for removal in a follow-up unit and must not be reintroduced.
-- **Never commit secrets.** Templates document the variable names and safe defaults only. Real keys go in `.env.local` (Vite-native local override) on the developer's machine and in the deployment provider's secret store in production.
+- **Variable names** — each app documents its required variables (with type, purpose, and which side of the wire reads them) in its `README.md`. The runtime validators are the canonical schemas: `apps/web-app/src/config/env.ts`, `apps/web-auth/src/config/env.ts`, and `apps/web-api/web_api/settings/base.py` (pydantic-settings).
+- **Local dev** — create a working file the host tool reads (`.env.local` for Vite apps, `.env` for the Django app). Populate from your password manager / the deployment provider's dashboard. The file is gitignored.
+- **Cloud** — set each variable in the provider's secret store: Vercel for `web-app` / `web-auth`, Fly.io for `web-api` (`fly secrets set KEY=value`).
+- **Never commit secrets.** This is enforced by `.gitignore`; do not bypass it.
 
 ## 7. License acceptance
 

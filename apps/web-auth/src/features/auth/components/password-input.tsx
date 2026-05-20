@@ -10,9 +10,6 @@ import { useState, type ComponentProps, type Ref } from "react";
 type InputProps = Omit<ComponentProps<"input">, "type">;
 
 interface PasswordInputProps extends InputProps {
-  /**
-   * `current-password` for sign-in, `new-password` for sign-up + reset.
-   */
   readonly autoComplete?: "current-password" | "new-password" | "one-time-code";
   readonly ref?: Ref<HTMLInputElement>;
 }
@@ -39,11 +36,9 @@ export function PasswordInput({
           type="button"
           variant="ghost"
           size="icon"
-          // APG button-toggle pattern: the accessible name must stay constant across states;
-          // aria-pressed conveys the on/off state, the icon swap is purely visual.
-          // https://www.w3.org/WAI/ARIA/apg/patterns/button/
           aria-pressed={visible}
           aria-label="Password visibility"
+          className="text-muted-foreground hover:text-foreground hover:bg-transparent dark:hover:bg-transparent"
           onClick={() => {
             setVisible((current) => !current);
           }}

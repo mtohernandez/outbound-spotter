@@ -24,18 +24,20 @@ export function AuthVideoPanel(): React.ReactElement {
 
   return (
     <aside
-      aria-label="Outbound Spotter atmosphere"
-      className="bg-card text-card-foreground border-border relative hidden overflow-hidden rounded-xl border shadow-lg md:block"
+      aria-hidden="true"
+      className="bg-card text-card-foreground border-border relative hidden h-full overflow-hidden rounded-xl border shadow-lg md:block"
     >
       {reducedMotion ? (
         <img
           src="/auth/video-poster.jpg"
-          alt="Aerial view of a long-haul trucking route"
+          alt=""
+          aria-hidden="true"
+          fetchPriority="high"
           className="absolute inset-0 h-full w-full object-cover"
         />
       ) : (
         <video
-          aria-label="Aerial view of a long-haul trucking route"
+          aria-hidden="true"
           autoPlay
           muted
           playsInline
@@ -50,7 +52,7 @@ export function AuthVideoPanel(): React.ReactElement {
       )}
       <div
         aria-hidden
-        className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-6 lg:p-8"
+        className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 via-black/30 to-transparent p-6 lg:p-8"
       >
         <h2 className="font-display text-2xl text-white">Drive smarter. Stay compliant.</h2>
         <p className="font-sans text-sm text-white/90">

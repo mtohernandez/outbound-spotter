@@ -124,7 +124,9 @@ export function VerificationCodeInput({
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
-            autoComplete="one-time-code"
+            // Only cell 1 advertises the autofill target so iOS Safari does not try to drop the
+            // full code into every box — the paste handler distributes the digits across cells.
+            autoComplete={index === 0 ? "one-time-code" : "off"}
             maxLength={1}
             value={char}
             disabled={disabled}

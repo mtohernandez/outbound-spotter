@@ -5,7 +5,6 @@ interface Props {
   readonly disabled?: boolean;
 }
 
-// Google G logo (multicolor), per https://developers.google.com/identity/branding-guidelines
 function GoogleGlyph(): React.ReactElement {
   return (
     <svg viewBox="0 0 18 18" className="size-4" aria-hidden="true">

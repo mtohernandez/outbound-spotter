@@ -11,7 +11,7 @@ describe("AuthLayout", () => {
       </AuthLayout>,
     );
 
-    const skip = getByRole("link", { name: /skip to content/i });
+    const skip = getByRole("link", { name: /skip to main content/i });
     expect(skip).toHaveAttribute("href", "#auth-main");
 
     const main = getByRole("main");
@@ -29,16 +29,17 @@ describe("AuthLayout", () => {
     expect(main).toContainElement(getByTestId("form"));
   });
 
-  it("renders the video aside and the footer legal nav", () => {
-    const { getByRole } = render(
+  it("renders the decorative video aside as aria-hidden and the decorative footer", () => {
+    const { container, getByText } = render(
       <AuthLayout>
         <div />
       </AuthLayout>,
     );
 
-    expect(
-      getByRole("complementary", { name: /outbound spotter atmosphere/i }),
-    ).toBeInTheDocument();
-    expect(getByRole("navigation", { name: /legal/i })).toBeInTheDocument();
+    const aside = container.querySelector("aside");
+    expect(aside).not.toBeNull();
+    expect(aside).toHaveAttribute("aria-hidden", "true");
+    expect(getByText(/privacy/i)).toBeInTheDocument();
+    expect(getByText(/terms/i)).toBeInTheDocument();
   });
 });

@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  forgotPasswordResetSchema,
-  scorePassword,
-  signInSchema,
-  signUpSchema,
-} from "./password-rules";
+import { forgotPasswordResetSchema, signInSchema, signUpSchema } from "./password-rules";
+import { scorePassword } from "./password-strength";
 
 describe("signInSchema", () => {
   it("accepts a valid email + password", () => {

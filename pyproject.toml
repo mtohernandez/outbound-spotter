@@ -43,7 +43,11 @@ extend-ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"**/tests/**" = ["S101", "PLR2004", "ANN201"]   # asserts, magic numbers, missing return type
+# Tests use placeholder credentials (`sk_test_unit`, `goodtoken`) to exercise the auth chain —
+# bandit's hardcoded-password rules (S105/S106) fire on those literals and are noise here.
+# Asserts (S101), magic numbers (PLR2004), and implicit return types (ANN201) are also pytest-
+# normal.
+"**/tests/**" = ["S101", "S105", "S106", "PLR2004", "ANN201"]
 "**/conftest.py" = ["ANN001", "ANN201"]
 "**/migrations/*.py" = ["ALL"]
 

@@ -1,8 +1,6 @@
 import type { AuthError } from "../types/flow-state";
 import type { SignInFutureResource } from "@clerk/shared/types";
 
-// Forgot-password Future flow: seed the SignIn with the identifier via `create`, then call
-// `signIn.resetPasswordEmailCode.sendCode/verifyCode/submitPassword`, then `signIn.finalize()`.
 // Reference: https://clerk.com/docs/guides/development/custom-flows/account-updates/forgot-password
 
 export type StartResetResult =
@@ -37,6 +35,15 @@ export async function verifyResetCode(
   const { error } = await signIn.resetPasswordEmailCode.verifyCode({ code: args.code });
   if (error) return { status: "error", errors: [error] };
   return { status: "needs_password" };
+}
+
+// Resending must NOT re-seed the sign-in flow via `signIn.create`, because the active flow is
+// already past the identifier step. Future API exposes a dedicated `sendCode()` for that.
+export async function resendPasswordResetCode(
+  signIn: SignInFutureResource,
+): Promise<AuthError | null> {
+  const { error } = await signIn.resetPasswordEmailCode.sendCode();
+  return error;
 }
 
 export async function completePasswordReset(

@@ -20,6 +20,6 @@ describe("AuthCard", () => {
     const card = container.firstElementChild;
     expect(card).not.toBeNull();
     expect(card?.className).toContain("custom-class");
-    expect(card?.className).toContain("max-w-[28rem]");
+    expect(card?.className).toContain("max-w-md");
   });
 });
