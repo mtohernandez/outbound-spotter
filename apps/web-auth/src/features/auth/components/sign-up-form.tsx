@@ -18,6 +18,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { Link } from "react-router";
 
 import { env } from "@/config/env";
+import { useAnnouncer } from "@/hooks/use-announcer";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
 import {
@@ -52,7 +53,7 @@ export function SignUpForm(): React.ReactElement {
   useDocumentTitle(phase.name === "verifying" ? "Check your email" : "Create account");
   const [serverErrors, setServerErrors] = useState<AuthError[]>([]);
   const [passwordScore, setPasswordScore] = useState<PasswordScore>(0);
-  const [statusMessage, setStatusMessage] = useState("");
+  const { message: statusMessage, announce: announceStatus, clear: clearStatus } = useAnnouncer();
 
   const form = useForm<SignUpValues>({
     resolver: zodResolver(signUpSchema),
@@ -97,7 +98,7 @@ export function SignUpForm(): React.ReactElement {
       window.location.assign(env.VITE_APP_URL);
       return;
     }
-    setStatusMessage("Verification code sent. Check your email.");
+    announceStatus("Verification code sent. Check your email.");
     setPhase({ name: "verifying", emailAddress: result.emailAddress });
   });
 
@@ -113,12 +114,21 @@ export function SignUpForm(): React.ReactElement {
     if (error) setServerErrors([error]);
   };
 
+  const { banner, field } = splitClerkErrors(serverErrors);
+
+  // Live region is rendered unconditionally so the screen reader picks up content INJECTION
+  // (vs the region first mounting with content, which VoiceOver swallows on the verifying phase
+  // transition). See round-3 ui-visual-validator finding M-3.
+  const politeRegion = (
+    <span aria-live="polite" className="sr-only">
+      {statusMessage}
+    </span>
+  );
+
   if (phase.name === "verifying") {
     return (
       <>
-        <span aria-live="polite" className="sr-only">
-          {statusMessage}
-        </span>
+        {politeRegion}
         <VerificationStep
           emailAddress={phase.emailAddress}
           onVerify={async (code) => {
@@ -133,7 +143,7 @@ export function SignUpForm(): React.ReactElement {
           }}
           onResend={async () => {
             const error = await resendVerificationCode(signUp);
-            if (!error) setStatusMessage("Verification code resent. Check your email.");
+            if (!error) announceStatus("Verification code resent. Check your email.");
             return error;
           }}
           onBack={() => {
@@ -141,99 +151,100 @@ export function SignUpForm(): React.ReactElement {
             setPhase({ name: "collect" });
             setServerErrors([]);
             setPasswordScore(0);
-            setStatusMessage("");
+            clearStatus();
           }}
         />
       </>
     );
   }
 
-  const { banner, field } = splitClerkErrors(serverErrors);
-
   return (
-    <Card className="border-border bg-card mx-auto w-full max-w-[28rem] shadow-sm">
-      <CardHeader>
-        <HeaderActions />
-        <CardTitle className="font-display text-2xl">Create your account</CardTitle>
-        <CardDescription>Start planning compliant trips in seconds.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-5">
-        <OAuthButtonGroup onContinueWithGoogle={onGoogle} disabled={isBusy} />
-        <div className="text-muted-foreground flex items-center gap-3 text-xs tracking-wide uppercase">
-          <Separator className="flex-1" />
-          <span>or</span>
-          <Separator className="flex-1" />
-        </div>
-        <form
-          noValidate
-          onSubmit={(event) => {
-            void onSubmit(event);
-          }}
-        >
-          <FieldGroup>
-            <Field data-invalid={Boolean(form.formState.errors.email ?? field.email)}>
-              <FieldLabel htmlFor="signup-email">Email</FieldLabel>
-              <Input
-                id="signup-email"
-                type="email"
-                autoComplete="email"
-                inputMode="email"
-                spellCheck={false}
-                autoCorrect="off"
-                aria-invalid={Boolean(form.formState.errors.email ?? field.email)}
-                aria-describedby="signup-email-error"
-                {...form.register("email")}
-              />
-              <FieldError id="signup-email-error">
-                {form.formState.errors.email?.message ?? field.email}
-              </FieldError>
-            </Field>
-            <Field data-invalid={Boolean(form.formState.errors.password ?? field.password)}>
-              <FieldLabel htmlFor="signup-password">Password</FieldLabel>
-              <PasswordInput
-                id="signup-password"
-                autoComplete="new-password"
-                aria-invalid={Boolean(form.formState.errors.password ?? field.password)}
-                aria-describedby="signup-password-error"
-                {...form.register("password")}
-              />
-              <PasswordStrengthMeter
-                value={passwordValue}
-                userInputs={userInputs}
-                onScoreChange={setPasswordScore}
-              />
-              <FieldError id="signup-password-error">
-                {form.formState.errors.password?.message ?? field.password}
-              </FieldError>
-            </Field>
-          </FieldGroup>
-          <div className="mt-4">
-            <ClerkCaptcha />
+    <>
+      {politeRegion}
+      <Card className="border-border bg-card mx-auto w-full max-w-[28rem] shadow-sm">
+        <CardHeader>
+          <HeaderActions />
+          <CardTitle className="font-display text-2xl">Create your account</CardTitle>
+          <CardDescription>Start planning compliant trips in seconds.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-5">
+          <OAuthButtonGroup onContinueWithGoogle={onGoogle} disabled={isBusy} />
+          <div className="text-muted-foreground flex items-center gap-3 text-xs tracking-wide uppercase">
+            <Separator className="flex-1" />
+            <span>or</span>
+            <Separator className="flex-1" />
           </div>
-          {banner.length > 0 ? (
-            <div
-              role="alert"
-              className="border-destructive/30 bg-destructive/10 text-destructive mt-4 rounded-md border px-3 py-2 text-sm"
-            >
-              {banner.map((error) => (
-                <p key={error.code}>{error.longMessage ?? error.message}</p>
-              ))}
+          <form
+            noValidate
+            onSubmit={(event) => {
+              void onSubmit(event);
+            }}
+          >
+            <FieldGroup>
+              <Field data-invalid={Boolean(form.formState.errors.email ?? field.email)}>
+                <FieldLabel htmlFor="signup-email">Email</FieldLabel>
+                <Input
+                  id="signup-email"
+                  type="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  spellCheck={false}
+                  autoCorrect="off"
+                  aria-invalid={Boolean(form.formState.errors.email ?? field.email)}
+                  aria-describedby="signup-email-error"
+                  {...form.register("email")}
+                />
+                <FieldError id="signup-email-error">
+                  {form.formState.errors.email?.message ?? field.email}
+                </FieldError>
+              </Field>
+              <Field data-invalid={Boolean(form.formState.errors.password ?? field.password)}>
+                <FieldLabel htmlFor="signup-password">Password</FieldLabel>
+                <PasswordInput
+                  id="signup-password"
+                  autoComplete="new-password"
+                  aria-invalid={Boolean(form.formState.errors.password ?? field.password)}
+                  aria-describedby="signup-password-error"
+                  {...form.register("password")}
+                />
+                <PasswordStrengthMeter
+                  value={passwordValue}
+                  userInputs={userInputs}
+                  onScoreChange={setPasswordScore}
+                />
+                <FieldError id="signup-password-error">
+                  {form.formState.errors.password?.message ?? field.password}
+                </FieldError>
+              </Field>
+            </FieldGroup>
+            <div className="mt-4">
+              <ClerkCaptcha />
             </div>
-          ) : null}
-          <Button type="submit" className="mt-5 w-full" disabled={isBusy}>
-            {isBusy ? <SpotterLoader size="sm" /> : null}
-            Create account
-          </Button>
-        </form>
-      </CardContent>
-      <CardFooter className="justify-center">
-        <p className="text-muted-foreground text-sm">
-          Already have an account?{" "}
-          <Link to="/sign-in" className="text-primary underline-offset-2 hover:underline">
-            Sign in
-          </Link>
-        </p>
-      </CardFooter>
-    </Card>
+            {banner.length > 0 ? (
+              <div
+                role="alert"
+                className="border-destructive/30 bg-destructive/10 text-destructive mt-4 rounded-md border px-3 py-2 text-sm"
+              >
+                {banner.map((error) => (
+                  <p key={error.code}>{error.longMessage ?? error.message}</p>
+                ))}
+              </div>
+            ) : null}
+            <Button type="submit" className="mt-5 w-full" disabled={isBusy}>
+              {isBusy ? <SpotterLoader size="sm" /> : null}
+              Create account
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="justify-center">
+          <p className="text-muted-foreground text-sm">
+            Already have an account?{" "}
+            <Link to="/sign-in" className="text-primary underline-offset-2 hover:underline">
+              Sign in
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
+    </>
   );
 }

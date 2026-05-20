@@ -29,16 +29,16 @@ describe("AuthLayout", () => {
     expect(main).toContainElement(getByTestId("form"));
   });
 
-  it("renders the video aside and the decorative footer", () => {
-    const { getByRole, getByText } = render(
+  it("renders the decorative video aside as aria-hidden and the decorative footer", () => {
+    const { container, getByText } = render(
       <AuthLayout>
         <div />
       </AuthLayout>,
     );
 
-    expect(
-      getByRole("complementary", { name: /outbound spotter atmosphere/i }),
-    ).toBeInTheDocument();
+    const aside = container.querySelector("aside");
+    expect(aside).not.toBeNull();
+    expect(aside).toHaveAttribute("aria-hidden", "true");
     expect(getByText(/privacy/i)).toBeInTheDocument();
     expect(getByText(/terms/i)).toBeInTheDocument();
   });

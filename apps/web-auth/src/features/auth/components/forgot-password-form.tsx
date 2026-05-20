@@ -17,6 +17,7 @@ import { useForm, useWatch, type UseFormReturn } from "react-hook-form";
 import { Link } from "react-router";
 
 import { env } from "@/config/env";
+import { useAnnouncer } from "@/hooks/use-announcer";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
 import {
@@ -59,7 +60,7 @@ export function ForgotPasswordForm(): React.ReactElement {
   const { signIn, fetchStatus } = useSignIn();
   const [phase, setPhase] = useState<Phase>({ name: "request" });
   const [serverErrors, setServerErrors] = useState<AuthError[]>([]);
-  const [statusMessage, setStatusMessage] = useState("");
+  const { message: statusMessage, announce: announceStatus, clear: clearStatus } = useAnnouncer();
   useDocumentTitle(PHASE_TITLES[phase.name]);
 
   const requestForm = useForm<RequestValues>({
@@ -87,7 +88,7 @@ export function ForgotPasswordForm(): React.ReactElement {
     // Per OWASP: surface "code sent" optimistically regardless of whether the email is registered,
     // so the UI cannot be probed for enumeration. The underlying Clerk error is deliberately not
     // logged (a console.warn() would leak the error code to anyone with DevTools open).
-    setStatusMessage("Verification code sent. Check your email.");
+    announceStatus("Verification code sent. Check your email.");
     const emailAddress = result.status === "error" ? values.email : result.emailAddress;
     setPhase({ name: "verifying", emailAddress });
   });
@@ -112,12 +113,18 @@ export function ForgotPasswordForm(): React.ReactElement {
     }
   });
 
+  // Polite live region is rendered for every phase so AT picks up content INJECTION (not the
+  // less-reliable region-mount-with-content path). See ui-visual-validator round-3 finding M-3.
+  const politeRegion = (
+    <span aria-live="polite" className="sr-only">
+      {statusMessage}
+    </span>
+  );
+
   if (phase.name === "verifying") {
     return (
       <>
-        <span aria-live="polite" className="sr-only">
-          {statusMessage}
-        </span>
+        {politeRegion}
         <VerificationStep
           emailAddress={phase.emailAddress}
           onVerify={async (code) => {
@@ -128,12 +135,12 @@ export function ForgotPasswordForm(): React.ReactElement {
           }}
           onResend={async () => {
             const error = await resendPasswordResetCode(signIn);
-            if (!error) setStatusMessage("Verification code resent. Check your email.");
+            if (!error) announceStatus("Verification code resent. Check your email.");
             return error;
           }}
           onBack={() => {
             setPhase({ name: "request" });
-            setStatusMessage("");
+            clearStatus();
           }}
         />
       </>
@@ -142,75 +149,83 @@ export function ForgotPasswordForm(): React.ReactElement {
 
   if (phase.name === "reset") {
     return (
-      <ResetPasswordPhase
-        resetForm={resetForm}
-        resetPasswordValue={resetPasswordValue}
-        serverErrors={serverErrors}
-        isBusy={isBusy}
-        onSubmit={onReset}
-      />
+      <>
+        {politeRegion}
+        <ResetPasswordPhase
+          resetForm={resetForm}
+          resetPasswordValue={resetPasswordValue}
+          serverErrors={serverErrors}
+          isBusy={isBusy}
+          onSubmit={onReset}
+        />
+      </>
     );
   }
 
   const { banner } = splitClerkErrors(serverErrors);
   return (
-    <Card className="border-border bg-card mx-auto w-full max-w-[28rem] shadow-sm">
-      <CardHeader>
-        <HeaderActions />
-        <CardTitle className="font-display text-2xl">Reset your password</CardTitle>
-        <CardDescription>We will email you a 6-digit code to verify your identity.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form
-          noValidate
-          onSubmit={(event) => {
-            void onRequest(event);
-          }}
-        >
-          <FieldGroup>
-            <Field data-invalid={Boolean(requestForm.formState.errors.email)}>
-              <FieldLabel htmlFor="forgot-email">Email</FieldLabel>
-              <Input
-                id="forgot-email"
-                type="email"
-                autoComplete="email"
-                inputMode="email"
-                spellCheck={false}
-                autoCorrect="off"
-                aria-invalid={Boolean(requestForm.formState.errors.email)}
-                aria-describedby="forgot-email-error"
-                {...requestForm.register("email")}
-              />
-              <FieldError id="forgot-email-error">
-                {requestForm.formState.errors.email?.message}
-              </FieldError>
-            </Field>
-          </FieldGroup>
-          {banner.length > 0 ? (
-            <div
-              role="alert"
-              className="border-destructive/30 bg-destructive/10 text-destructive mt-4 rounded-md border px-3 py-2 text-sm"
-            >
-              {banner.map((error) => (
-                <p key={error.code}>{error.longMessage ?? error.message}</p>
-              ))}
-            </div>
-          ) : null}
-          <Button type="submit" className="mt-5 w-full" disabled={isBusy}>
-            {isBusy ? <SpotterLoader size="sm" /> : null}
-            Send reset code
-          </Button>
-        </form>
-      </CardContent>
-      <CardFooter className="justify-center">
-        <p className="text-muted-foreground text-sm">
-          Remembered it?{" "}
-          <Link to="/sign-in" className="text-primary underline-offset-2 hover:underline">
-            Sign in
-          </Link>
-        </p>
-      </CardFooter>
-    </Card>
+    <>
+      {politeRegion}
+      <Card className="border-border bg-card mx-auto w-full max-w-[28rem] shadow-sm">
+        <CardHeader>
+          <HeaderActions />
+          <CardTitle className="font-display text-2xl">Reset your password</CardTitle>
+          <CardDescription>
+            We will email you a 6-digit code to verify your identity.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form
+            noValidate
+            onSubmit={(event) => {
+              void onRequest(event);
+            }}
+          >
+            <FieldGroup>
+              <Field data-invalid={Boolean(requestForm.formState.errors.email)}>
+                <FieldLabel htmlFor="forgot-email">Email</FieldLabel>
+                <Input
+                  id="forgot-email"
+                  type="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  spellCheck={false}
+                  autoCorrect="off"
+                  aria-invalid={Boolean(requestForm.formState.errors.email)}
+                  aria-describedby="forgot-email-error"
+                  {...requestForm.register("email")}
+                />
+                <FieldError id="forgot-email-error">
+                  {requestForm.formState.errors.email?.message}
+                </FieldError>
+              </Field>
+            </FieldGroup>
+            {banner.length > 0 ? (
+              <div
+                role="alert"
+                className="border-destructive/30 bg-destructive/10 text-destructive mt-4 rounded-md border px-3 py-2 text-sm"
+              >
+                {banner.map((error) => (
+                  <p key={error.code}>{error.longMessage ?? error.message}</p>
+                ))}
+              </div>
+            ) : null}
+            <Button type="submit" className="mt-5 w-full" disabled={isBusy}>
+              {isBusy ? <SpotterLoader size="sm" /> : null}
+              Send reset code
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="justify-center">
+          <p className="text-muted-foreground text-sm">
+            Remembered it?{" "}
+            <Link to="/sign-in" className="text-primary underline-offset-2 hover:underline">
+              Sign in
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
+    </>
   );
 }
 
