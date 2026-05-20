@@ -38,7 +38,7 @@ function AppShellInner(): React.ReactElement {
     <>
       <AppSidebar Secondary={isMobile ? undefined : Secondary} />
       <SidebarInset>
-        <header className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10 flex h-12 shrink-0 items-center gap-2 border-b px-3 backdrop-blur">
+        <header className="bg-background/95 supports-backdrop-filter:bg-background/60 sticky top-0 z-10 flex h-12 shrink-0 items-center gap-2 border-b px-3 backdrop-blur">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
           {title ? <span className="font-display text-sm font-medium">{title}</span> : null}
