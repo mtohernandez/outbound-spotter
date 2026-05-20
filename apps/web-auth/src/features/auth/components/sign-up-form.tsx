@@ -161,7 +161,7 @@ export function SignUpForm(): React.ReactElement {
   return (
     <>
       {politeRegion}
-      <Card className="border-border bg-card mx-auto w-full max-w-[28rem] shadow-sm">
+      <Card className="border-border bg-card mx-auto w-full max-w-md shadow-sm">
         <CardHeader>
           <HeaderActions />
           <CardTitle className="font-display text-2xl">Create your account</CardTitle>

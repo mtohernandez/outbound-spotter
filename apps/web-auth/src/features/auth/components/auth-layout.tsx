@@ -16,7 +16,7 @@ export function AuthLayout({ children }: Props): React.ReactElement {
       >
         Skip to main content
       </a>
-      <div className="m-auto grid w-full grid-cols-1 gap-6 p-6 md:grid-cols-2 lg:gap-8 lg:p-8">
+      <div className="grid w-full grid-cols-1 gap-6 p-6 md:grid-cols-2 lg:gap-8 lg:p-8">
         <AuthVideoPanel />
         <main id="auth-main" className="flex min-h-0 flex-col gap-6">
           {children}

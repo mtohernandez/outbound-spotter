@@ -56,8 +56,6 @@ export function PasswordStrengthMeter({
   const effectiveScore: PasswordScore = isEmpty ? 0 : score;
   const currentLevel = LEVELS[effectiveScore];
   const label = isEmpty ? EMPTY_LABEL : currentLevel.label;
-  // Fill one bar per score point, all in the same tone so the user reads the meter as a single
-  // progress indicator. Score 0 → 1 bar red so the user gets immediate feedback.
   const filledBars = isEmpty ? 0 : Math.max(1, effectiveScore);
   const toneClass = currentLevel.toneClass;
 
@@ -70,7 +68,7 @@ export function PasswordStrengthMeter({
             <span
               key={index}
               data-filled={filled || undefined}
-              className={`bg-muted h-1.5 flex-1 rounded-full ${filled ? toneClass : ""}`}
+              className={`h-1.5 flex-1 rounded-full ${filled ? toneClass : "bg-muted"}`}
             />
           );
         })}

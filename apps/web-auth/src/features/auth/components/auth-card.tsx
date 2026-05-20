@@ -10,7 +10,7 @@ interface Props {
 
 export function AuthCard({ children, className }: Props): React.ReactElement {
   return (
-    <Card className={cn("border-border bg-card mx-auto w-full max-w-[28rem] shadow-sm", className)}>
+    <Card className={cn("border-border bg-card mx-auto w-full max-w-md shadow-sm", className)}>
       {children}
     </Card>
   );

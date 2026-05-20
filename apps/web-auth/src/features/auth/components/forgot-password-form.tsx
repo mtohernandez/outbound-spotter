@@ -166,7 +166,7 @@ export function ForgotPasswordForm(): React.ReactElement {
   return (
     <>
       {politeRegion}
-      <Card className="border-border bg-card mx-auto w-full max-w-[28rem] shadow-sm">
+      <Card className="border-border bg-card mx-auto w-full max-w-md shadow-sm">
         <CardHeader>
           <HeaderActions />
           <CardTitle className="font-display text-2xl">Reset your password</CardTitle>
@@ -255,7 +255,7 @@ function ResetPasswordPhase({
   const { banner, field } = splitClerkErrors(serverErrors);
 
   return (
-    <Card className="border-border bg-card mx-auto w-full max-w-[28rem] shadow-sm">
+    <Card className="border-border bg-card mx-auto w-full max-w-md shadow-sm">
       <CardHeader>
         <HeaderActions />
         <CardTitle className="font-display text-2xl">Set a new password</CardTitle>

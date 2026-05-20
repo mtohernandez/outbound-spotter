@@ -94,7 +94,7 @@ export function SignInForm(): React.ReactElement {
   const { banner, field } = splitClerkErrors(serverErrors);
 
   return (
-    <Card className="border-border bg-card mx-auto w-full max-w-[28rem] shadow-sm">
+    <Card className="border-border bg-card mx-auto w-full max-w-md shadow-sm">
       <CardHeader>
         <HeaderActions />
         <CardTitle className="font-display text-2xl">Welcome back</CardTitle>
@@ -161,8 +161,6 @@ export function SignInForm(): React.ReactElement {
             </Field>
           </FieldGroup>
           {banner.length > 0 ? (
-            // role="alert" carries an implicit aria-live="assertive" — setting both was redundant
-            // (and causes NVDA double-announce).
             <div
               role="alert"
               className="border-destructive/30 bg-destructive/10 text-destructive mt-4 rounded-md border px-3 py-2 text-sm"
