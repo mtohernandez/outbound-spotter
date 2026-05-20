@@ -66,7 +66,7 @@ These were resolved before authoring; they live here so future implementers don'
   - `@dataclass(frozen=True, slots=True) class PeliasFeature: label, country_a, region_a, locality, confidence, match_type, lat, lon`
   - `def geocode_autocomplete(text: str, *, focus: tuple[float, float] | None = None, size: int = 5) -> list[PeliasFeature]`
   - `def geocode_search(text: str, *, size: int = 1) -> list[PeliasFeature]`
-  - Reads `ORS_API_KEY` from settings. Sends `Authorization: <api_key>` header (per `context/architecture.md#External integrations`).
+  - Reads `OPENROUTESERVICE_API_KEY` from settings. Sends `Authorization: <api_key>` header (per `context/architecture.md#External integrations`).
   - Hard-coded `boundary.country=US`; `size` clamped to `[1, 10]`; request timeout 5 s.
   - Errors: `OrsRateLimitError` (HTTP 429), `OrsUpstreamError` (5xx), `OrsRequestError` (4xx). Caught + remapped to DRF responses at the view boundary.
 - `web_api/apps/geocoding/` — new Django app (registered in `INSTALLED_APPS`):
@@ -80,7 +80,7 @@ These were resolved before authoring; they live here so future implementers don'
   - `serializers.py` — request shape mirrors the FE zod schema (three resolved addresses + cycle hours); response includes the new `id`, `status: "pending"`, and `created_at`.
   - `urls.py`, `tests/test_trips.py` (create + retrieve + ownership 401/403/404 + invalid payload 400), `migrations/0001_initial.py` (committed once, never re-edited).
 - `web_api/urls.py` — `path("api/geocode/", include("web_api.apps.geocoding.urls"))`, `path("api/trips/", include("web_api.apps.trips.urls"))`.
-- `web_api/settings/base.py` — `INSTALLED_APPS` += `"web_api.apps.geocoding"`, `"web_api.apps.trips"`; pydantic-settings field `ORS_API_KEY: SecretStr`.
+- `web_api/settings/base.py` — `INSTALLED_APPS` += `"web_api.apps.geocoding"`, `"web_api.apps.trips"`; pydantic-settings field `OPENROUTESERVICE_API_KEY: SecretStr`.
 - `pyproject.toml` — add `requests~=2.32.x` (`uv add` resolves the exact version; record in PR body). `types-requests` is already pinned.
 - One migration committed; not edited post-apply per `code-standards.md`.
 
@@ -105,7 +105,7 @@ These were resolved before authoring; they live here so future implementers don'
 - Specs 01 + 02 are merged on `develop`. `packages/ui` exports primitives + theme + brand components; `apps/web-auth` issues the Clerk session and redirects to `apps/web-app` on success.
 - `apps/web-app` already has wired: `<ClerkProvider>`, TanStack Query (`@tanstack/react-query` v5.100.11 with the configured `queryClient`), `<Sonner />` `<Toaster>`, React Router v7.15.1 `createBrowserRouter`, `<RequireAuth>` guard, `apiFetch<T>` helper (`lib/api-client.ts`). **No new frontend runtime deps** beyond the Radix peers the shadcn CLI installs.
 - `apps/web-api` has `clerk-backend-api` JWT verification middleware, an `IsAuthenticated` permission, and an `/api/me/` reference view. `web_api/integrations/__init__.py` is a docstring-only package scaffold ready for the new client. `web_api/apps/` is empty (`__init__.py` only).
-- `ORS_API_KEY` is provisioned (HeiGIT standard free plan: 1000 geocoding req/day, 40 req/min) and placed in `apps/web-api/.env.local` + Fly.io secrets. **Not committed.**
+- `OPENROUTESERVICE_API_KEY` is provisioned (HeiGIT standard free plan: 1000 geocoding req/day, 40 req/min) and placed in `apps/web-api/.env.local` + Fly.io secrets. **Not committed.**
 - The OKLCH `@theme` block in `packages/ui/src/styles/globals.css` and the dark-mode class strategy already cover every color used here. This spec does not touch `globals.css`.
 
 ## Boundary
@@ -123,7 +123,7 @@ These were resolved before authoring; they live here so future implementers don'
 2. `web_api/integrations/openrouteservice.py` — client + dataclass + error types. Unit-test with `requests` mocked (`responses` or `pytest-httpx`; the latter is already pulled in via test deps). Cite ORS docs in module docstring.
 3. `web_api/apps/geocoding/` — Django app skeleton (`apps.py`, `views.py`, `serializers.py`, `urls.py`, `tests/`). Wire into `INSTALLED_APPS` + `urls.py`.
 4. `web_api/apps/trips/` — Django app skeleton including `models.py` + `migrations/0001_initial.py`. Wire into `INSTALLED_APPS` + `urls.py`.
-5. `web_api/settings/base.py` — add `ORS_API_KEY: SecretStr` to the pydantic-settings class.
+5. `web_api/settings/base.py` — add `OPENROUTESERVICE_API_KEY: SecretStr` to the pydantic-settings class.
 6. `uv run python manage.py makemigrations trips` produces the migration (committed). `uv run python manage.py migrate` applies it.
 7. Green-bar pytest + ruff + mypy + ruff format. Regenerate `apps/web-api/openapi.yaml` via `uv run python manage.py spectacular --file openapi.yaml`.
 
@@ -208,7 +208,7 @@ apps/web-api/
 ├── pyproject.toml                                          # MODIFY: + requests
 ├── openapi.yaml                                            # REGENERATE (drf-spectacular)
 └── web_api/
-    ├── settings/base.py                                    # MODIFY: + ORS_API_KEY, + INSTALLED_APPS
+    ├── settings/base.py                                    # MODIFY: + OPENROUTESERVICE_API_KEY, + INSTALLED_APPS
     ├── urls.py                                             # MODIFY: + include geocoding + trips
     ├── integrations/
     │   └── openrouteservice.py                             # NEW
