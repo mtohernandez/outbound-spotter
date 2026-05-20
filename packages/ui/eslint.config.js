@@ -12,9 +12,9 @@ export default [
     },
   },
   {
-    // shadcn-generated primitives are CLI-owned (regenerate via `shadcn add`),
+    // shadcn-generated primitives + hooks are CLI-owned (regenerate via `shadcn add`),
     // so we relax the rules that fight canonical shadcn output instead of patching the files.
-    files: ["src/components/ui/**/*.{ts,tsx}"],
+    files: ["src/components/ui/**/*.{ts,tsx}", "src/hooks/use-mobile.ts"],
     rules: {
       "import-x/order": "off",
       "react-refresh/only-export-components": "off",
@@ -22,9 +22,13 @@ export default [
       "@typescript-eslint/no-unnecessary-condition": "off",
       "@typescript-eslint/no-unnecessary-template-expression": "off",
       "@typescript-eslint/no-unnecessary-type-conversion": "off",
+      "@typescript-eslint/no-confusing-void-expression": "off",
+      "@typescript-eslint/prefer-nullish-coalescing": "off",
       "@typescript-eslint/array-type": "off",
       "react/jsx-no-leaked-render": "off",
       "react/no-array-index-key": "off",
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/purity": "off",
       eqeqeq: "off",
       "jsx-a11y/click-events-have-key-events": "off",
       "jsx-a11y/no-noninteractive-element-interactions": "off",
