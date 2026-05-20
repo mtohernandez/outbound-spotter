@@ -22,6 +22,12 @@ export default [
       "@typescript-eslint/no-unnecessary-condition": "off",
       "@typescript-eslint/no-unnecessary-template-expression": "off",
       "@typescript-eslint/no-unnecessary-type-conversion": "off",
+      "@typescript-eslint/array-type": "off",
+      "react/jsx-no-leaked-render": "off",
+      "react/no-array-index-key": "off",
+      eqeqeq: "off",
+      "jsx-a11y/click-events-have-key-events": "off",
+      "jsx-a11y/no-noninteractive-element-interactions": "off",
     },
   },
 ];

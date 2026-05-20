@@ -88,7 +88,14 @@ The `pre-push` hook runs `turbo run typecheck --affected` + `turbo run test --af
 
 (Documented here for completeness — first release is not in scope yet.)
 
-## 6. License acceptance
+## 6. Env conventions
+
+Per-app environment templates live at `apps/<name>/.env.local.example`. Copy to `.env.local` (gitignored) and fill in. The schema is enforced at runtime by the app's `src/config/env.ts` (zod).
+
+- **Never author new `.env.example` files.** The root `.gitignore` only allowlists `.env.local.example`; anything else under `.env*` is ignored. Legacy `.env.example` files in `apps/web-app/` and `apps/web-api/` are scheduled for removal in a follow-up unit and must not be reintroduced.
+- **Never commit secrets.** Templates document the variable names and safe defaults only. Real keys go in `.env.local` (Vite-native local override) on the developer's machine and in the deployment provider's secret store in production.
+
+## 7. License acceptance
 
 By contributing you confirm:
 
@@ -96,7 +103,7 @@ By contributing you confirm:
 - Your contribution is licensed under PolyForm Noncommercial 1.0.0 (`LICENSE.md`).
 - The project is source-available and **not** for commercial use. Forking for commercial reuse, hosting as a SaaS for paying customers, or reselling are not permitted by the license.
 
-## 7. Where to find the rules of engagement
+## 8. Where to find the rules of engagement
 
 - `CLAUDE.md` — operating manual for AI-assisted work (skills, sub-agents, validation discipline).
 - `context/code-standards.md` — language-level conventions (TS, Python, React, Django).
