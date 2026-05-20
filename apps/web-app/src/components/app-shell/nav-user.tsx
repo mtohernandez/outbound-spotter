@@ -33,22 +33,31 @@ export function NavUser(): React.ReactElement | null {
     window.location.assign(env.VITE_AUTH_SIGN_IN_URL);
   }
 
+  // Trigger gets a single, semantic accessible name. Without `aria-label`,
+  // screen readers walk the Avatar's `alt` + the two visible text spans and
+  // announce the user's display name three times in a row (the side effect of
+  // the shadcn sidebar-09 reference layout). Marking the visual children
+  // `aria-hidden` collapses the SR experience to "Account menu, {displayName}"
+  // while leaving the sighted UI intact.
+  const triggerLabel = `Account menu, ${displayName}`;
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <SidebarMenuButton
           size="lg"
+          aria-label={triggerLabel}
           className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground md:h-8 md:p-0"
         >
-          <Avatar className="size-8 rounded-lg">
-            {user.imageUrl ? <AvatarImage src={user.imageUrl} alt={displayName} /> : null}
+          <Avatar className="size-8 rounded-lg" aria-hidden>
+            {user.imageUrl ? <AvatarImage src={user.imageUrl} alt="" /> : null}
             <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
           </Avatar>
-          <div className="grid flex-1 text-left text-sm leading-tight">
+          <div className="grid flex-1 text-left text-sm leading-tight" aria-hidden>
             <span className="truncate font-medium">{displayName}</span>
             <span className="text-muted-foreground truncate text-xs">{email}</span>
           </div>
-          <ChevronsUpDown className="ml-auto size-4" />
+          <ChevronsUpDown className="ml-auto size-4" aria-hidden />
         </SidebarMenuButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -59,8 +68,8 @@ export function NavUser(): React.ReactElement | null {
       >
         <DropdownMenuLabel className="p-0 font-normal">
           <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-            <Avatar className="size-8 rounded-lg">
-              {user.imageUrl ? <AvatarImage src={user.imageUrl} alt={displayName} /> : null}
+            <Avatar className="size-8 rounded-lg" aria-hidden>
+              {user.imageUrl ? <AvatarImage src={user.imageUrl} alt="" /> : null}
               <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
