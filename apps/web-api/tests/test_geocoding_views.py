@@ -98,7 +98,7 @@ def test_autocomplete_focus_half_missing_returns_400(authenticated_client: APICl
 def test_autocomplete_rate_limit_returns_429(authenticated_client: APIClient) -> None:
     with patch(
         "web_api.apps.geocoding.views.geocode_autocomplete",
-        side_effect=OrsRateLimitError("quota"),
+        side_effect=OrsRateLimitError("quota", window="per-minute"),
     ):
         response = authenticated_client.get("/api/geocode/autocomplete/?text=Richmond")
 
