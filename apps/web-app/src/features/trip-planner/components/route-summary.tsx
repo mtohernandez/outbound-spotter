@@ -1,54 +1,16 @@
-import { SpotterLoader } from "@outbound/ui/components/brand/spotter-loader";
 import { Card, CardContent } from "@outbound/ui/components/ui/card";
-import { Empty, EmptyDescription, EmptyTitle } from "@outbound/ui/components/ui/empty";
-import { Link } from "react-router";
 
-import { paths } from "@/config/paths";
-import type {
-  RouteErrorCode,
-  TripPlanned,
-  TripResponse,
-} from "@/features/trip-planner/schemas/trip-response";
+import type { TripResponse } from "@/features/trip-planner/schemas/trip-response";
 import { formatDistance } from "@/features/trip-planner/utils/format-distance";
 import { formatDuration } from "@/features/trip-planner/utils/format-duration";
 
-const ROUTE_ERROR_COPY: Record<RouteErrorCode, { title: string; body: string }> = {
-  rate_limit_per_minute: {
-    title: "Routing service is busy",
-    body: "We hit the per-minute routing quota. Try again in a moment.",
-  },
-  rate_limit_daily: {
-    title: "Daily routing quota exhausted",
-    body: "The routing service is rate-limited until tomorrow. Try again then.",
-  },
-  upstream: {
-    title: "Couldn't reach the routing service",
-    body: "The routing service didn't respond. Try again in a moment.",
-  },
-  validation: {
-    title: "Couldn't plan this route",
-    body: "The routing service refused these coordinates. Try slightly different addresses.",
-  },
-};
-
-// 3 input coordinates → 2 segments. We label legs by their POSITION in the
-// route (current → pickup, pickup → dropoff), not by `segment.from_index` /
-// `to_index` — those are polyline-coordinate indices (0..polyline.length-1)
-// that ORS uses for slicing the geometry, not driver-facing stop indices.
+// 3 input coordinates → 2 segments. Legs are labeled by their position in
+// the route (current → pickup, pickup → dropoff). `segment.from_index` /
+// `to_index` are polyline-coordinate indices that ORS uses for slicing the
+// geometry, not driver-facing stop indices.
 const STOP_LABELS = ["Current", "Pickup", "Dropoff"];
 
 export function RouteSummary({ trip }: { readonly trip: TripResponse }): React.ReactElement {
-  switch (trip.status) {
-    case "planning":
-      return <SpotterLoader size="lg" />;
-    case "failed":
-      return <FailedSummary code={trip.route_error_code} />;
-    case "planned":
-      return <PlannedSummary trip={trip} />;
-  }
-}
-
-function PlannedSummary({ trip }: { readonly trip: TripPlanned }): React.ReactElement {
   return (
     <Card className="w-full max-w-md">
       <CardContent className="space-y-4 p-6">
@@ -93,21 +55,5 @@ function PlannedSummary({ trip }: { readonly trip: TripPlanned }): React.ReactEl
         </dl>
       </CardContent>
     </Card>
-  );
-}
-
-function FailedSummary({ code }: { readonly code: RouteErrorCode }): React.ReactElement {
-  const copy = ROUTE_ERROR_COPY[code];
-  return (
-    <Empty>
-      <EmptyTitle>{copy.title}</EmptyTitle>
-      <EmptyDescription>{copy.body}</EmptyDescription>
-      <Link
-        to={paths.tripsNew satisfies string}
-        className="text-primary focus-visible:ring-ring focus-visible:ring-offset-background rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-offset-2"
-      >
-        Plan a new trip
-      </Link>
-    </Empty>
   );
 }

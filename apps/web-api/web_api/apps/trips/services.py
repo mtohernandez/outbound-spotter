@@ -1,11 +1,12 @@
-"""Trip planning pipeline (spec 04).
+"""Trip planning pipeline.
 
-``plan_trip`` is the only entry point. It creates the ``Trip`` row in
-``PLANNING``, looks up the SHA256-keyed ``TripRouteCache`` (so reviewers can
-re-run trips without burning the HeiGIT 2000/day quota), calls ORS Directions
-on a miss, and transitions the row to ``PLANNED`` or ``FAILED`` before
-returning. The view layer renders whatever Trip this returns; FAILED is not
-an exception, it is a row state the FE branches on (spec 04 decision 14).
+``plan_trip`` is the only entry point. It looks up the SHA256-keyed
+``TripRouteCache``, calls ORS Directions on a miss, then persists a single
+Trip row with the resolved route in one atomic insert.
+
+ORS errors propagate as ``OrsError`` subclasses — NO Trip row is created on
+failure. The view layer maps each subclass to an HTTP error response so the
+user stays on the form (post-live-smoke senior-review directive).
 """
 
 from __future__ import annotations
@@ -16,14 +17,11 @@ from typing import TYPE_CHECKING, Any, Final
 
 from django.db import transaction
 
-from web_api.apps.trips.models import Trip, TripRouteCache, TripStatus
+from web_api.apps.trips.models import Trip, TripRouteCache
 from web_api.integrations.openrouteservice import (
     DirectionsResult,
     DirectionsSegment,
     DirectionsSummary,
-    OrsRateLimitError,
-    OrsRequestError,
-    OrsUpstreamError,
     directions_hgv,
 )
 
@@ -45,17 +43,17 @@ _TripCoords = tuple[_Coord, _Coord, _Coord]
 
 
 def plan_trip(serializer_data: Mapping[str, Any], user_id: str) -> Trip:
-    """Create a Trip and resolve its route via ORS.
+    """Resolve the route, then persist a Trip row.
 
-    On success the returned Trip has ``status=PLANNED`` and the four route
-    fields populated. On any ORS error the returned Trip has ``status=FAILED``
-    and a non-null ``route_error_code``; the exception is captured here and
-    NOT re-raised so the view returns 201 with the discriminated row.
+    Raises ``OrsRateLimitError`` / ``OrsRequestError`` / ``OrsUpstreamError``
+    on routing failure. The view layer translates these into HTTP responses;
+    no Trip row is persisted on failure (the user stays on the form).
     """
     coords = _coords_from_serializer(serializer_data)
+    result = _resolve_directions(coords)
 
     with transaction.atomic():
-        trip = Trip.objects.create(
+        return Trip.objects.create(
             user_id=user_id,
             current_label=serializer_data["current"]["label"],
             current_lat=serializer_data["current"]["lat"],
@@ -67,27 +65,10 @@ def plan_trip(serializer_data: Mapping[str, Any], user_id: str) -> Trip:
             dropoff_lat=serializer_data["dropoff"]["lat"],
             dropoff_lon=serializer_data["dropoff"]["lon"],
             cycle_hours_used=serializer_data["cycle_hours_used"],
-            status=TripStatus.PLANNING,
+            route_polyline=result.polyline,
+            route_segments=[asdict(s) for s in result.segments],
+            route_summary=asdict(result.summary),
         )
-
-    try:
-        result = _resolve_directions(coords)
-    except OrsRateLimitError as exc:
-        return _mark_failed(
-            trip,
-            "rate_limit_daily" if exc.window == "daily" else "rate_limit_per_minute",
-        )
-    except OrsUpstreamError:
-        return _mark_failed(trip, "upstream")
-    except OrsRequestError:
-        return _mark_failed(trip, "validation")
-
-    trip.route_polyline = result.polyline
-    trip.route_segments = [asdict(s) for s in result.segments]
-    trip.route_summary = asdict(result.summary)
-    trip.status = TripStatus.PLANNED
-    trip.save(update_fields=["route_polyline", "route_segments", "route_summary", "status"])
-    return trip
 
 
 def _resolve_directions(coords: _TripCoords) -> DirectionsResult:
@@ -108,7 +89,7 @@ def _resolve_directions(coords: _TripCoords) -> DirectionsResult:
 
 
 def _coords_from_serializer(data: Mapping[str, Any]) -> _TripCoords:
-    """Return ((cur_lon, cur_lat), (pickup_lon, pickup_lat), (dropoff_lon, dropoff_lat)).
+    """Return ``((cur_lon, cur_lat), (pickup_lon, pickup_lat), (dropoff_lon, dropoff_lat))``.
 
     Lon/lat order matches ORS's wire convention so callers cannot accidentally
     flip the pair.
@@ -151,10 +132,3 @@ def _hydrate_payload(payload: Mapping[str, Any]) -> DirectionsResult:
         summary=DirectionsSummary(**payload["summary"]),
         segments=[DirectionsSegment(**segment) for segment in payload["segments"]],
     )
-
-
-def _mark_failed(trip: Trip, route_error_code: str) -> Trip:
-    trip.route_error_code = route_error_code
-    trip.status = TripStatus.FAILED
-    trip.save(update_fields=["route_error_code", "status"])
-    return trip

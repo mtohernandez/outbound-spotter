@@ -118,6 +118,26 @@ These were resolved during the spec-04 planning session and are recorded here so
 
 26. **MSW helpers**: `mockTripPlanned(overrides?)`, `mockTripFailed(reason?: RouteErrorCode)`, `mockTripPlanning()` exported from `apps/web-app/src/testing/handlers.ts` as named exports. Tests call `server.use(mockTripFailed("rate_limit_daily"))` for status-branch coverage.
 
+## Decisions amended post-live-smoke
+
+A senior review against the running stack flagged that persisting a FAILED Trip row on ORS rejection is bad UX — the user gets pushed to `/trips/:id` for a half-resolved record they have to back out of. The amendment: **validate the route via ORS BEFORE persisting any row**. On rejection the response is an HTTP error envelope, the FE toasts the `detail`, and the form state is preserved so the user can retry without navigating. This mechanically removes several pieces of the original design:
+
+- **Decision 7 → still raises** the same exception classes from `directions_hgv`, but they now propagate out of `plan_trip` instead of being caught and rewritten as a `route_error_code`. The view (`TripCreateView.post`) catches and emits the project envelope: 429 (per-minute or daily), 400 (validation), 502 (upstream).
+- **Decision 9 → `TripStatus` enum removed.** Trip is single-valued (a row exists ⇔ it's planned). Migration 0003 drops `status` + the enum.
+- **Decision 10 → `route_error_code` removed.** It only existed to support FAILED. Migration 0003 drops the column. `route_polyline / route_segments / route_summary` stay (nullable at the column level for migration symmetry, but always populated in practice). Spec-04-era rows whose route never resolved are deleted by 0003's RunPython.
+- **Decision 13 → `plan_trip` pipeline reordered**: cache lookup → ORS call → atomic Trip insert with route fields populated in one shot. No FAILED branch. On `OrsError`, raise (no row persisted).
+- **Decision 14 → HTTP semantics**: 201 only on success. Routing failures emit 400/429/502 with the project envelope. No 201-on-FAILED special case.
+- **Decision 15 → discriminated union collapsed** to a flat `tripResponseSchema` — no `status` discriminator, one shape with required route fields.
+- **Decision 20 → status branches removed** from `RouteSummary`. The component now renders only the planned shape (the `<Card>` + `<dl>`). PLANNING fallback is handled by `useTripById.isPending` → `<Skeleton>` in `trips-detail.tsx`. The FAILED `<Empty>` is gone.
+- **Decision 21 → status badge removed** from `TripDetailPanel`. The Route SidebarGroup shows the mono `distance · duration` only.
+- **Decision 22 → still holds** vacuously (one status implies nothing to badge).
+- **Decision 24 → still holds**.
+- **Decision 26 → MSW helpers**: `mockTripFailed` / `mockTripPlanning` removed (no longer reachable). `mockTripPlanned(overrides?)` kept.
+
+The error copy that previously lived in `ROUTE_ERROR_COPY` on the FE now lives on the BE (`web_api/apps/trips/views.py::_RATE_LIMIT_PER_MINUTE / _RATE_LIMIT_DAILY / _VALIDATION / _UPSTREAM`) and is surfaced verbatim in the toast via `usePlanTrip.onError` reading `ApiError.body.detail`. The strings are unchanged.
+
+Architecture invariants from spec 04 remain intact (#1 HOS planner pure, #3 ORS key server-side, #5 ownership-checked, #7 theme tokens only). The change improves intuitiveness without drifting from the assessment brief.
+
 ## Scope
 
 ### In

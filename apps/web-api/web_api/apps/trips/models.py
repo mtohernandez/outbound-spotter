@@ -1,10 +1,12 @@
 """Trip data model and route cache.
 
-Spec 04 adds: a ``TripStatus`` enum, four nullable route fields populated by
-the ORS Directions pipeline (``services.plan_trip``), and a sibling
-``TripRouteCache`` table keyed by SHA256 of the canonical coordinate string
-(spec 04 decision 12) so reviewers can re-run trips without burning the
-HeiGIT daily quota.
+A Trip row exists ⇔ the route was successfully resolved via ORS. Failure is
+surfaced as an HTTP error response by ``TripCreateView`` and no row is ever
+persisted (senior-review directive, post-live-smoke): the user stays on the
+form with a toast and can retry without navigating to a half-resolved trip.
+
+``TripRouteCache`` is keyed by SHA256 of the canonical coordinate string so
+reviewers can re-run trips without burning the HeiGIT 2000/day quota.
 """
 
 from __future__ import annotations
@@ -14,19 +16,6 @@ import uuid
 
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-
-
-class TripStatus(models.TextChoices):
-    """States `services.plan_trip` transitions a Trip through.
-
-    Spec 04 drops the spec-03 ``"pending"`` value: the pipeline now writes
-    PLANNING on row creation and transitions to PLANNED or FAILED inside the
-    request handler. Migration 0002 ports any existing ``"pending"`` row.
-    """
-
-    PLANNING = "planning", "Planning"
-    PLANNED = "planned", "Planned"
-    FAILED = "failed", "Failed"
 
 
 class Trip(models.Model):
@@ -51,15 +40,11 @@ class Trip(models.Model):
         validators=[MinValueValidator(Decimal("0")), MaxValueValidator(Decimal("70"))],
     )
 
-    status = models.CharField(
-        max_length=16,
-        choices=TripStatus.choices,
-        default=TripStatus.PLANNING,
-    )
+    # Populated by ``services.plan_trip`` before the row is saved; nullable
+    # at the column level only to keep the existing migration history reversible.
     route_polyline = models.JSONField(null=True, blank=True)
     route_segments = models.JSONField(null=True, blank=True)
     route_summary = models.JSONField(null=True, blank=True)
-    route_error_code = models.CharField(max_length=32, null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -69,7 +54,7 @@ class Trip(models.Model):
 
 
 class TripRouteCache(models.Model):
-    """SHA256-keyed ORS Directions response cache (spec 04 decision 11).
+    """SHA256-keyed ORS Directions response cache.
 
     ``coords_canonical`` is denormalized so an operator can decode which trip a
     row caches without rebuilding the hash. ``payload`` stores the

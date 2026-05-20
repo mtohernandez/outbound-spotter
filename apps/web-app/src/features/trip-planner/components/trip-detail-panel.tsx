@@ -1,4 +1,3 @@
-import { Badge } from "@outbound/ui/components/ui/badge";
 import {
   SidebarContent,
   SidebarGroup,
@@ -10,18 +9,8 @@ import { Skeleton } from "@outbound/ui/components/ui/skeleton";
 import { useParams } from "react-router";
 
 import { useTripById } from "@/features/trip-planner/api/trip-by-id";
-import type { TripResponse } from "@/features/trip-planner/schemas/trip-response";
 import { formatDistance } from "@/features/trip-planner/utils/format-distance";
 import { formatDuration } from "@/features/trip-planner/utils/format-duration";
-
-const STATUS_BADGE: Record<
-  TripResponse["status"],
-  { label: string; variant: "default" | "secondary" | "destructive" }
-> = {
-  planned: { label: "Planned", variant: "default" },
-  planning: { label: "Planning", variant: "secondary" },
-  failed: { label: "Failed", variant: "destructive" },
-};
 
 export function TripDetailPanel(): React.ReactElement {
   const { id } = useParams<{ id: string }>();
@@ -59,7 +48,7 @@ export function TripDetailPanel(): React.ReactElement {
   }
 
   const data = trip.data;
-  const summary = data.status === "planned" ? data.route_summary : null;
+  const { distance_mi, duration_s } = data.route_summary;
 
   return (
     <>
@@ -74,14 +63,9 @@ export function TripDetailPanel(): React.ReactElement {
       <SidebarContent className="p-4">
         <SidebarGroup className="px-0">
           <SidebarGroupLabel>Route</SidebarGroupLabel>
-          <SidebarGroupContent className="flex items-center gap-2">
-            <Badge variant={STATUS_BADGE[data.status].variant}>
-              {STATUS_BADGE[data.status].label}
-            </Badge>
+          <SidebarGroupContent>
             <span className="font-mono text-sm">
-              {summary
-                ? `${formatDistance(summary.distance_mi)} · ${formatDuration(summary.duration_s)}`
-                : "— · —"}
+              {formatDistance(distance_mi)} · {formatDuration(duration_s)}
             </span>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -29,6 +29,14 @@ function pickAddress(address: TripInput["current"]): Record<string, unknown> {
   };
 }
 
+function extractDetail(error: unknown): string | null {
+  if (!(error instanceof ApiError)) return null;
+  const body = error.body;
+  if (body === null || typeof body !== "object") return null;
+  const detail = (body as { detail?: unknown }).detail;
+  return typeof detail === "string" && detail.length > 0 ? detail : null;
+}
+
 export function usePlanTrip(): UseMutationResult<TripResponse, Error, TripInput> {
   const { getToken } = useAuth();
   const navigate = useNavigate();
@@ -47,10 +55,7 @@ export function usePlanTrip(): UseMutationResult<TripResponse, Error, TripInput>
       void navigate(paths.tripsDetail(data.id));
     },
     onError: (error) => {
-      const message =
-        error instanceof ApiError
-          ? `Couldn't save trip (HTTP ${String(error.status)})`
-          : error.message;
+      const message = extractDetail(error) ?? error.message;
       toast.error(message);
     },
   });

@@ -8,7 +8,7 @@ and a ``TripFactory`` that round-trips through the ``Trip`` ORM.
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 from unittest.mock import patch
 
 from clerk_backend_api.security import AuthStatus, RequestState
@@ -40,7 +40,19 @@ class TripFactory(factory.django.DjangoModelFactory[Trip]):
     dropoff_lat = 40.7357
     dropoff_lon = -74.1724
     cycle_hours_used = Decimal("0.0")
-    status = "planning"
+    # Stored values shared across factory instances are immutable from the
+    # tests' perspective (no mutation in the suite); cheap and avoids the
+    # untyped `factory.LazyFunction` shim.
+    route_polyline: ClassVar[list[list[float]]] = [
+        [-77.4360, 37.5407],
+        [-77.4605, 38.3032],
+        [-74.1724, 40.7357],
+    ]
+    route_segments: ClassVar[list[dict[str, float | int]]] = [
+        {"distance_mi": 67.4, "duration_s": 4321, "from_index": 0, "to_index": 1},
+        {"distance_mi": 275.3, "duration_s": 14760, "from_index": 1, "to_index": 2},
+    ]
+    route_summary: ClassVar[dict[str, float | int]] = {"distance_mi": 342.7, "duration_s": 19080}
 
 
 @pytest.fixture

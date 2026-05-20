@@ -38,7 +38,6 @@ class TripResponseSerializer(serializers.ModelSerializer[Trip]):
         model = Trip
         fields: ClassVar[list[str]] = [
             "id",
-            "status",
             "created_at",
             "current_label",
             "current_lat",
@@ -53,6 +52,5 @@ class TripResponseSerializer(serializers.ModelSerializer[Trip]):
             "route_polyline",
             "route_segments",
             "route_summary",
-            "route_error_code",
         ]
         read_only_fields = fields
