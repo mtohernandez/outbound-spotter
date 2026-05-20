@@ -44,7 +44,7 @@ def test_create_persists_trip_and_returns_201(authenticated_client: APIClient) -
 
     assert response.status_code == 201
     body = response.json()
-    assert body["status"] == "pending"
+    assert body["status"] == "planning"
     assert body["current_label"] == "Richmond, VA"
     assert body["pickup_label"] == "Fredericksburg, VA"
     assert body["dropoff_label"] == "Newark, NJ"

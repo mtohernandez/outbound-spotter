@@ -40,7 +40,7 @@ class TripFactory(factory.django.DjangoModelFactory[Trip]):
     dropoff_lat = 40.7357
     dropoff_lon = -74.1724
     cycle_hours_used = Decimal("0.0")
-    status = "pending"
+    status = "planning"
 
 
 @pytest.fixture
