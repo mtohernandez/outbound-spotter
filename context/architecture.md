@@ -43,11 +43,12 @@ Each version below was pinned to the latest stable release at the time of select
 ## Storage Model
 
 - **PostgreSQL** owns:
-  - `trips` (UUID id, Clerk `user_id` string, three flat address triples `(current|pickup|dropoff)_(label,lat,lon)`, `cycle_hours_used` Decimal(3,1), `status` Char(16) default `"pending"`, `created_at` auto). Index on `(user_id, -created_at)`. **Stub stage** (spec 03); spec 04 extends with `route_polyline`, `route_segments`, `route_summary`.
+  - `trips` (UUID id, Clerk `user_id` string, three flat address triples `(current|pickup|dropoff)_(label,lat,lon)`, `cycle_hours_used` Decimal(3,1), `status` CharField with `TextChoices(PLANNING|PLANNED|FAILED)` default `PLANNING`, `route_polyline` JSONField (list of `[lon, lat]` pairs, nullable), `route_segments` JSONField (per-leg `{distance_mi, duration_s, from_index, to_index}`, nullable), `route_summary` JSONField (`{distance_mi, duration_s}`, nullable), `route_error_code` CharField(32) (one of `rate_limit_per_minute | rate_limit_daily | upstream | validation`, nullable), `created_at` auto). Index on `(user_id, -created_at)`. **Future lift**: when spec 09 ships per-trip re-planning, the route fields move to a sibling `trip_route_versions` table keyed `(trip_id, version)` so each retry persists.
+  - `trip_route_cache` (PK `cache_key` CharField(64) = SHA256 hex of `f"v1|driving-hgv|recommended|mi|{lon:.5f},{lat:.5f}|…"`, `coords_canonical` CharField(255) denormalized for operator inspection, `payload` JSONField storing `dataclasses.asdict(DirectionsResult)`, `created_at` auto). No additional index — PK lookup. No TTL — eviction is "bump `_CACHE_KEY_VERSION` in `web_api/apps/trips/services.py`".
   - `users` (Clerk user id + display name) — not yet materialised; the Clerk JWT `sub` is the canonical user id today and rows are stamped directly with it.
   - `trip_stops` (typed stops with lat/lon + sequence), `log_events` (one row per duty-status change), `log_days` (per-24h rollup) — land with spec 06+ once the HOS planner exists.
 - **No blob storage in v1.** PDFs are generated client-side and never persisted server-side.
-- **No cache layer in v1.** ORS responses for the same input triple are cached in Postgres against a SHA256 of the request to avoid burning the ORS daily quota during the review.
+- **ORS response cache (`trip_route_cache`)** is the only cache layer in v1; it backstops the HeiGIT 2000/day Directions quota during the assessment review.
 
 ## Auth and Access Model
 
@@ -57,6 +58,15 @@ Each version below was pinned to the latest stable release at the time of select
 - **web-api** validates incoming requests against Clerk's JWKS via `clerk-backend-api` (Python SDK). The decoded `sub` is the canonical user id, attached to `request.user_id` by middleware.
 - Every mutating endpoint checks ownership: a user can only read / write trips they own. There is no admin role in v1.
 - The publishable key lives in `VITE_CLERK_PUBLISHABLE_KEY` (web-app, web-auth). The secret key lives only in Fly.io secrets for web-api.
+
+## Rate limiting
+
+- `web_api.throttling.PerUserScopedThrottle` (subclass of DRF's `ScopedRateThrottle`) keys throttle buckets on `request.user_id` (the Clerk JWT `sub`), not on `request.user` (which is `AnonymousUser` under our JWT-only auth, and would collapse NAT'd users into one bucket).
+- Wired via `REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"]` + `DEFAULT_THROTTLE_RATES`:
+  - `geocode_autocomplete = 60/min` (`GeocodeAutocompleteView`).
+  - `geocode_search = 20/min` (`GeocodeSearchView`).
+  - `trip_create = 30/hour` (`TripCreateView`). 30 × 24 ≈ 720 worst-case, well under the HeiGIT 2000/day cap with the `trip_route_cache` short-circuit handling repeated input.
+- Storage backend: Django's default cache (LocMem in dev, single-process). **Production deployment must back DRF's cache with Redis** before scaling beyond one gunicorn worker, otherwise each worker keeps its own counter.
 
 ## External integrations
 
