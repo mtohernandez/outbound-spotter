@@ -7,6 +7,7 @@ import { ForgotPasswordRoute } from "./forgot-password";
 
 vi.mock("@clerk/react", () => ({
   useSignIn: () => ({ signIn: buildSignInResource(), fetchStatus: "idle", errors: {} }),
+  useAuth: () => ({ isLoaded: true, isSignedIn: false }),
 }));
 
 describe("ForgotPasswordRoute", () => {

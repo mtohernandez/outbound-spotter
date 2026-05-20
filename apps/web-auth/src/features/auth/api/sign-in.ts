@@ -1,9 +1,6 @@
 import type { AuthError } from "../types/flow-state";
 import type { SignInFutureResource } from "@clerk/shared/types";
 
-// Clerk Core 3 / @clerk/react v6 surface: `useSignIn()` returns `signIn: SignInFutureResource`,
-// which exposes `password({ identifier, password })`, `sso({ strategy, redirectUrl, redirectCallbackUrl })`,
-// and `finalize()`. Resource methods resolve to `{ error: ClerkError | null }` rather than throwing.
 // Reference: https://clerk.com/docs/guides/development/custom-flows/authentication/email-password
 
 export type SignInResult =

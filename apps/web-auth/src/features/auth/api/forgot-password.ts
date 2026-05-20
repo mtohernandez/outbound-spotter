@@ -1,8 +1,6 @@
 import type { AuthError } from "../types/flow-state";
 import type { SignInFutureResource } from "@clerk/shared/types";
 
-// Forgot-password Future flow: seed the SignIn with the identifier via `create`, then call
-// `signIn.resetPasswordEmailCode.sendCode/verifyCode/submitPassword`, then `signIn.finalize()`.
 // Reference: https://clerk.com/docs/guides/development/custom-flows/account-updates/forgot-password
 
 export type StartResetResult =
