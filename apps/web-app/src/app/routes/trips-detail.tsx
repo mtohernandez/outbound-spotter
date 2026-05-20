@@ -13,9 +13,9 @@ export function TripsDetailRoute(): React.ReactElement {
 
   if (trip.isPending) {
     return (
-      <div className="flex h-full flex-col gap-4 p-6">
+      <div className="flex flex-1 flex-col gap-4 p-6">
         <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-full w-full flex-1" />
+        <Skeleton className="min-h-0 w-full flex-1" />
       </div>
     );
   }
@@ -23,7 +23,7 @@ export function TripsDetailRoute(): React.ReactElement {
   if (trip.isError) {
     const isNotFound = trip.error instanceof ApiError && trip.error.status === 404;
     return (
-      <div className="flex h-full items-center justify-center p-8">
+      <div className="flex flex-1 items-center justify-center p-8">
         <Empty>
           <EmptyTitle>{isNotFound ? "Trip not found" : "Something went wrong"}</EmptyTitle>
           <EmptyDescription>
@@ -43,15 +43,15 @@ export function TripsDetailRoute(): React.ReactElement {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 p-6">
-      <div className="border-border bg-card text-muted-foreground flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-8 text-center">
+    <div className="flex flex-1 flex-col p-6">
+      <div className="border-border bg-card text-muted-foreground flex min-h-0 flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-8 text-center">
         <Map className="text-muted-foreground/50 size-16" aria-hidden />
         <h2 className="font-display text-foreground text-xl font-medium tracking-tight">
           Route map + daily log sheets
         </h2>
         <p className="max-w-md text-sm">
-          The Leaflet map and §395.8 ELD log sheets land in the next spec. The trip summary in the
-          left panel is already persisted.
+          The Leaflet map and §395.8 ELD log sheets land in the next spec. The trip summary is
+          already persisted.
         </p>
       </div>
     </div>

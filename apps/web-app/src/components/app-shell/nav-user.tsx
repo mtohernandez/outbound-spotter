@@ -38,7 +38,7 @@ export function NavUser(): React.ReactElement | null {
       <DropdownMenuTrigger asChild>
         <SidebarMenuButton
           size="lg"
-          className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+          className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground md:h-8 md:p-0"
         >
           <Avatar className="size-8 rounded-lg">
             {user.imageUrl ? <AvatarImage src={user.imageUrl} alt={displayName} /> : null}

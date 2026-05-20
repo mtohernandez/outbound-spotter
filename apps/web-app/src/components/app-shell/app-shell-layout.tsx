@@ -48,7 +48,7 @@ function AppShellInner(): React.ReactElement {
             <Secondary />
           </div>
         ) : null}
-        <main className="flex flex-1 flex-col overflow-y-auto">
+        <main className="flex min-h-0 flex-1 flex-col">
           <Outlet />
         </main>
       </SidebarInset>
