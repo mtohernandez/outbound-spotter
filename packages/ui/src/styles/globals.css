@@ -174,3 +174,93 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 }
+
+/* ===========================================================================
+ * Leaflet map theming (spec 07) — defers to existing tokens only.
+ * No token additions; no @theme inline edits. Re-run the spec when bumping
+ * Leaflet to confirm class names haven't moved.
+ * ========================================================================*/
+
+.leaflet-popup-themed .leaflet-popup-content-wrapper {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  /* --shadow-md is not defined in the theme; literal matches Tailwind v4's default scale. */
+  box-shadow: 0 6px 16px -4px oklch(0 0 0 / 0.18);
+}
+.leaflet-popup-themed .leaflet-popup-tip {
+  background: var(--popover);
+  border: 1px solid var(--border);
+}
+.leaflet-popup-themed .leaflet-popup-close-button {
+  color: var(--muted-foreground);
+}
+.leaflet-popup-themed .leaflet-popup-content {
+  margin: 0.75rem 1rem;
+  font: inherit;
+}
+
+.trip-marker {
+  background: transparent;
+  border: 0;
+}
+.trip-marker__icon {
+  display: inline-flex;
+  /* White halo so markers stay visible against any OSM tile background
+   * (gray land, beige farmland, blue water). Without this the lighter teal
+   * markers fail WCAG 1.4.11 against many tiles (ui-visual-validator C-1). */
+  filter: drop-shadow(0 0 2px oklch(1 0 0 / 0.9)) drop-shadow(0 0 1px oklch(1 0 0 / 0.75));
+}
+.trip-marker__icon--pickup {
+  color: var(--teal-500);
+}
+.trip-marker__icon--dropoff {
+  color: var(--red-500);
+}
+.trip-marker__icon--fuel {
+  color: var(--teal-300);
+}
+.trip-marker__icon--break {
+  color: var(--teal-400);
+}
+.trip-marker__icon--sleeper {
+  color: var(--teal-700);
+}
+.trip-marker__icon--restart {
+  color: var(--teal-800);
+}
+
+/* Popup Badge: kind class sets `color` on the wrapping span which would also
+ * tint the badge TEXT (failing WCAG 1.4.3 for the lighter teals against the
+ * popover background — ui-visual-validator C-2). Restore foreground text
+ * color in the popup context while keeping the border tinted via the kind
+ * color carried in `currentColor` from the outer marker icon scope. */
+.leaflet-popup-themed [data-slot="badge"].trip-marker__icon--pickup,
+.leaflet-popup-themed [data-slot="badge"].trip-marker__icon--dropoff,
+.leaflet-popup-themed [data-slot="badge"].trip-marker__icon--fuel,
+.leaflet-popup-themed [data-slot="badge"].trip-marker__icon--break,
+.leaflet-popup-themed [data-slot="badge"].trip-marker__icon--sleeper,
+.leaflet-popup-themed [data-slot="badge"].trip-marker__icon--restart {
+  border-color: currentColor;
+  color: var(--foreground);
+  /* Suppress the marker fade-in animation for the popup-badge use site —
+   * the badge appears with the popup, not with the marker. */
+  animation: none;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .trip-marker__icon {
+    opacity: 0;
+    animation: trip-marker-in 200ms ease-out 80ms forwards;
+  }
+  @keyframes trip-marker-in {
+    to {
+      opacity: 1;
+    }
+  }
+  .leaflet-tile {
+    transition: opacity 150ms ease-out;
+  }
+}
