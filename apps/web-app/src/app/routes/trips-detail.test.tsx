@@ -3,6 +3,7 @@ import { http, HttpResponse } from "msw";
 import { describe, expect, it, vi } from "vitest";
 
 import { buildClerkMocks } from "@/testing/clerk-mocks";
+import { mockTripFailed } from "@/testing/handlers";
 import { renderWithProviders } from "@/testing/render";
 import { server } from "@/testing/setup";
 
@@ -16,6 +17,34 @@ vi.mock("@clerk/react", () => ({
 const { TripsDetailRoute } = await import("@/app/routes/trips-detail");
 
 describe("TripsDetailRoute (main view)", () => {
+  it("renders the RouteSummary card with hero metrics when the trip is planned", async () => {
+    renderWithProviders(<TripsDetailRoute />, {
+      initialEntries: ["/trips/abc-id"],
+      routePath: "/trips/:id",
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/total distance/i)).toBeInTheDocument();
+    });
+    expect(screen.getByText("342.7 mi")).toBeInTheDocument();
+    expect(screen.getByText("5h 18m")).toBeInTheDocument();
+    expect(screen.getByText(/Current → Pickup/i)).toBeInTheDocument();
+  });
+
+  it("renders the failed Empty with the matching error copy when route_error_code = rate_limit_daily", async () => {
+    server.use(mockTripFailed("rate_limit_daily"));
+
+    renderWithProviders(<TripsDetailRoute />, {
+      initialEntries: ["/trips/abc-id"],
+      routePath: "/trips/:id",
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/daily routing quota exhausted/i)).toBeInTheDocument();
+    });
+    expect(screen.getByRole("link", { name: /plan a new trip/i })).toBeInTheDocument();
+  });
+
   it("shows the not-found Empty state when the API returns 404", async () => {
     server.use(
       http.get("http://localhost:8000/api/trips/:id/", () =>
