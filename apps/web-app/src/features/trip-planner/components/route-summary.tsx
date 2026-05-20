@@ -1,8 +1,7 @@
-import { Card, CardContent } from "@outbound/ui/components/ui/card";
-
 import type { TripResponse } from "@/features/trip-planner/schemas/trip-response";
 import { formatDistance } from "@/features/trip-planner/utils/format-distance";
 import { formatDuration } from "@/features/trip-planner/utils/format-duration";
+import { formatStartAt } from "@/features/trip-planner/utils/format-start-at";
 
 // 3 input coordinates → 2 segments. Legs are labeled by their position in
 // the route (current → pickup, pickup → dropoff). `segment.from_index` /
@@ -10,50 +9,37 @@ import { formatDuration } from "@/features/trip-planner/utils/format-duration";
 // geometry, not driver-facing stop indices.
 const STOP_LABELS = ["Current", "Pickup", "Dropoff"];
 
+// Panel-mode summary mounted inside TripDetailPanel's Route SidebarGroup
+// (spec 07). Returns the <dl> body only; the caller owns the <SidebarGroupLabel>.
 export function RouteSummary({ trip }: { readonly trip: TripResponse }): React.ReactElement {
+  const { distance_mi, duration_s } = trip.route_summary;
   return (
-    <Card className="w-full max-w-md">
-      <CardContent className="space-y-4 p-6">
-        <dl>
-          <div role="group" className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1">
-              <dt className="text-muted-foreground text-xs tracking-wide uppercase">
-                Total distance
-              </dt>
-              <dd className="font-mono text-2xl">
-                {formatDistance(trip.route_summary.distance_mi)}
-              </dd>
-            </div>
-            <div className="flex flex-col gap-1">
-              <dt className="text-muted-foreground text-xs tracking-wide uppercase">
-                Total duration
-              </dt>
-              <dd className="font-mono text-2xl">
-                {formatDuration(trip.route_summary.duration_s)}
-              </dd>
-            </div>
+    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-sm">
+      <dt className="text-muted-foreground">Total</dt>
+      <dd className="font-mono">
+        {formatDistance(distance_mi)} · {formatDuration(duration_s)}
+      </dd>
+      {trip.route_segments.map((segment, legIndex) => {
+        const fromLabel = STOP_LABELS[legIndex] ?? `Stop ${String(legIndex)}`;
+        const toLabel = STOP_LABELS[legIndex + 1] ?? `Stop ${String(legIndex + 1)}`;
+        return (
+          // `display: contents` lets the inner <dt>/<dd> participate in the
+          // outer grid while keeping the legible key as a React element.
+          <div
+            key={`${String(segment.from_index)}-${String(segment.to_index)}`}
+            className="contents"
+          >
+            <dt className="text-muted-foreground">
+              {fromLabel} → {toLabel}
+            </dt>
+            <dd className="font-mono">
+              {formatDistance(segment.distance_mi)} · {formatDuration(segment.duration_s)}
+            </dd>
           </div>
-          <div role="group" className="border-border mt-4 flex flex-col gap-2 border-t pt-4">
-            {trip.route_segments.map((segment, legIndex) => {
-              const fromLabel = STOP_LABELS[legIndex] ?? `Stop ${String(legIndex)}`;
-              const toLabel = STOP_LABELS[legIndex + 1] ?? `Stop ${String(legIndex + 1)}`;
-              return (
-                <div
-                  key={`${String(segment.from_index)}-${String(segment.to_index)}`}
-                  className="flex items-baseline justify-between gap-3"
-                >
-                  <dt className="text-muted-foreground text-xs">
-                    {fromLabel} → {toLabel}
-                  </dt>
-                  <dd className="font-mono text-sm">
-                    {formatDistance(segment.distance_mi)} · {formatDuration(segment.duration_s)}
-                  </dd>
-                </div>
-              );
-            })}
-          </div>
-        </dl>
-      </CardContent>
-    </Card>
+        );
+      })}
+      <dt className="text-muted-foreground">Departs</dt>
+      <dd className="font-mono">{formatStartAt(trip.start_at)}</dd>
+    </dl>
   );
 }

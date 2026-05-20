@@ -31,15 +31,22 @@ const PLANNED_TRIP: TripResponse = {
   route_summary: { distance_mi: 342.7, duration_s: 19080 },
 };
 
-describe("RouteSummary", () => {
-  it("renders hero metrics + per-leg rows for a planned trip", () => {
+describe("RouteSummary (panel-mode)", () => {
+  it("renders Total + per-leg + Departs rows in a single dl", () => {
     renderWithProviders(<RouteSummary trip={PLANNED_TRIP} />);
 
-    expect(screen.getByText(/total distance/i)).toBeInTheDocument();
-    expect(screen.getByText(/total duration/i)).toBeInTheDocument();
-    expect(screen.getByText("342.7 mi")).toBeInTheDocument();
-    expect(screen.getByText("5h 18m")).toBeInTheDocument();
+    expect(screen.getByText(/^Total$/)).toBeInTheDocument();
+    expect(screen.getByText(/342\.7 mi · 5h 18m/)).toBeInTheDocument();
     expect(screen.getByText(/Current → Pickup/i)).toBeInTheDocument();
     expect(screen.getByText(/Pickup → Dropoff/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Departs$/)).toBeInTheDocument();
+    expect(screen.getByText(/May 21, 2026/)).toBeInTheDocument();
+  });
+
+  it("returns a single <dl> as the root element (no Card wrapper)", () => {
+    const { container } = renderWithProviders(<RouteSummary trip={PLANNED_TRIP} />);
+    const root = container.firstElementChild;
+
+    expect(root?.tagName.toLowerCase()).toBe("dl");
   });
 });
