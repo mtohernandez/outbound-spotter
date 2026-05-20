@@ -56,6 +56,7 @@ class GeocodeAutocompleteView(APIView):
     """As-you-type Pelias autocomplete. ``GET /api/geocode/autocomplete/?text=…``."""
 
     permission_classes: ClassVar[list[type[BasePermission]]] = [IsAuthenticated]  # type: ignore[misc]
+    throttle_scope = "geocode_autocomplete"
 
     @extend_schema(
         parameters=[AutocompleteRequestSerializer],
@@ -84,6 +85,7 @@ class GeocodeSearchView(APIView):
     """Full-string Pelias search. ``GET /api/geocode/search/?text=…``."""
 
     permission_classes: ClassVar[list[type[BasePermission]]] = [IsAuthenticated]  # type: ignore[misc]
+    throttle_scope = "geocode_search"
 
     @extend_schema(
         parameters=[SearchRequestSerializer],
