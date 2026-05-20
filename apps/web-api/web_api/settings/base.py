@@ -141,6 +141,12 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_AUTHENTICATION_CLASSES": ["web_api.auth.ClerkAuthentication"],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    "DEFAULT_THROTTLE_CLASSES": ["web_api.throttling.PerUserScopedThrottle"],
+    "DEFAULT_THROTTLE_RATES": {
+        "geocode_autocomplete": "60/min",
+        "geocode_search": "20/min",
+        "trip_create": "30/hour",
+    },
     "EXCEPTION_HANDLER": "web_api.exception_handler.exception_handler",
 }
 

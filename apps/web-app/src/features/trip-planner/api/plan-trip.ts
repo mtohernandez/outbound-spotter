@@ -5,13 +5,11 @@ import { toast } from "sonner";
 
 import { paths } from "@/config/paths";
 import type { TripInput } from "@/features/trip-planner/schemas/trip-input";
+import {
+  tripResponseSchema,
+  type TripResponse,
+} from "@/features/trip-planner/schemas/trip-response";
 import { ApiError, apiFetch } from "@/lib/api-client";
-
-interface TripCreateResponse {
-  readonly id: string;
-  readonly status: string;
-  readonly created_at: string;
-}
 
 function toWirePayload(input: TripInput): Record<string, unknown> {
   return {
@@ -31,27 +29,33 @@ function pickAddress(address: TripInput["current"]): Record<string, unknown> {
   };
 }
 
-export function usePlanTrip(): UseMutationResult<TripCreateResponse, Error, TripInput> {
+function extractDetail(error: unknown): string | null {
+  if (!(error instanceof ApiError)) return null;
+  const body = error.body;
+  if (body === null || typeof body !== "object") return null;
+  const detail = (body as { detail?: unknown }).detail;
+  return typeof detail === "string" && detail.length > 0 ? detail : null;
+}
+
+export function usePlanTrip(): UseMutationResult<TripResponse, Error, TripInput> {
   const { getToken } = useAuth();
   const navigate = useNavigate();
 
-  return useMutation<TripCreateResponse, Error, TripInput>({
+  return useMutation<TripResponse, Error, TripInput>({
     mutationFn: async (input) => {
       const token = await getToken();
-      return apiFetch<TripCreateResponse>("/api/trips/", {
+      const raw = await apiFetch<unknown>("/api/trips/", {
         method: "POST",
         token,
         json: toWirePayload(input),
       });
+      return tripResponseSchema.parse(raw);
     },
     onSuccess: (data) => {
       void navigate(paths.tripsDetail(data.id));
     },
     onError: (error) => {
-      const message =
-        error instanceof ApiError
-          ? `Couldn't save trip (HTTP ${String(error.status)})`
-          : error.message;
+      const message = extractDetail(error) ?? error.message;
       toast.error(message);
     },
   });

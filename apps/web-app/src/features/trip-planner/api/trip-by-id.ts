@@ -1,23 +1,13 @@
 import { useAuth } from "@clerk/react";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 
+import {
+  tripResponseSchema,
+  type TripResponse,
+} from "@/features/trip-planner/schemas/trip-response";
 import { apiFetch } from "@/lib/api-client";
 
-export interface TripResponse {
-  readonly id: string;
-  readonly status: string;
-  readonly created_at: string;
-  readonly current_label: string;
-  readonly current_lat: number;
-  readonly current_lon: number;
-  readonly pickup_label: string;
-  readonly pickup_lat: number;
-  readonly pickup_lon: number;
-  readonly dropoff_label: string;
-  readonly dropoff_lat: number;
-  readonly dropoff_lon: number;
-  readonly cycle_hours_used: string;
-}
+export type { TripResponse } from "@/features/trip-planner/schemas/trip-response";
 
 export function useTripById(id: string | undefined): UseQueryResult<TripResponse> {
   const { getToken } = useAuth();
@@ -27,7 +17,8 @@ export function useTripById(id: string | undefined): UseQueryResult<TripResponse
     retry: false,
     queryFn: async () => {
       const token = await getToken();
-      return apiFetch<TripResponse>(`/api/trips/${id ?? ""}/`, { token });
+      const raw = await apiFetch<unknown>(`/api/trips/${id ?? ""}/`, { token });
+      return tripResponseSchema.parse(raw);
     },
   });
 }

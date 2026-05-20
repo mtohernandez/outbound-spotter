@@ -1,8 +1,11 @@
-"""Stub Trip endpoints — create + retrieve with ownership enforcement.
+"""Trip endpoints — create + retrieve with ownership enforcement.
 
-Spec 04 swaps the create body for a real ORS Directions pipeline. For now the
-endpoint persists the three addresses + cycle hours and echoes the row back so
-the FE can navigate to ``/trips/:id``.
+``TripCreateView`` runs ORS validation BEFORE persisting any row: if the
+routing service rejects the coordinates (or is temporarily unavailable), the
+view returns the project ``{detail, errors}`` error envelope and no Trip is
+created. The FE renders the ``detail`` text as a toast so the form state is
+preserved and the user can retry without navigating away (senior-review
+directive, post-live-smoke).
 """
 
 from __future__ import annotations
@@ -21,6 +24,12 @@ from web_api.apps.trips.serializers import (
     TripCreateRequestSerializer,
     TripResponseSerializer,
 )
+from web_api.apps.trips.services import plan_trip
+from web_api.integrations.openrouteservice import (
+    OrsRateLimitError,
+    OrsRequestError,
+    OrsUpstreamError,
+)
 
 if TYPE_CHECKING:
     import uuid
@@ -28,9 +37,6 @@ if TYPE_CHECKING:
     from rest_framework.request import Request
 
 
-# Sentinel for the retrieve path: 403 vs 404 leaks existence to a probe, so we
-# always return 404 when the trip either doesn't exist or isn't owned by the
-# caller. UUIDv4 entropy makes brute-force infeasible, but the principle holds.
 _TRIP_NOT_FOUND = "Trip not found."
 
 
@@ -41,10 +47,55 @@ def _request_user_id(request: Request) -> str:
     return user_id
 
 
+# Copy shown to the user when the routing service rejects or stalls. Keep in
+# sync with the equivalent FE strings in ``route-summary.tsx`` if/when that
+# component re-introduces server-side messaging; today the FE just renders
+# whatever ``detail`` the view emits.
+_RATE_LIMIT_PER_MINUTE = (
+    "Routing service is busy. We hit the per-minute routing quota. Try again in a moment."
+)
+_RATE_LIMIT_DAILY = (
+    "Daily routing quota exhausted. The routing service is rate-limited"
+    " until tomorrow. Try again then."
+)
+_VALIDATION = (
+    "Couldn't plan this route. The routing service refused these"
+    " coordinates. Try slightly different addresses."
+)
+_UPSTREAM = (
+    "Couldn't reach the routing service. The routing service didn't respond. Try again in a moment."
+)
+
+
+def _routing_error_response(exc: Exception) -> Response:
+    if isinstance(exc, OrsRateLimitError):
+        detail = _RATE_LIMIT_DAILY if exc.window == "daily" else _RATE_LIMIT_PER_MINUTE
+        return Response(
+            {"detail": detail, "errors": None},
+            status=status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+    if isinstance(exc, OrsRequestError):
+        return Response(
+            {"detail": _VALIDATION, "errors": None},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if isinstance(exc, OrsUpstreamError):
+        return Response(
+            {"detail": _UPSTREAM, "errors": None},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+    raise exc
+
+
 class TripCreateView(APIView):
-    """``POST /api/trips/`` — create a trip and echo it back."""
+    """``POST /api/trips/`` — validate via ORS, then persist on success.
+
+    On routing failure the response is an HTTP error envelope; no row is
+    persisted. The FE toasts ``detail`` and keeps the form state.
+    """
 
     permission_classes: ClassVar[list[type[BasePermission]]] = [IsAuthenticated]  # type: ignore[misc]
+    throttle_scope = "trip_create"
 
     @extend_schema(
         request=TripCreateRequestSerializer,
@@ -53,21 +104,12 @@ class TripCreateView(APIView):
     def post(self, request: Request) -> Response:
         serializer = TripCreateRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
 
-        trip = Trip.objects.create(
-            user_id=_request_user_id(request),
-            current_label=data["current"]["label"],
-            current_lat=data["current"]["lat"],
-            current_lon=data["current"]["lon"],
-            pickup_label=data["pickup"]["label"],
-            pickup_lat=data["pickup"]["lat"],
-            pickup_lon=data["pickup"]["lon"],
-            dropoff_label=data["dropoff"]["label"],
-            dropoff_lat=data["dropoff"]["lat"],
-            dropoff_lon=data["dropoff"]["lon"],
-            cycle_hours_used=data["cycle_hours_used"],
-        )
+        try:
+            trip = plan_trip(serializer.validated_data, _request_user_id(request))
+        except (OrsRateLimitError, OrsRequestError, OrsUpstreamError) as exc:
+            return _routing_error_response(exc)
+
         return Response(
             TripResponseSerializer(trip).data,
             status=status.HTTP_201_CREATED,

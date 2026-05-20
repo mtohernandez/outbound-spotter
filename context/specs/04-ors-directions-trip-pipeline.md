@@ -25,7 +25,7 @@ These were resolved during the spec-04 planning session and are recorded here so
 
 3. **Auth header**: `Authorization: <api_key>` verbatim — NOT `Authorization: Bearer <api_key>`. The ORS forum thread confirms it (<https://ask.openrouteservice.org/t/api-call-setup-question/4984>); the existing Pelias client already follows this pattern.
 
-4. **Request body**: `{"coordinates": [[lon, lat], …], "instructions": false, "units": "mi", "preference": "recommended"}`. `profile_params` (axle weight, hazmat) omitted — `project-overview.md#Out of Scope` excludes hazmat. `instructions: false` strips per-step turn-by-turn from each `segments[].steps` since we don't visualize them in v1. `units: "mi"` returns `distance` in miles on `summary` and each `segments[]`; `duration` is ALWAYS in seconds regardless of `units`. Cite <https://giscience.github.io/openrouteservice/api-reference/endpoints/directions/routing-options>.
+4. **Request body**: `{"coordinates": [[lon, lat], …], "instructions": true, "units": "mi", "preference": "recommended"}`. `profile_params` (axle weight, hazmat) omitted — `project-overview.md#Out of Scope` excludes hazmat. `units: "mi"` returns `distance` in miles on `summary` and each `segments[]`; `duration` is ALWAYS in seconds regardless of `units`. **ORS quirk** (caught during live smoke against `api.openrouteservice.org`): setting `"instructions": false` strips the ENTIRE `segments` array from the response (not just `segments[].steps` as the doc text implies), killing the per-leg `distance` / `duration` we render on the route summary. We send `instructions: true` and ignore `steps` server-side. Cite <https://giscience.github.io/openrouteservice/api-reference/endpoints/directions/routing-options>.
 
 5. **Response parsing**:
    - `features[0].geometry.coordinates` → `route_polyline` (raw `[lon, lat]` pairs; the `/geojson` suffix guarantees `LineString`, NOT polyline5).
@@ -38,6 +38,7 @@ These were resolved during the spec-04 planning session and are recorded here so
    - 429 → `OrsRateLimitError(window="per-minute")`.
    - 403 with body message containing `"quota"` (case-insensitive) → `OrsRateLimitError(window="daily")`.
    - 403 with body message NOT containing `"quota"` → `OrsRequestError` (auth/config — louder log; deserves operator attention, not user-facing rate-limit copy).
+   - 401 → `OrsRequestError` (auth — treated identically to non-quota 403; ORS conflates these but the public docs are inconsistent, so we map both to "operator attention").
    - 400 → `OrsRequestError`.
    - 5xx (after one retry) → `OrsUpstreamError`.
 
@@ -116,6 +117,26 @@ These were resolved during the spec-04 planning session and are recorded here so
 25. **TanStack Query**: extend `TripResponse` zod schema in new `apps/web-app/src/features/trip-planner/schemas/trip-response.ts` to a `z.discriminatedUnion("status", [plannedSchema, planningSchema, failedSchema])`. `useTripById` and `usePlanTrip` keep their signatures; only the response type widens. The fetch wrapper (`lib/api-client.ts::apiFetch`) is untouched.
 
 26. **MSW helpers**: `mockTripPlanned(overrides?)`, `mockTripFailed(reason?: RouteErrorCode)`, `mockTripPlanning()` exported from `apps/web-app/src/testing/handlers.ts` as named exports. Tests call `server.use(mockTripFailed("rate_limit_daily"))` for status-branch coverage.
+
+## Decisions amended post-live-smoke
+
+A senior review against the running stack flagged that persisting a FAILED Trip row on ORS rejection is bad UX — the user gets pushed to `/trips/:id` for a half-resolved record they have to back out of. The amendment: **validate the route via ORS BEFORE persisting any row**. On rejection the response is an HTTP error envelope, the FE toasts the `detail`, and the form state is preserved so the user can retry without navigating. This mechanically removes several pieces of the original design:
+
+- **Decision 7 → still raises** the same exception classes from `directions_hgv`, but they now propagate out of `plan_trip` instead of being caught and rewritten as a `route_error_code`. The view (`TripCreateView.post`) catches and emits the project envelope: 429 (per-minute or daily), 400 (validation), 502 (upstream).
+- **Decision 9 → `TripStatus` enum removed.** Trip is single-valued (a row exists ⇔ it's planned). Migration 0003 drops `status` + the enum.
+- **Decision 10 → `route_error_code` removed.** It only existed to support FAILED. Migration 0003 drops the column. `route_polyline / route_segments / route_summary` stay (nullable at the column level for migration symmetry, but always populated in practice). Spec-04-era rows whose route never resolved are deleted by 0003's RunPython.
+- **Decision 13 → `plan_trip` pipeline reordered**: cache lookup → ORS call → atomic Trip insert with route fields populated in one shot. No FAILED branch. On `OrsError`, raise (no row persisted).
+- **Decision 14 → HTTP semantics**: 201 only on success. Routing failures emit 400/429/502 with the project envelope. No 201-on-FAILED special case.
+- **Decision 15 → discriminated union collapsed** to a flat `tripResponseSchema` — no `status` discriminator, one shape with required route fields.
+- **Decision 20 → status branches removed** from `RouteSummary`. The component now renders only the planned shape (the `<Card>` + `<dl>`). PLANNING fallback is handled by `useTripById.isPending` → `<Skeleton>` in `trips-detail.tsx`. The FAILED `<Empty>` is gone.
+- **Decision 21 → status badge removed** from `TripDetailPanel`. The Route SidebarGroup shows the mono `distance · duration` only.
+- **Decision 22 → still holds** vacuously (one status implies nothing to badge).
+- **Decision 24 → still holds**.
+- **Decision 26 → MSW helpers**: `mockTripFailed` / `mockTripPlanning` removed (no longer reachable). `mockTripPlanned(overrides?)` kept.
+
+The error copy that previously lived in `ROUTE_ERROR_COPY` on the FE now lives on the BE (`web_api/apps/trips/views.py::_RATE_LIMIT_PER_MINUTE / _RATE_LIMIT_DAILY / _VALIDATION / _UPSTREAM`) and is surfaced verbatim in the toast via `usePlanTrip.onError` reading `ApiError.body.detail`. The strings are unchanged.
+
+Architecture invariants from spec 04 remain intact (#1 HOS planner pure, #3 ORS key server-side, #5 ownership-checked, #7 theme tokens only). The change improves intuitiveness without drifting from the assessment brief.
 
 ## Scope
 
@@ -206,7 +227,7 @@ Order matters: backend lands first so the FE can drive against real data; the sc
    - Add `class TripStatus(models.TextChoices): PLANNING = "planning", "Planning"; PLANNED = "planned", "Planned"; FAILED = "failed", "Failed"`.
    - Add the four route fields + flip `Trip.status` default to `TripStatus.PLANNING`. Keep `max_length=16`.
    - Add `class TripRouteCache(models.Model): cache_key (PK), coords_canonical, payload, created_at`.
-2. `uv run python manage.py makemigrations trips`. Inspect the generated migration; ADD a `RunPython` operation at the start:
+2. `uv run python manage.py makemigrations trips`. Inspect the generated migration; ADD a `RunPython` operation **between the `AddField` operations and the `AlterField` for `status` choices** (forward order: `AddField` ×4 → `RunPython` → `AlterField` → `CreateModel TripRouteCache`):
 
    ```python
    def forward_pending_to_planning(apps, schema_editor):
@@ -218,7 +239,7 @@ Order matters: backend lands first so the FE can drive against real data; the sc
        Trip.objects.filter(status="planning", route_polyline__isnull=True).update(status="pending")
    ```
 
-   Run order: `RunPython` → `AddField` operations → `AlterField` for `status` choices. Commit the migration verbatim; never re-edit post-apply.
+   **Why this order, not "RunPython first":** the reverse `RunPython` filters `route_polyline__isnull=True`. Django executes migration operations in reverse order on a backward migration; if `RunPython` were the first forward op, it would be the last reverse op — running AFTER `AddField` has been reversed and the `route_polyline` column has been dropped, causing `ProgrammingError` on reverse. Placing `RunPython` after the `AddField` ops keeps both directions symmetric. Commit the migration verbatim; never re-edit post-apply.
 
 3. `uv run python manage.py migrate`. Verify on the existing local DB that the spec-03 row's `status` transitioned from `"pending"` → `"planning"`.
 

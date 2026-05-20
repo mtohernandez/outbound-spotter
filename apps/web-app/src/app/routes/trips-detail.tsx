@@ -1,10 +1,10 @@
 import { Empty, EmptyDescription, EmptyTitle } from "@outbound/ui/components/ui/empty";
 import { Skeleton } from "@outbound/ui/components/ui/skeleton";
-import { Map } from "lucide-react";
 import { Link, useParams } from "react-router";
 
 import { paths } from "@/config/paths";
 import { useTripById } from "@/features/trip-planner/api/trip-by-id";
+import { RouteSummary } from "@/features/trip-planner/components/route-summary";
 import { ApiError } from "@/lib/api-client";
 
 export function TripsDetailRoute(): React.ReactElement {
@@ -32,7 +32,7 @@ export function TripsDetailRoute(): React.ReactElement {
           </EmptyDescription>
           <Link
             to={paths.tripsNew satisfies string}
-            className="text-primary hover:underline focus-visible:underline"
+            className="text-primary focus-visible:ring-ring focus-visible:ring-offset-background rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-offset-2"
           >
             Plan a new trip
           </Link>
@@ -42,15 +42,8 @@ export function TripsDetailRoute(): React.ReactElement {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-      <Map className="text-muted-foreground/40 size-12" aria-hidden />
-      <h2 className="font-display text-foreground text-lg font-medium tracking-tight">
-        Route map + daily log sheets
-      </h2>
-      <p className="text-muted-foreground max-w-md text-sm">
-        The Leaflet map and §395.8 ELD log sheets land in the next spec. Your trip is already
-        persisted.
-      </p>
+    <div className="flex min-h-0 flex-1 items-center justify-center p-6">
+      <RouteSummary trip={trip.data} />
     </div>
   );
 }

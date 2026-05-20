@@ -14,7 +14,7 @@ vi.mock("@clerk/react", () => ({
 const { TripDetailPanel } = await import("@/features/trip-planner/components/trip-detail-panel");
 
 describe("TripDetailPanel", () => {
-  it("renders the three resolved addresses + cycle hours for an existing trip", async () => {
+  it("renders the three resolved addresses + cycle hours for a planned trip", async () => {
     renderWithProviders(<TripDetailPanel />, {
       initialEntries: ["/trips/abc-id"],
       routePath: "/trips/:id",
@@ -26,5 +26,16 @@ describe("TripDetailPanel", () => {
     expect(screen.getByText(/Fredericksburg, VA/i)).toBeInTheDocument();
     expect(screen.getByText(/Newark, NJ/i)).toBeInTheDocument();
     expect(screen.getByText(/35\.0 h of 70 h/i)).toBeInTheDocument();
+  });
+
+  it("renders the Route SidebarGroup with mono distance · duration", async () => {
+    renderWithProviders(<TripDetailPanel />, {
+      initialEntries: ["/trips/abc-id"],
+      routePath: "/trips/:id",
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/342\.7 mi · 5h 18m/)).toBeInTheDocument();
+    });
   });
 });
