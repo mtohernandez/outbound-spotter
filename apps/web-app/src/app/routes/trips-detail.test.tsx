@@ -15,19 +15,16 @@ vi.mock("@clerk/react", () => ({
 
 const { TripsDetailRoute } = await import("@/app/routes/trips-detail");
 
-describe("TripsDetailRoute", () => {
-  it("renders the three resolved addresses for an existing trip", async () => {
+describe("TripsDetailRoute (main view)", () => {
+  it("renders the map placeholder once the trip resolves", async () => {
     renderWithProviders(<TripsDetailRoute />, {
       initialEntries: ["/trips/abc-id"],
       routePath: "/trips/:id",
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/Richmond, VA/i)).toBeInTheDocument();
+      expect(screen.getByText(/route map \+ daily log sheets/i)).toBeInTheDocument();
     });
-    expect(screen.getByText(/Fredericksburg, VA/i)).toBeInTheDocument();
-    expect(screen.getByText(/Newark, NJ/i)).toBeInTheDocument();
-    expect(screen.getByText(/35\.0 h of 70 h/i)).toBeInTheDocument();
   });
 
   it("shows the not-found Empty state when the API returns 404", async () => {

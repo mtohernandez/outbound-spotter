@@ -1,16 +1,16 @@
-import { TripInputForm } from "@/features/trip-planner/components/trip-input-form";
+import { Map } from "lucide-react";
 
 export function TripsNewRoute(): React.ReactElement {
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-8 md:py-12">
-      <header className="flex flex-col gap-1">
-        <h1 className="font-display text-2xl font-medium tracking-tight">Plan a trip</h1>
-        <p className="text-muted-foreground text-sm">
-          Enter your current location, pickup, dropoff, and cycle hours used. We&rsquo;ll generate
-          an HOS-compliant route and the daily log sheets.
-        </p>
-      </header>
-      <TripInputForm />
+    <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
+      <Map className="text-muted-foreground/50 size-16" aria-hidden />
+      <h2 className="font-display text-xl font-medium tracking-tight">
+        Your route + log sheets will appear here
+      </h2>
+      <p className="text-muted-foreground max-w-md text-sm">
+        Fill the form in the panel on the left — current location, pickup, dropoff, and cycle hours
+        used. Submit to see the routed map and FMCSA Daily Log Sheets.
+      </p>
     </div>
   );
 }
