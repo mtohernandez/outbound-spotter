@@ -290,9 +290,13 @@ def directions_hgv(coordinates: Sequence[tuple[float, float]]) -> DirectionsResu
     ``instructions=false`` (turn-by-turn not visualized in v1).
     """
     base_url: str = settings.OPENROUTESERVICE_BASE_URL
+    # ORS quirk: ``instructions: false`` strips the entire ``segments`` array
+    # from the response (not just each segment's ``steps`` field), which kills
+    # the per-leg distance/duration we render on the route summary. Keep
+    # ``instructions: true`` and ignore ``steps`` server-side.
     body: dict[str, Any] = {
         "coordinates": [[lon, lat] for lon, lat in coordinates],
-        "instructions": False,
+        "instructions": True,
         "units": "mi",
         "preference": "recommended",
     }

@@ -105,7 +105,7 @@ def test_success_returns_directions_result_and_posts_correct_payload() -> None:
     assert url == f"{_BASE_URL}{_DIRECTIONS_PATH}"
     assert body == {
         "coordinates": [[-77.4360, 37.5407], [-77.4605, 38.3032], [-74.1724, 40.7357]],
-        "instructions": False,
+        "instructions": True,
         "units": "mi",
         "preference": "recommended",
     }

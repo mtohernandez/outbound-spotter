@@ -31,9 +31,10 @@ const ROUTE_ERROR_COPY: Record<RouteErrorCode, { title: string; body: string }> 
   },
 };
 
-// 3 input coordinates → 2 segments. Indices map to driver-facing waypoint
-// labels; this is intentionally generic (not pulled from trip.{current,pickup,dropoff}_label)
-// so the per-leg row label stays at constant width across long addresses.
+// 3 input coordinates → 2 segments. We label legs by their POSITION in the
+// route (current → pickup, pickup → dropoff), not by `segment.from_index` /
+// `to_index` — those are polyline-coordinate indices (0..polyline.length-1)
+// that ORS uses for slicing the geometry, not driver-facing stop indices.
 const STOP_LABELS = ["Current", "Pickup", "Dropoff"];
 
 export function RouteSummary({ trip }: { readonly trip: TripResponse }): React.ReactElement {
@@ -71,10 +72,9 @@ function PlannedSummary({ trip }: { readonly trip: TripPlanned }): React.ReactEl
             </div>
           </div>
           <div role="group" className="border-border mt-4 flex flex-col gap-2 border-t pt-4">
-            {trip.route_segments.map((segment) => {
-              const fromLabel =
-                STOP_LABELS[segment.from_index] ?? `Stop ${String(segment.from_index)}`;
-              const toLabel = STOP_LABELS[segment.to_index] ?? `Stop ${String(segment.to_index)}`;
+            {trip.route_segments.map((segment, legIndex) => {
+              const fromLabel = STOP_LABELS[legIndex] ?? `Stop ${String(legIndex)}`;
+              const toLabel = STOP_LABELS[legIndex + 1] ?? `Stop ${String(legIndex + 1)}`;
               return (
                 <div
                   key={`${String(segment.from_index)}-${String(segment.to_index)}`}
