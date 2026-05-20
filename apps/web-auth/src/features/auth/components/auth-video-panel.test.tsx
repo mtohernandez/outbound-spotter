@@ -58,13 +58,12 @@ describe("AuthVideoPanel", () => {
   it("renders the poster image when prefers-reduced-motion is set", () => {
     mockMatchMedia(true);
 
-    const { container, getByRole } = render(<AuthVideoPanel />);
+    const { container } = render(<AuthVideoPanel />);
 
     expect(container.querySelector("video")).toBeNull();
-    expect(getByRole("img", { name: /long-haul trucking route/i })).toHaveAttribute(
-      "src",
-      "/auth/video-poster.jpg",
-    );
+    const poster = container.querySelector('img[src="/auth/video-poster.jpg"]');
+    expect(poster).not.toBeNull();
+    expect(poster).toHaveAttribute("aria-hidden", "true");
   });
 
   it("subscribes to the prefers-reduced-motion change event and unsubscribes on unmount", () => {

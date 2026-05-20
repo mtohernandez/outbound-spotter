@@ -39,6 +39,15 @@ export async function verifyResetCode(
   return { status: "needs_password" };
 }
 
+// Resending must NOT re-seed the sign-in flow via `signIn.create`, because the active flow is
+// already past the identifier step. Future API exposes a dedicated `sendCode()` for that.
+export async function resendPasswordResetCode(
+  signIn: SignInFutureResource,
+): Promise<AuthError | null> {
+  const { error } = await signIn.resetPasswordEmailCode.sendCode();
+  return error;
+}
+
 export async function completePasswordReset(
   signIn: SignInFutureResource,
   args: { password: string },

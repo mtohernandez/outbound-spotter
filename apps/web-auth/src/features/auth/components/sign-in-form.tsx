@@ -24,6 +24,7 @@ import { useForm } from "react-hook-form";
 import { Link } from "react-router";
 
 import { env } from "@/config/env";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 
 import { finalizeSignIn, signInWithPassword, startGoogleOAuth } from "../api/sign-in";
 import { splitClerkErrors } from "../utils/clerk-error";
@@ -36,6 +37,7 @@ import { PasswordInput } from "./password-input";
 import type { AuthError } from "../types/flow-state";
 
 export function SignInForm(): React.ReactElement {
+  useDocumentTitle("Sign in");
   const { signIn, fetchStatus } = useSignIn();
   const [serverErrors, setServerErrors] = useState<AuthError[]>([]);
   const passwordRef = useRef<HTMLInputElement>(null);

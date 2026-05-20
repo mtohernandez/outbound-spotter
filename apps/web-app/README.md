@@ -5,11 +5,23 @@ The trip-planner SPA. Vite + React 19 + TS 6 + Tailwind v4. Pulls the shared the
 ## Local dev
 
 ```bash
-cp .env.local.example .env.local
 pnpm --filter @outbound/web-app dev
 ```
 
 Default port: `5173`. Pair with `web-auth` on `5174` and `web-api` on `8000` for a full local stack.
+
+### Environment variables
+
+No `.env*` template is tracked in the repo (per `CONTRIBUTING.md` §6). Create a `.env.local` with the variables below and Vite will pick it up. The schema is enforced at runtime by `src/config/env.ts` (zod).
+
+| Variable                     | Read by                | Example                            | Notes                                                   |
+| ---------------------------- | ---------------------- | ---------------------------------- | ------------------------------------------------------- |
+| `VITE_API_URL`               | `src/config/env.ts`    | `http://localhost:8000`            | Base URL for the Django `web-api` service.              |
+| `VITE_CLERK_PUBLISHABLE_KEY` | `src/app/provider.tsx` | `pk_test_…` (from Clerk dashboard) | Per-environment publishable key — never the secret key. |
+| `VITE_AUTH_SIGN_IN_URL`      | `src/app/provider.tsx` | `http://localhost:5174/sign-in`    | Where `<ClerkProvider>` redirects signed-out users.     |
+| `VITE_AUTH_SIGN_UP_URL`      | `src/app/provider.tsx` | `http://localhost:5174/sign-up`    | Sister URL for the sign-up path.                        |
+
+Production values live in the Vercel project's Environment Variables panel.
 
 ## Layout
 

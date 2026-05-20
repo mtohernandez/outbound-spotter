@@ -1,33 +1,6 @@
-import { type ZxcvbnResult, zxcvbnAsync, zxcvbnOptions } from "@zxcvbn-ts/core";
-import * as zxcvbnCommonPackage from "@zxcvbn-ts/language-common";
-import * as zxcvbnEnPackage from "@zxcvbn-ts/language-en";
 import { z } from "zod";
 
-// One-time setup keeps the dictionary load off the keystroke path.
-let optionsConfigured = false;
-
-function configureZxcvbnOnce(): void {
-  if (optionsConfigured) return;
-  zxcvbnOptions.setOptions({
-    translations: zxcvbnEnPackage.translations,
-    graphs: zxcvbnCommonPackage.adjacencyGraphs,
-    dictionary: {
-      ...zxcvbnCommonPackage.dictionary,
-      ...zxcvbnEnPackage.dictionary,
-    },
-  });
-  optionsConfigured = true;
-}
-
 export type PasswordScore = 0 | 1 | 2 | 3 | 4;
-
-export async function scorePassword(
-  password: string,
-  userInputs: string[] = [],
-): Promise<ZxcvbnResult> {
-  configureZxcvbnOnce();
-  return zxcvbnAsync(password, userInputs);
-}
 
 // Clerk enforces the same minimum length server-side; client-side preflight catches typos early.
 export const MIN_PASSWORD_LENGTH = 10;

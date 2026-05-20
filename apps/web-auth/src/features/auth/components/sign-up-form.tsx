@@ -18,6 +18,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { Link } from "react-router";
 
 import { env } from "@/config/env";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 
 import {
   finalizeSignUp,
@@ -48,8 +49,10 @@ type Phase = { name: "collect" } | { name: "verifying"; emailAddress: string };
 export function SignUpForm(): React.ReactElement {
   const { signUp, fetchStatus } = useSignUp();
   const [phase, setPhase] = useState<Phase>({ name: "collect" });
+  useDocumentTitle(phase.name === "verifying" ? "Check your email" : "Create account");
   const [serverErrors, setServerErrors] = useState<AuthError[]>([]);
   const [passwordScore, setPasswordScore] = useState<PasswordScore>(0);
+  const [statusMessage, setStatusMessage] = useState("");
 
   const form = useForm<SignUpValues>({
     resolver: zodResolver(signUpSchema),
@@ -94,6 +97,7 @@ export function SignUpForm(): React.ReactElement {
       window.location.assign(env.VITE_APP_URL);
       return;
     }
+    setStatusMessage("Verification code sent. Check your email.");
     setPhase({ name: "verifying", emailAddress: result.emailAddress });
   });
 
@@ -111,28 +115,36 @@ export function SignUpForm(): React.ReactElement {
 
   if (phase.name === "verifying") {
     return (
-      <VerificationStep
-        emailAddress={phase.emailAddress}
-        onVerify={async (code) => {
-          const result = await verifySignUpCode(signUp, { code });
-          if (result.status === "error") return result.errors[0] ?? null;
-          if (result.status === "complete") {
-            const finalizeError = await finalizeSignUp(signUp);
-            if (finalizeError) return finalizeError;
-            window.location.assign(env.VITE_APP_URL);
-          }
-          return null;
-        }}
-        onResend={async () => resendVerificationCode(signUp)}
-        onBack={() => {
-          // Spec §10 "Use a different email" returns to the collect phase with the form pristine —
-          // clear the prior submission's values so the user starts fresh.
-          form.reset({ email: "", password: "" });
-          setPhase({ name: "collect" });
-          setServerErrors([]);
-          setPasswordScore(0);
-        }}
-      />
+      <>
+        <span aria-live="polite" className="sr-only">
+          {statusMessage}
+        </span>
+        <VerificationStep
+          emailAddress={phase.emailAddress}
+          onVerify={async (code) => {
+            const result = await verifySignUpCode(signUp, { code });
+            if (result.status === "error") return result.errors[0] ?? null;
+            if (result.status === "complete") {
+              const finalizeError = await finalizeSignUp(signUp);
+              if (finalizeError) return finalizeError;
+              window.location.assign(env.VITE_APP_URL);
+            }
+            return null;
+          }}
+          onResend={async () => {
+            const error = await resendVerificationCode(signUp);
+            if (!error) setStatusMessage("Verification code resent. Check your email.");
+            return error;
+          }}
+          onBack={() => {
+            form.reset({ email: "", password: "" });
+            setPhase({ name: "collect" });
+            setServerErrors([]);
+            setPasswordScore(0);
+            setStatusMessage("");
+          }}
+        />
+      </>
     );
   }
 

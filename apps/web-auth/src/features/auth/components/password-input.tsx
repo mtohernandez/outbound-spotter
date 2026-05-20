@@ -44,6 +44,9 @@ export function PasswordInput({
           // https://www.w3.org/WAI/ARIA/apg/patterns/button/
           aria-pressed={visible}
           aria-label="Password visibility"
+          // Cursor stays as a pointer affordance, but we suppress the ghost-button background
+          // tint so the icon sits cleanly inside the input frame.
+          className="text-muted-foreground hover:text-foreground hover:bg-transparent dark:hover:bg-transparent"
           onClick={() => {
             setVisible((current) => !current);
           }}

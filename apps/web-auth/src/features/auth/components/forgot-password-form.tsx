@@ -17,8 +17,14 @@ import { useForm, useWatch, type UseFormReturn } from "react-hook-form";
 import { Link } from "react-router";
 
 import { env } from "@/config/env";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 
-import { completePasswordReset, startPasswordReset, verifyResetCode } from "../api/forgot-password";
+import {
+  completePasswordReset,
+  resendPasswordResetCode,
+  startPasswordReset,
+  verifyResetCode,
+} from "../api/forgot-password";
 import { finalizeSignIn } from "../api/sign-in";
 import { splitClerkErrors } from "../utils/clerk-error";
 import {
@@ -43,10 +49,18 @@ interface RequestValues {
   email: string;
 }
 
+const PHASE_TITLES: Record<Phase["name"], string> = {
+  request: "Reset password",
+  verifying: "Check your email",
+  reset: "Set new password",
+};
+
 export function ForgotPasswordForm(): React.ReactElement {
   const { signIn, fetchStatus } = useSignIn();
   const [phase, setPhase] = useState<Phase>({ name: "request" });
   const [serverErrors, setServerErrors] = useState<AuthError[]>([]);
+  const [statusMessage, setStatusMessage] = useState("");
+  useDocumentTitle(PHASE_TITLES[phase.name]);
 
   const requestForm = useForm<RequestValues>({
     resolver: zodResolver(forgotPasswordEmailSchema),
@@ -70,16 +84,12 @@ export function ForgotPasswordForm(): React.ReactElement {
     if (!signIn) return;
     setServerErrors([]);
     const result = await startPasswordReset(signIn, { emailAddress: values.email });
-    if (result.status === "error") {
-      // Per OWASP: surface "code sent" optimistically even when the email is unregistered so the
-      // UI does not leak existence. We deliberately do NOT log the underlying error here — a
-      // console.warn() exposes the Clerk error code (e.g. form_identifier_not_found) to anyone
-      // with DevTools open, undoing the enumeration mitigation. Support triage uses Clerk's
-      // dashboard, which has the unredacted record.
-      setPhase({ name: "verifying", emailAddress: values.email });
-      return;
-    }
-    setPhase({ name: "verifying", emailAddress: result.emailAddress });
+    // Per OWASP: surface "code sent" optimistically regardless of whether the email is registered,
+    // so the UI cannot be probed for enumeration. The underlying Clerk error is deliberately not
+    // logged (a console.warn() would leak the error code to anyone with DevTools open).
+    setStatusMessage("Verification code sent. Check your email.");
+    const emailAddress = result.status === "error" ? values.email : result.emailAddress;
+    setPhase({ name: "verifying", emailAddress });
   });
 
   const onReset = resetForm.handleSubmit(async (values) => {
@@ -104,22 +114,29 @@ export function ForgotPasswordForm(): React.ReactElement {
 
   if (phase.name === "verifying") {
     return (
-      <VerificationStep
-        emailAddress={phase.emailAddress}
-        onVerify={async (code) => {
-          const result = await verifyResetCode(signIn, { code });
-          if (result.status === "error") return result.errors[0] ?? null;
-          setPhase({ name: "reset", emailAddress: phase.emailAddress });
-          return null;
-        }}
-        onResend={async () => {
-          const result = await startPasswordReset(signIn, { emailAddress: phase.emailAddress });
-          return result.status === "error" ? (result.errors[0] ?? null) : null;
-        }}
-        onBack={() => {
-          setPhase({ name: "request" });
-        }}
-      />
+      <>
+        <span aria-live="polite" className="sr-only">
+          {statusMessage}
+        </span>
+        <VerificationStep
+          emailAddress={phase.emailAddress}
+          onVerify={async (code) => {
+            const result = await verifyResetCode(signIn, { code });
+            if (result.status === "error") return result.errors[0] ?? null;
+            setPhase({ name: "reset", emailAddress: phase.emailAddress });
+            return null;
+          }}
+          onResend={async () => {
+            const error = await resendPasswordResetCode(signIn);
+            if (!error) setStatusMessage("Verification code resent. Check your email.");
+            return error;
+          }}
+          onBack={() => {
+            setPhase({ name: "request" });
+            setStatusMessage("");
+          }}
+        />
+      </>
     );
   }
 

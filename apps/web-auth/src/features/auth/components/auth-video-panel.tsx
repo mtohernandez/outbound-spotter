@@ -30,12 +30,14 @@ export function AuthVideoPanel(): React.ReactElement {
       {reducedMotion ? (
         <img
           src="/auth/video-poster.jpg"
-          alt="Aerial view of a long-haul trucking route"
+          alt=""
+          aria-hidden="true"
+          fetchPriority="high"
           className="absolute inset-0 h-full w-full object-cover"
         />
       ) : (
         <video
-          aria-label="Aerial view of a long-haul trucking route"
+          aria-hidden="true"
           autoPlay
           muted
           playsInline

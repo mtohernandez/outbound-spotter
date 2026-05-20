@@ -11,14 +11,17 @@ function Harness({ onComplete }: { onComplete?: (code: string) => void }) {
 }
 
 describe("VerificationCodeInput", () => {
-  it("renders 6 inputs with one-time-code autocomplete and numeric inputmode", () => {
+  it("renders 6 inputs with numeric inputmode and one-time-code autocomplete on cell 1 only", () => {
     const { getAllByRole } = render(<Harness />);
     const cells = getAllByRole("textbox");
 
     expect(cells).toHaveLength(6);
     for (const cell of cells) {
       expect(cell).toHaveAttribute("inputmode", "numeric");
-      expect(cell).toHaveAttribute("autocomplete", "one-time-code");
+    }
+    expect(cells[0]).toHaveAttribute("autocomplete", "one-time-code");
+    for (const cell of cells.slice(1)) {
+      expect(cell).toHaveAttribute("autocomplete", "off");
     }
   });
 
