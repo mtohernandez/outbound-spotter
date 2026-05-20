@@ -13,9 +13,8 @@ export function TripsDetailRoute(): React.ReactElement {
 
   if (trip.isPending) {
     return (
-      <div className="flex flex-1 flex-col gap-4 p-6">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="min-h-0 w-full flex-1" />
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        <Skeleton className="size-16 rounded-full" />
       </div>
     );
   }
@@ -23,7 +22,7 @@ export function TripsDetailRoute(): React.ReactElement {
   if (trip.isError) {
     const isNotFound = trip.error instanceof ApiError && trip.error.status === 404;
     return (
-      <div className="flex flex-1 items-center justify-center p-8">
+      <div className="flex min-h-0 flex-1 items-center justify-center p-6">
         <Empty>
           <EmptyTitle>{isNotFound ? "Trip not found" : "Something went wrong"}</EmptyTitle>
           <EmptyDescription>
@@ -43,17 +42,15 @@ export function TripsDetailRoute(): React.ReactElement {
   }
 
   return (
-    <div className="flex flex-1 flex-col p-6">
-      <div className="border-border bg-card text-muted-foreground flex min-h-0 flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-8 text-center">
-        <Map className="text-muted-foreground/50 size-16" aria-hidden />
-        <h2 className="font-display text-foreground text-xl font-medium tracking-tight">
-          Route map + daily log sheets
-        </h2>
-        <p className="max-w-md text-sm">
-          The Leaflet map and §395.8 ELD log sheets land in the next spec. The trip summary is
-          already persisted.
-        </p>
-      </div>
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
+      <Map className="text-muted-foreground/40 size-12" aria-hidden />
+      <h2 className="font-display text-foreground text-lg font-medium tracking-tight">
+        Route map + daily log sheets
+      </h2>
+      <p className="text-muted-foreground max-w-md text-sm">
+        The Leaflet map and §395.8 ELD log sheets land in the next spec. Your trip is already
+        persisted.
+      </p>
     </div>
   );
 }
