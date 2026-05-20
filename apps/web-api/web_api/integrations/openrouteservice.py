@@ -17,11 +17,33 @@ from typing import TYPE_CHECKING, Any, Final
 
 from django.conf import settings
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
     from pydantic import SecretStr
+
+
+# A single Session reuses TLS connections across calls (saves ~50-150 ms per
+# request to api.openrouteservice.org). The Retry policy attempts one extra
+# attempt on transient 5xx and connection errors, with backoff; 429 is NOT
+# retried (callers know to back off via OrsRateLimitError).
+def _build_session() -> requests.Session:
+    session = requests.Session()
+    retry = Retry(
+        total=1,
+        backoff_factor=0.3,
+        status_forcelist=(502, 503, 504),
+        allowed_methods=frozenset({"GET"}),
+    )
+    session.mount("https://", HTTPAdapter(max_retries=retry))
+    session.mount("http://", HTTPAdapter(max_retries=retry))
+    return session
+
+
+_session = _build_session()
 
 
 _AUTOCOMPLETE_PATH: Final = "/geocode/autocomplete"
@@ -116,7 +138,7 @@ def _fetch(path: str, params: Mapping[str, str | int | float]) -> list[PeliasFea
     base_url: str = settings.OPENROUTESERVICE_BASE_URL
     headers = {"Authorization": _api_key(), "Accept": "application/geo+json"}
     try:
-        response = requests.get(
+        response = _session.get(
             f"{base_url}{path}",
             params=dict(params),
             headers=headers,

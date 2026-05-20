@@ -28,6 +28,12 @@ if TYPE_CHECKING:
     from rest_framework.request import Request
 
 
+# Sentinel for the retrieve path: 403 vs 404 leaks existence to a probe, so we
+# always return 404 when the trip either doesn't exist or isn't owned by the
+# caller. UUIDv4 entropy makes brute-force infeasible, but the principle holds.
+_TRIP_NOT_FOUND = "Trip not found."
+
+
 def _request_user_id(request: Request) -> str:
     user_id = getattr(request, "user_id", None)
     if not isinstance(user_id, str) or not user_id:
@@ -75,12 +81,7 @@ class TripRetrieveView(APIView):
 
     @extend_schema(responses={200: TripResponseSerializer})
     def get(self, request: Request, id: uuid.UUID) -> Response:
-        try:
-            trip = Trip.objects.get(pk=id)
-        except Trip.DoesNotExist as exc:
-            raise NotFound("Trip not found.") from exc
-
-        if trip.user_id != _request_user_id(request):
-            raise PermissionDenied("You do not have access to this trip.")
-
+        trip = Trip.objects.filter(pk=id, user_id=_request_user_id(request)).first()
+        if trip is None:
+            raise NotFound(_TRIP_NOT_FOUND)
         return Response(TripResponseSerializer(trip).data)

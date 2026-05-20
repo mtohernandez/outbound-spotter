@@ -28,6 +28,10 @@ export function useGeocodeAutocomplete(text: string): UseQueryResult<readonly Ge
     queryKey: ["geocode", "autocomplete", text],
     enabled: text.length >= MIN_QUERY_LENGTH,
     staleTime: STALE_TIME_MS,
+    // 4xx + 429 are caller-side problems — retrying burns the HeiGIT 1k/day
+    // quota faster. 5xx gets one retry via the default; anything stickier is
+    // the operator's signal, not ours.
+    retry: false,
     queryFn: async (): Promise<readonly GeocodeFeature[]> => {
       const token = await getToken();
       const params = new URLSearchParams({ text });

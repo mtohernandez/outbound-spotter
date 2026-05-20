@@ -3,12 +3,21 @@ import { Slider as SliderPrimitive } from "radix-ui";
 
 import { cn } from "@outbound/ui/lib/utils";
 
+// Spec-03 patch (not canonical shadcn output): the upstream Slider doesn't
+// (a) propagate `aria-label`/`aria-labelledby`/`aria-describedby` to the Thumb
+//     — the element with `role="slider"` that screen readers actually announce
+// (b) hit the WCAG 2.5.8 24×24 minimum target size (default thumb is `size-4`).
+// Both are fixed inline; if `shadcn add slider --overwrite` is re-run, these
+// edits must be re-applied (mirrors the spec-01 sonner.tsx precedent).
 function Slider({
   className,
   defaultValue,
   value,
   min = 0,
   max = 100,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
+  "aria-describedby": ariaDescribedBy,
   ...props
 }: React.ComponentProps<typeof SliderPrimitive.Root>) {
   const _values = React.useMemo(
@@ -46,7 +55,10 @@ function Slider({
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={index}
-          className="border-primary ring-ring/50 block size-4 shrink-0 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+          aria-label={ariaLabel}
+          aria-labelledby={ariaLabelledBy}
+          aria-describedby={ariaDescribedBy}
+          className="border-primary ring-ring/50 block size-6 shrink-0 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
         />
       ))}
     </SliderPrimitive.Root>

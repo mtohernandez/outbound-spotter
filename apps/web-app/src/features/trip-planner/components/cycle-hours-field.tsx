@@ -41,6 +41,7 @@ export function CycleHoursField({ control }: Props): React.ReactElement {
           max={MAX_CYCLE}
           step={0.5}
           value={[value]}
+          aria-label="Cycle hours used"
           aria-describedby={`${descriptionId}${invalid ? ` ${errorId}` : ""}`}
           aria-invalid={invalid}
           onValueChange={(values) => {
@@ -59,6 +60,7 @@ export function CycleHoursField({ control }: Props): React.ReactElement {
           step={0.5}
           value={Number.isFinite(value) ? value : 0}
           aria-label="Cycle hours used (numeric input)"
+          aria-describedby={`${descriptionId}${invalid ? ` ${errorId}` : ""}`}
           aria-invalid={invalid}
           onChange={(event) => {
             const parsed = Number.parseFloat(event.target.value);

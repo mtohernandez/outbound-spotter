@@ -70,10 +70,17 @@ export function NavUser(): React.ReactElement | null {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <div className="flex items-center justify-between px-2 py-1.5 text-sm">
+        <DropdownMenuItem
+          onSelect={(event) => {
+            // Keep the dropdown open after toggling so the user can confirm
+            // the theme change before dismissing.
+            event.preventDefault();
+          }}
+          className="flex items-center justify-between"
+        >
           <span>Theme</span>
           <ThemeToggle />
-        </div>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onSelect={(event) => {

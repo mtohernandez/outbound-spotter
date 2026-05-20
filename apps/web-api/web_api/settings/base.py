@@ -11,7 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 from urllib.parse import urlparse
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -45,6 +45,18 @@ class WebApiSettings(BaseSettings):
 
     OPENROUTESERVICE_API_KEY: SecretStr = Field(default=SecretStr(""))
     OPENROUTESERVICE_BASE_URL: str = Field(default="https://api.openrouteservice.org")
+
+    @field_validator("OPENROUTESERVICE_BASE_URL")
+    @classmethod
+    def _validate_ors_base_url(cls, value: str) -> str:
+        # SSRF defense: a misconfigured env mustn't ship the API key to an
+        # arbitrary host. Enforce HTTPS to the documented HeiGIT endpoint.
+        allowed = {"https://api.openrouteservice.org"}
+        if value not in allowed:
+            raise ValueError(
+                f"OPENROUTESERVICE_BASE_URL must be one of {sorted(allowed)}; got {value!r}.",
+            )
+        return value
 
 
 settings_obj = WebApiSettings()

@@ -57,7 +57,7 @@ def _fake_feature(
 )
 def test_autocomplete_sends_authorization_header_and_us_boundary() -> None:
     with patch(
-        "web_api.integrations.openrouteservice.requests.get",
+        "web_api.integrations.openrouteservice._session.get",
         return_value=_fake_response(json_body={"features": [_fake_feature()]}),
     ) as mock_get:
         result = geocode_autocomplete("Richmond")
@@ -83,7 +83,7 @@ def test_autocomplete_sends_authorization_header_and_us_boundary() -> None:
 )
 def test_autocomplete_clamps_size_to_max() -> None:
     with patch(
-        "web_api.integrations.openrouteservice.requests.get",
+        "web_api.integrations.openrouteservice._session.get",
         return_value=_fake_response(),
     ) as mock_get:
         geocode_autocomplete("Richmond", size=999)
@@ -97,7 +97,7 @@ def test_autocomplete_clamps_size_to_max() -> None:
 )
 def test_autocomplete_clamps_size_to_min() -> None:
     with patch(
-        "web_api.integrations.openrouteservice.requests.get",
+        "web_api.integrations.openrouteservice._session.get",
         return_value=_fake_response(),
     ) as mock_get:
         geocode_autocomplete("Richmond", size=0)
@@ -111,7 +111,7 @@ def test_autocomplete_clamps_size_to_min() -> None:
 )
 def test_autocomplete_passes_focus_point() -> None:
     with patch(
-        "web_api.integrations.openrouteservice.requests.get",
+        "web_api.integrations.openrouteservice._session.get",
         return_value=_fake_response(),
     ) as mock_get:
         geocode_autocomplete("Richmond", focus=(37.5407, -77.4360))
@@ -124,7 +124,7 @@ def test_autocomplete_passes_focus_point() -> None:
 @override_settings(OPENROUTESERVICE_API_KEY=SecretStr("test-key"))
 def test_search_uses_search_path() -> None:
     with patch(
-        "web_api.integrations.openrouteservice.requests.get",
+        "web_api.integrations.openrouteservice._session.get",
         return_value=_fake_response(json_body={"features": [_fake_feature()]}),
     ) as mock_get:
         geocode_search("Richmond, VA")
@@ -136,7 +136,7 @@ def test_search_uses_search_path() -> None:
 def test_429_raises_rate_limit_error() -> None:
     with (
         patch(
-            "web_api.integrations.openrouteservice.requests.get",
+            "web_api.integrations.openrouteservice._session.get",
             return_value=_fake_response(status_code=429),
         ),
         pytest.raises(OrsRateLimitError),
@@ -148,7 +148,7 @@ def test_429_raises_rate_limit_error() -> None:
 def test_400_raises_request_error() -> None:
     with (
         patch(
-            "web_api.integrations.openrouteservice.requests.get",
+            "web_api.integrations.openrouteservice._session.get",
             return_value=_fake_response(status_code=400),
         ),
         pytest.raises(OrsRequestError),
@@ -160,7 +160,7 @@ def test_400_raises_request_error() -> None:
 def test_500_raises_upstream_error() -> None:
     with (
         patch(
-            "web_api.integrations.openrouteservice.requests.get",
+            "web_api.integrations.openrouteservice._session.get",
             return_value=_fake_response(status_code=503),
         ),
         pytest.raises(OrsUpstreamError),
@@ -172,7 +172,7 @@ def test_500_raises_upstream_error() -> None:
 def test_transport_error_raises_upstream_error() -> None:
     with (
         patch(
-            "web_api.integrations.openrouteservice.requests.get",
+            "web_api.integrations.openrouteservice._session.get",
             side_effect=requests.ConnectionError("nope"),
         ),
         pytest.raises(OrsUpstreamError),
@@ -189,7 +189,7 @@ def test_malformed_feature_raises_upstream_error() -> None:
     }
     with (
         patch(
-            "web_api.integrations.openrouteservice.requests.get",
+            "web_api.integrations.openrouteservice._session.get",
             return_value=_fake_response(json_body={"features": [bad_feature]}),
         ),
         pytest.raises(OrsUpstreamError),

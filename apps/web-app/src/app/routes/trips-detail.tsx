@@ -30,6 +30,8 @@ export function TripsDetailRoute(): React.ReactElement {
   const trip = useQuery<TripResponse>({
     queryKey: ["trip", id],
     enabled: id !== undefined,
+    // 404/403/401 are deterministic — don't retry, render the Empty state.
+    retry: false,
     queryFn: async () => {
       const token = await getToken();
       return apiFetch<TripResponse>(`/api/trips/${id ?? ""}/`, { token });

@@ -74,6 +74,7 @@ export function AddressField({
             type="button"
             variant="outline"
             role="combobox"
+            aria-haspopup="listbox"
             aria-expanded={open}
             aria-invalid={invalid}
             aria-describedby={
@@ -81,6 +82,15 @@ export function AddressField({
                 .filter(Boolean)
                 .join(" ") || undefined
             }
+            onKeyDown={(event) => {
+              // APG combobox pattern: ArrowDown / ArrowUp / Alt+ArrowDown open
+              // the listbox when collapsed. Without this, keyboard-only users
+              // can't reach the suggestions.
+              if (!open && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+                event.preventDefault();
+                setOpen(true);
+              }
+            }}
             className={cn(
               "w-full justify-between font-normal",
               !hasValue && "text-muted-foreground",

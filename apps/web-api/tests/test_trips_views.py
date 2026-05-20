@@ -112,15 +112,18 @@ def test_retrieve_returns_200_for_owner(
 
 
 @pytest.mark.django_db
-def test_retrieve_returns_403_for_other_user(
+def test_retrieve_returns_404_for_other_users_trip(
     authenticated_client: APIClient,
     trip_factory: type[TripFactory],
 ) -> None:
+    # Ownership is enforced by collapsing the not-yours and not-found cases
+    # into 404 so the response doesn't leak whether the UUID exists for
+    # someone else (per the spec-03 security review M4).
     other = trip_factory.create(user_id="user_someone_else")
 
     response = authenticated_client.get(f"/api/trips/{other.id}/")
 
-    assert response.status_code == 403
+    assert response.status_code == 404
 
 
 @pytest.mark.django_db
