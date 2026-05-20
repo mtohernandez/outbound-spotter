@@ -1,8 +1,9 @@
-"""Stub Trip endpoints — create + retrieve with ownership enforcement.
+"""Trip endpoints — create + retrieve with ownership enforcement.
 
-Spec 04 swaps the create body for a real ORS Directions pipeline. For now the
-endpoint persists the three addresses + cycle hours and echoes the row back so
-the FE can navigate to ``/trips/:id``.
+Spec 04: ``TripCreateView`` delegates to ``services.plan_trip``, which runs
+the ORS Directions pipeline and writes the resulting status (PLANNED / FAILED)
+back on the Trip row. The view always returns 201 with the discriminated
+resource; the FE branches on ``data.status`` (spec 04 decision 14).
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ from web_api.apps.trips.serializers import (
     TripCreateRequestSerializer,
     TripResponseSerializer,
 )
+from web_api.apps.trips.services import plan_trip
 
 if TYPE_CHECKING:
     import uuid
@@ -42,9 +44,15 @@ def _request_user_id(request: Request) -> str:
 
 
 class TripCreateView(APIView):
-    """``POST /api/trips/`` — create a trip and echo it back."""
+    """``POST /api/trips/`` — create a trip and resolve its route via ORS.
+
+    Always returns 201 with the trip resource. Route success/failure is
+    discriminated by the ``status`` field (PLANNED vs FAILED), not by HTTP
+    code — see spec 04 decision 14.
+    """
 
     permission_classes: ClassVar[list[type[BasePermission]]] = [IsAuthenticated]  # type: ignore[misc]
+    throttle_scope = "trip_create"
 
     @extend_schema(
         request=TripCreateRequestSerializer,
@@ -53,21 +61,8 @@ class TripCreateView(APIView):
     def post(self, request: Request) -> Response:
         serializer = TripCreateRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
 
-        trip = Trip.objects.create(
-            user_id=_request_user_id(request),
-            current_label=data["current"]["label"],
-            current_lat=data["current"]["lat"],
-            current_lon=data["current"]["lon"],
-            pickup_label=data["pickup"]["label"],
-            pickup_lat=data["pickup"]["lat"],
-            pickup_lon=data["pickup"]["lon"],
-            dropoff_label=data["dropoff"]["label"],
-            dropoff_lat=data["dropoff"]["lat"],
-            dropoff_lon=data["dropoff"]["lon"],
-            cycle_hours_used=data["cycle_hours_used"],
-        )
+        trip = plan_trip(serializer.validated_data, _request_user_id(request))
         return Response(
             TripResponseSerializer(trip).data,
             status=status.HTTP_201_CREATED,

@@ -1,21 +1,41 @@
-"""DRF tests for the stub Trip endpoints.
+"""DRF tests for the Trip endpoints.
 
 The Trip model is exercised against the SQLite test DB. Ownership is the
 load-bearing rule under test — only the request's ``user_id`` can read its own
-trips.
+trips. The create endpoint now runs the ``plan_trip`` pipeline (spec 04), so
+tests mock ``directions_hgv`` at the boundary rather than touch the network.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from unittest.mock import patch
 import uuid
 
 import pytest
+
+from web_api.integrations.openrouteservice import (
+    DirectionsResult,
+    DirectionsSegment,
+    DirectionsSummary,
+    OrsUpstreamError,
+)
 
 if TYPE_CHECKING:
     from rest_framework.test import APIClient
 
     from tests.conftest import TripFactory
+
+
+def _ors_result() -> DirectionsResult:
+    return DirectionsResult(
+        polyline=[[-77.4360, 37.5407], [-77.4605, 38.3032], [-74.1724, 40.7357]],
+        summary=DirectionsSummary(distance_mi=342.7, duration_s=19080),
+        segments=[
+            DirectionsSegment(distance_mi=67.4, duration_s=4321, from_index=0, to_index=1),
+            DirectionsSegment(distance_mi=275.3, duration_s=14760, from_index=1, to_index=2),
+        ],
+    )
 
 
 VALID_PAYLOAD: dict[str, object] = {
@@ -39,17 +59,48 @@ def test_retrieve_without_token_returns_401(unauthenticated_client: APIClient) -
 
 
 @pytest.mark.django_db
-def test_create_persists_trip_and_returns_201(authenticated_client: APIClient) -> None:
-    response = authenticated_client.post("/api/trips/", VALID_PAYLOAD, format="json")
+def test_create_persists_trip_and_returns_201_planned(authenticated_client: APIClient) -> None:
+    with patch(
+        "web_api.apps.trips.services.directions_hgv",
+        return_value=_ors_result(),
+    ):
+        response = authenticated_client.post("/api/trips/", VALID_PAYLOAD, format="json")
 
     assert response.status_code == 201
     body = response.json()
-    assert body["status"] == "planning"
+    assert body["status"] == "planned"
     assert body["current_label"] == "Richmond, VA"
     assert body["pickup_label"] == "Fredericksburg, VA"
     assert body["dropoff_label"] == "Newark, NJ"
     assert body["cycle_hours_used"] == "35.0"
     assert uuid.UUID(body["id"]).version == 4
+    assert body["route_polyline"] == [
+        [-77.4360, 37.5407],
+        [-77.4605, 38.3032],
+        [-74.1724, 40.7357],
+    ]
+    assert body["route_summary"] == {"distance_mi": 342.7, "duration_s": 19080}
+    assert len(body["route_segments"]) == 2
+    assert body["route_error_code"] is None
+
+
+@pytest.mark.django_db
+def test_create_returns_201_with_failed_status_on_ors_error(
+    authenticated_client: APIClient,
+) -> None:
+    with patch(
+        "web_api.apps.trips.services.directions_hgv",
+        side_effect=OrsUpstreamError("boom"),
+    ):
+        response = authenticated_client.post("/api/trips/", VALID_PAYLOAD, format="json")
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["status"] == "failed"
+    assert body["route_error_code"] == "upstream"
+    assert body["route_polyline"] is None
+    assert body["route_segments"] is None
+    assert body["route_summary"] is None
 
 
 @pytest.mark.django_db
@@ -57,7 +108,11 @@ def test_create_stamps_user_id_from_request(authenticated_client: APIClient) -> 
     from tests.conftest import TEST_USER_ID  # noqa: PLC0415
     from web_api.apps.trips.models import Trip  # noqa: PLC0415
 
-    response = authenticated_client.post("/api/trips/", VALID_PAYLOAD, format="json")
+    with patch(
+        "web_api.apps.trips.services.directions_hgv",
+        return_value=_ors_result(),
+    ):
+        response = authenticated_client.post("/api/trips/", VALID_PAYLOAD, format="json")
 
     assert response.status_code == 201
     persisted = Trip.objects.get(pk=response.json()["id"])
@@ -109,6 +164,49 @@ def test_retrieve_returns_200_for_owner(
     body = response.json()
     assert body["id"] == str(trip.id)
     assert body["current_label"] == "Richmond, VA"
+
+
+@pytest.mark.django_db
+def test_retrieve_planned_trip_emits_route_data(
+    authenticated_client: APIClient,
+    trip_factory: type[TripFactory],
+) -> None:
+    trip = trip_factory.create(
+        status="planned",
+        route_polyline=[[-77.4360, 37.5407], [-74.1724, 40.7357]],
+        route_segments=[
+            {"distance_mi": 67.4, "duration_s": 4321, "from_index": 0, "to_index": 1},
+        ],
+        route_summary={"distance_mi": 342.7, "duration_s": 19080},
+    )
+
+    response = authenticated_client.get(f"/api/trips/{trip.id}/")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "planned"
+    assert body["route_polyline"] == [[-77.4360, 37.5407], [-74.1724, 40.7357]]
+    assert body["route_summary"] == {"distance_mi": 342.7, "duration_s": 19080}
+    assert body["route_segments"][0]["from_index"] == 0
+    assert body["route_error_code"] is None
+
+
+@pytest.mark.django_db
+def test_retrieve_failed_trip_emits_error_code(
+    authenticated_client: APIClient,
+    trip_factory: type[TripFactory],
+) -> None:
+    trip = trip_factory.create(status="failed", route_error_code="rate_limit_daily")
+
+    response = authenticated_client.get(f"/api/trips/{trip.id}/")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "failed"
+    assert body["route_error_code"] == "rate_limit_daily"
+    assert body["route_polyline"] is None
+    assert body["route_segments"] is None
+    assert body["route_summary"] is None
 
 
 @pytest.mark.django_db

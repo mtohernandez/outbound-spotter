@@ -50,5 +50,9 @@ class TripResponseSerializer(serializers.ModelSerializer[Trip]):
             "dropoff_lat",
             "dropoff_lon",
             "cycle_hours_used",
+            "route_polyline",
+            "route_segments",
+            "route_summary",
+            "route_error_code",
         ]
         read_only_fields = fields
