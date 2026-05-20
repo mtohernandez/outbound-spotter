@@ -11,7 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 from urllib.parse import urlparse
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -43,7 +43,7 @@ class WebApiSettings(BaseSettings):
     CLERK_SECRET_KEY: str = Field(default="")
     CLERK_JWT_ISSUER: str = Field(default="")
 
-    OPENROUTESERVICE_API_KEY: str = Field(default="")
+    OPENROUTESERVICE_API_KEY: SecretStr = Field(default=SecretStr(""))
     OPENROUTESERVICE_BASE_URL: str = Field(default="https://api.openrouteservice.org")
 
 
@@ -63,6 +63,8 @@ INSTALLED_APPS = [
     "corsheaders",
     "rest_framework",
     "drf_spectacular",
+    "web_api.apps.geocoding",
+    "web_api.apps.trips",
 ]
 
 MIDDLEWARE = [

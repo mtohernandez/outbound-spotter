@@ -18,3 +18,8 @@ REST_FRAMEWORK = {
     **REST_FRAMEWORK,  # noqa: F405
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
 }
+
+# psycopg 3 refuses pool=True alongside Django's CONN_MAX_AGE. Local dev doesn't
+# benefit from pooling — runserver is single-process — so we drop the pool here
+# and keep CONN_MAX_AGE for prod (where gunicorn workers reuse connections).
+DATABASES["default"]["OPTIONS"] = {}  # noqa: F405

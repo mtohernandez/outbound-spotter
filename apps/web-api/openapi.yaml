@@ -1,0 +1,287 @@
+openapi: 3.0.3
+info:
+  title: Outbound Spotter API
+  version: 0.0.0
+  description: HOS-compliant trip planning and ELD log generation.
+paths:
+  /api/geocode/autocomplete/:
+    get:
+      operationId: geocode_autocomplete_retrieve
+      description: As-you-type Pelias autocomplete. ``GET /api/geocode/autocomplete/?text=…``.
+      parameters:
+        - in: query
+          name: focus_lat
+          schema:
+            type: number
+            format: double
+            maximum: 90
+            minimum: -90
+        - in: query
+          name: focus_lon
+          schema:
+            type: number
+            format: double
+            maximum: 180
+            minimum: -180
+        - in: query
+          name: size
+          schema:
+            type: integer
+            maximum: 10
+            minimum: 1
+            default: 5
+        - in: query
+          name: text
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+          required: true
+      tags:
+        - geocode
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeaturesEnvelope'
+          description: ''
+  /api/geocode/search/:
+    get:
+      operationId: geocode_search_retrieve
+      description: Full-string Pelias search. ``GET /api/geocode/search/?text=…``.
+      parameters:
+        - in: query
+          name: size
+          schema:
+            type: integer
+            maximum: 10
+            minimum: 1
+            default: 1
+        - in: query
+          name: text
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+          required: true
+      tags:
+        - geocode
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeaturesEnvelope'
+          description: ''
+  /api/me/:
+    get:
+      operationId: me_retrieve
+      description: |-
+        Returns the decoded Clerk session for the current request.
+
+        Used by the web-app to confirm the JWT round-trip works and to pick up the canonical user id
+        server-side. Any unauthenticated request gets a 401 from DRF's `IsAuthenticated` permission.
+      tags:
+        - me
+      responses:
+        '200':
+          description: No response body
+  /api/trips/:
+    post:
+      operationId: trips_create
+      description: '``POST /api/trips/`` — create a trip and echo it back.'
+      tags:
+        - trips
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripCreateRequestRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripResponse'
+          description: ''
+  /api/trips/{id}/:
+    get:
+      operationId: trips_retrieve
+      description: '``GET /api/trips/<uuid:id>/`` — fetch a trip; ownership enforced.'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          required: true
+      tags:
+        - trips
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripResponse'
+          description: ''
+components:
+  schemas:
+    AddressInputRequest:
+      type: object
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 255
+        lat:
+          type: number
+          format: double
+          maximum: 90
+          minimum: -90
+        lon:
+          type: number
+          format: double
+          maximum: 180
+          minimum: -180
+        confidence:
+          type: number
+          format: double
+          maximum: 1
+          minimum: 0
+          nullable: true
+      required:
+        - label
+        - lat
+        - lon
+    FeaturesEnvelope:
+      type: object
+      description: 'Wrapper used only for the OpenAPI schema — `{"features": [...]}`.'
+      properties:
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/PeliasFeature'
+      required:
+        - features
+    PeliasFeature:
+      type: object
+      properties:
+        label:
+          type: string
+        country_a:
+          type: string
+          nullable: true
+        region_a:
+          type: string
+          nullable: true
+        locality:
+          type: string
+          nullable: true
+        confidence:
+          type: number
+          format: double
+          nullable: true
+        match_type:
+          type: string
+          nullable: true
+        lat:
+          type: number
+          format: double
+        lon:
+          type: number
+          format: double
+      required:
+        - confidence
+        - country_a
+        - label
+        - lat
+        - locality
+        - lon
+        - match_type
+        - region_a
+    TripCreateRequestRequest:
+      type: object
+      properties:
+        current:
+          $ref: '#/components/schemas/AddressInputRequest'
+        pickup:
+          $ref: '#/components/schemas/AddressInputRequest'
+        dropoff:
+          $ref: '#/components/schemas/AddressInputRequest'
+        cycle_hours_used:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,1})?$
+      required:
+        - current
+        - cycle_hours_used
+        - dropoff
+        - pickup
+    TripResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        current_label:
+          type: string
+          readOnly: true
+        current_lat:
+          type: number
+          format: double
+          readOnly: true
+        current_lon:
+          type: number
+          format: double
+          readOnly: true
+        pickup_label:
+          type: string
+          readOnly: true
+        pickup_lat:
+          type: number
+          format: double
+          readOnly: true
+        pickup_lon:
+          type: number
+          format: double
+          readOnly: true
+        dropoff_label:
+          type: string
+          readOnly: true
+        dropoff_lat:
+          type: number
+          format: double
+          readOnly: true
+        dropoff_lon:
+          type: number
+          format: double
+          readOnly: true
+        cycle_hours_used:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,1})?$
+          readOnly: true
+      required:
+        - created_at
+        - current_label
+        - current_lat
+        - current_lon
+        - cycle_hours_used
+        - dropoff_label
+        - dropoff_lat
+        - dropoff_lon
+        - id
+        - pickup_label
+        - pickup_lat
+        - pickup_lon
+        - status
