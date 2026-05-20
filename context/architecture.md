@@ -86,7 +86,21 @@ Each version below was pinned to the latest stable release at the time of select
 
 ## Invariants
 
-1. **The HOS planner is a pure function.** No Django, ORM, or HTTP imports inside `web_api/hos/`. Anything Django needs from it goes through a thin adapter.
+1. **The HOS planner is a pure function.** No Django, ORM, or HTTP imports inside `apps/web-api/web_api/hos/`. Anything Django needs from it goes through a thin adapter. Enforced by `apps/web-api/tests/hos/test_boundary.py`, which AST-walks the module and asserts every import lives in the allowlist below. Public API: `plan_logs(inputs: PlannerInputs) -> list[LogEvent]`. Imports are restricted to:
+
+   ```python
+   # senior-review-hook: any addition to this set requires architect-review re-approval
+   # and a synchronized update to apps/web-api/tests/hos/test_boundary.py — do NOT edit unilaterally.
+   ALLOWED_TOP_LEVEL = {
+       "datetime", "dataclasses", "enum", "decimal",
+       "zoneinfo", "math", "typing", "collections.abc",
+       "web_api.hos", "web_api.integrations.openrouteservice",
+       "__future__",
+   }
+   ```
+
+   `web_api.integrations.openrouteservice` is a data-contract import only — `DirectionsResult` / `DirectionsSegment` / `DirectionsSummary` must be imported under `if TYPE_CHECKING:` (the upstream module pulls Django + requests at module top, so a runtime import would silently break the planner's stdlib-only contract). `_smoke.py` is the one boundary-exempt file inside the module (it is not transitively imported by the planner's library path); see the inline comment in `test_boundary.py`.
+
 2. **Every duty-status change writes a `LogEvent` row.** The UI is never the source of truth for log content — it renders what the API stored.
 3. **No raw ORS calls from the browser.** The ORS API key never reaches the client.
 4. **No client-side HOS math.** web-app renders log events; it does not decide where breaks go.
