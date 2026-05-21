@@ -19,7 +19,6 @@ export function AppProvider({ children }: Props): React.ReactElement {
         signInFallbackRedirectUrl={env.VITE_APP_URL}
         signUpFallbackRedirectUrl={env.VITE_APP_URL}
         afterSignOutUrl={env.VITE_APP_URL}
-        allowedRedirectOrigins={[env.VITE_APP_URL, env.VITE_APEX_URL]}
       >
         <AppErrorBoundary>
           <Suspense
