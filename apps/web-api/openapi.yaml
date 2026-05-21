@@ -143,6 +143,49 @@ paths:
               schema:
                 $ref: '#/components/schemas/FeaturesEnvelope'
           description: ''
+  /api/geocode/reverse/:
+    get:
+      operationId: geocode_reverse_retrieve
+      description: |-
+        Coordinate-to-address Pelias reverse. ``GET /api/geocode/reverse/?lat=&lon=``.
+
+        Powers the "Use my current location" UX in web-app (spec 11b): the FE calls
+        ``navigator.geolocation.getCurrentPosition`` and hands the resulting (lat,
+        lon) to this endpoint to resolve the user-visible label. Same `PeliasFeature`
+        envelope as autocomplete + search so the FE consumes one type.
+      parameters:
+        - in: query
+          name: lat
+          schema:
+            type: number
+            format: double
+            maximum: 90
+            minimum: -90
+          required: true
+        - in: query
+          name: lon
+          schema:
+            type: number
+            format: double
+            maximum: 180
+            minimum: -180
+          required: true
+        - in: query
+          name: size
+          schema:
+            type: integer
+            maximum: 10
+            minimum: 1
+            default: 1
+      tags:
+        - geocode
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeaturesEnvelope'
+          description: ''
   /api/geocode/search/:
     get:
       operationId: geocode_search_retrieve

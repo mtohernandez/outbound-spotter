@@ -18,7 +18,10 @@ import {
   useGeocodeAutocomplete,
   type GeocodeFeature,
 } from "@/features/trip-planner/api/geocode-autocomplete";
+import { RecentLocationsGroup } from "@/features/trip-planner/components/recent-locations-group";
+import { UseCurrentLocationButton } from "@/features/trip-planner/components/use-current-location-button";
 import { useDebouncedValue } from "@/features/trip-planner/hooks/use-debounced-value";
+import { useRecentLocations } from "@/features/trip-planner/hooks/use-recent-locations";
 import type { TripInput } from "@/features/trip-planner/schemas/trip-input";
 
 const DEBOUNCE_MS = 250;
@@ -59,6 +62,7 @@ export function AddressField({
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, DEBOUNCE_MS);
   const query = useGeocodeAutocomplete(debouncedSearch);
+  const { recents, pushRecent } = useRecentLocations();
 
   const hasValue = field.value.label !== "";
   const errorMessage = leafErrorMessage(fieldState.error);
@@ -71,6 +75,7 @@ export function AddressField({
       lon: feature.lon,
       confidence: feature.confidence,
     });
+    pushRecent(feature);
     field.onBlur();
     setSearch("");
     setOpen(false);
@@ -80,64 +85,68 @@ export function AddressField({
     <Field data-invalid={invalid ? "true" : undefined}>
       <FieldLabel htmlFor={fieldId}>{label}</FieldLabel>
       {description ? <FieldDescription id={descriptionId}>{description}</FieldDescription> : null}
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            id={fieldId}
-            type="button"
-            variant="outline"
-            role="combobox"
-            aria-haspopup="listbox"
-            aria-expanded={open}
-            aria-invalid={invalid}
-            aria-describedby={
-              [description ? descriptionId : null, invalid ? errorId : null]
-                .filter(Boolean)
-                .join(" ") || undefined
-            }
-            onKeyDown={(event) => {
-              // APG combobox pattern: ArrowDown / ArrowUp / Alt+ArrowDown open
-              // the listbox when collapsed. Without this, keyboard-only users
-              // can't reach the suggestions.
-              if (!open && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
-                event.preventDefault();
-                setOpen(true);
+      <div className="flex items-center gap-1">
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              id={fieldId}
+              type="button"
+              variant="outline"
+              role="combobox"
+              aria-haspopup="listbox"
+              aria-expanded={open}
+              aria-invalid={invalid}
+              aria-describedby={
+                [description ? descriptionId : null, invalid ? errorId : null]
+                  .filter(Boolean)
+                  .join(" ") || undefined
               }
-            }}
-            className={cn(
-              "w-full justify-between font-normal",
-              !hasValue && "text-muted-foreground",
-            )}
+              onKeyDown={(event) => {
+                // APG combobox pattern: ArrowDown / ArrowUp / Alt+ArrowDown open
+                // the listbox when collapsed. Without this, keyboard-only users
+                // can't reach the suggestions.
+                if (!open && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+                  event.preventDefault();
+                  setOpen(true);
+                }
+              }}
+              className={cn(
+                "min-w-0 flex-1 justify-between font-normal",
+                !hasValue && "text-muted-foreground",
+              )}
+            >
+              <span className="flex min-w-0 items-center gap-2 truncate">
+                <MapPin className="size-4 shrink-0" aria-hidden />
+                <span className="truncate">{hasValue ? field.value.label : placeholder}</span>
+              </span>
+              <ChevronsUpDown className="size-4 shrink-0 opacity-60" aria-hidden />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            className="p-0"
+            align="start"
+            style={{ width: "var(--radix-popover-trigger-width)" }}
           >
-            <span className="flex min-w-0 items-center gap-2 truncate">
-              <MapPin className="size-4 shrink-0" aria-hidden />
-              <span className="truncate">{hasValue ? field.value.label : placeholder}</span>
-            </span>
-            <ChevronsUpDown className="size-4 shrink-0 opacity-60" aria-hidden />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent
-          className="p-0"
-          align="start"
-          style={{ width: "var(--radix-popover-trigger-width)" }}
-        >
-          <Command shouldFilter={false}>
-            <CommandInput
-              placeholder="Search an address…"
-              value={search}
-              onValueChange={setSearch}
-            />
-            <CommandList>
-              <AutocompleteBody
-                search={search}
-                query={query}
-                onSelect={handleSelect}
-                selectedKey={hasValue ? `${field.value.lat},${field.value.lon}` : null}
+            <Command shouldFilter={false}>
+              <CommandInput
+                placeholder="Search an address…"
+                value={search}
+                onValueChange={setSearch}
               />
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+              <CommandList>
+                <AutocompleteBody
+                  search={search}
+                  query={query}
+                  recents={recents}
+                  onSelect={handleSelect}
+                  selectedKey={hasValue ? `${field.value.lat},${field.value.lon}` : null}
+                />
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+        {name === "current" ? <UseCurrentLocationButton onLocate={handleSelect} /> : null}
+      </div>
       {invalid ? <FieldError id={errorId}>{errorMessage}</FieldError> : null}
     </Field>
   );
@@ -146,12 +155,22 @@ export function AddressField({
 interface BodyProps {
   readonly search: string;
   readonly query: ReturnType<typeof useGeocodeAutocomplete>;
+  readonly recents: readonly GeocodeFeature[];
   readonly selectedKey: string | null;
   readonly onSelect: (feature: GeocodeFeature) => void;
 }
 
-function AutocompleteBody({ search, query, selectedKey, onSelect }: BodyProps): React.ReactElement {
+function AutocompleteBody({
+  search,
+  query,
+  recents,
+  selectedKey,
+  onSelect,
+}: BodyProps): React.ReactElement {
   if (search.length < 3) {
+    if (recents.length > 0) {
+      return <RecentLocationsGroup recents={recents} onSelect={onSelect} />;
+    }
     return (
       <CommandEmpty className="py-6 text-center text-sm">
         Type at least 3 characters to search.

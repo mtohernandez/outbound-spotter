@@ -42,7 +42,8 @@ describe("ExportButton", () => {
 
     await user.click(screen.getByTestId("export-pdf-trigger"));
 
-    expect(screen.getByRole("heading", { name: /export pdf/i })).toBeInTheDocument();
+    // ExportDialog is lazy-loaded — wait for the Suspense boundary to mount.
+    expect(await screen.findByRole("heading", { name: /export pdf/i })).toBeInTheDocument();
   });
 
   it("reflects the dialog state via aria-expanded", async () => {
@@ -61,7 +62,7 @@ describe("ExportButton", () => {
     const trigger = screen.getByTestId("export-pdf-trigger");
 
     await user.click(trigger);
-    expect(screen.getByRole("heading", { name: /export pdf/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /export pdf/i })).toBeInTheDocument();
 
     await user.keyboard("{Escape}");
 

@@ -149,6 +149,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "geocode_autocomplete": "60/min",
         "geocode_search": "20/min",
+        "geocode_reverse": "30/min",
         "trip_create": "30/hour",
         "trip_list": "60/min",
         "trip_delete": "20/min",

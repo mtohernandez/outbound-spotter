@@ -1,5 +1,4 @@
 import { useUser } from "@clerk/react";
-import { TooltipProvider } from "@outbound/ui/components/ui/tooltip";
 import { useMemo, useState } from "react";
 
 import { DailyLogSheet } from "@/features/log-sheet/components/daily-log-sheet";
@@ -72,38 +71,36 @@ export function DailyLogSheetsStrip({ trip, plan }: DailyLogSheetsStripProps): R
   );
 
   return (
-    <TooltipProvider>
-      <div
-        data-slot="daily-log-sheets-strip"
-        className="bg-muted/30 flex h-full min-h-0 flex-col gap-6 overflow-y-auto p-4"
-      >
-        {sortedDays.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No log days were planned for this trip.</p>
-        ) : (
-          sortedDays.map((day, index) => (
-            <section key={day.id} aria-label={`Log sheet for ${day.date}`}>
-              <h3 className="font-display text-foreground mb-2 text-sm font-semibold tracking-wide">
-                {formatStripDateHeader(day.date, plan.home_terminal_tz)}
-                <span className="text-muted-foreground ml-2 text-xs font-normal">
-                  Day {index + 1} of {sortedDays.length}
-                </span>
-              </h3>
-              <DailyLogSheet
-                day={day}
-                events={plan.events}
-                stops={plan.stops}
-                trip={tripLabels}
-                homeTerminalTz={plan.home_terminal_tz}
-                driverLegalName={driverLegalName}
-                metadata={metadata}
-                onMetadataChange={setMetadata}
-                sheetId={`sheet-${day.id}`}
-              />
-            </section>
-          ))
-        )}
-      </div>
-    </TooltipProvider>
+    <div
+      data-slot="daily-log-sheets-strip"
+      className="bg-muted/30 flex h-full min-h-0 flex-col gap-6 overflow-y-auto p-4"
+    >
+      {sortedDays.length === 0 ? (
+        <p className="text-muted-foreground text-sm">No log days were planned for this trip.</p>
+      ) : (
+        sortedDays.map((day, index) => (
+          <section key={day.id} aria-label={`Log sheet for ${day.date}`}>
+            <h3 className="font-display text-foreground mb-2 text-sm font-semibold tracking-wide">
+              {formatStripDateHeader(day.date, plan.home_terminal_tz)}
+              <span className="text-muted-foreground ml-2 text-xs font-normal">
+                Day {index + 1} of {sortedDays.length}
+              </span>
+            </h3>
+            <DailyLogSheet
+              day={day}
+              events={plan.events}
+              stops={plan.stops}
+              trip={tripLabels}
+              homeTerminalTz={plan.home_terminal_tz}
+              driverLegalName={driverLegalName}
+              metadata={metadata}
+              onMetadataChange={setMetadata}
+              sheetId={`sheet-${day.id}`}
+            />
+          </section>
+        ))
+      )}
+    </div>
   );
 }
 

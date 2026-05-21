@@ -20,6 +20,7 @@ from web_api.integrations.openrouteservice import (
     OrsRequestError,
     OrsUpstreamError,
     geocode_autocomplete,
+    geocode_reverse,
     geocode_search,
 )
 
@@ -130,6 +131,77 @@ def test_search_uses_search_path() -> None:
         geocode_search("Richmond, VA")
 
     assert mock_get.call_args.args[0].endswith("/geocode/search")
+
+
+@override_settings(
+    OPENROUTESERVICE_API_KEY=SecretStr("test-key"),
+    OPENROUTESERVICE_BASE_URL="https://api.openrouteservice.org",
+)
+def test_reverse_uses_reverse_path_and_point_params() -> None:
+    with patch(
+        "web_api.integrations.openrouteservice._session.get",
+        return_value=_fake_response(json_body={"features": [_fake_feature()]}),
+    ) as mock_get:
+        result = geocode_reverse(37.5407, -77.4360)
+
+    assert len(result) == 1
+    assert result[0].label == "Richmond, VA"
+    assert mock_get.call_args.args[0] == "https://api.openrouteservice.org/geocode/reverse"
+
+    params = mock_get.call_args.kwargs["params"]
+    assert params["point.lat"] == pytest.approx(37.5407)
+    assert params["point.lon"] == pytest.approx(-77.4360)
+    assert params["boundary.country"] == "US"
+    assert params["size"] == 1
+    assert mock_get.call_args.kwargs["headers"]["Authorization"] == "test-key"
+    assert mock_get.call_args.kwargs["timeout"] == 5.0
+
+
+@override_settings(OPENROUTESERVICE_API_KEY=SecretStr("test-key"))
+def test_reverse_clamps_size() -> None:
+    with patch(
+        "web_api.integrations.openrouteservice._session.get",
+        return_value=_fake_response(),
+    ) as mock_get:
+        geocode_reverse(0.0, 0.0, size=999)
+
+    assert mock_get.call_args.kwargs["params"]["size"] == 10
+
+
+@override_settings(OPENROUTESERVICE_API_KEY=SecretStr("test-key"))
+def test_reverse_429_raises_rate_limit() -> None:
+    with (
+        patch(
+            "web_api.integrations.openrouteservice._session.get",
+            return_value=_fake_response(status_code=429),
+        ),
+        pytest.raises(OrsRateLimitError),
+    ):
+        geocode_reverse(37.5, -77.4)
+
+
+@override_settings(OPENROUTESERVICE_API_KEY=SecretStr("test-key"))
+def test_reverse_5xx_raises_upstream_error() -> None:
+    with (
+        patch(
+            "web_api.integrations.openrouteservice._session.get",
+            return_value=_fake_response(status_code=503),
+        ),
+        pytest.raises(OrsUpstreamError),
+    ):
+        geocode_reverse(37.5, -77.4)
+
+
+@override_settings(OPENROUTESERVICE_API_KEY=SecretStr("test-key"))
+def test_reverse_4xx_raises_request_error() -> None:
+    with (
+        patch(
+            "web_api.integrations.openrouteservice._session.get",
+            return_value=_fake_response(status_code=400),
+        ),
+        pytest.raises(OrsRequestError),
+    ):
+        geocode_reverse(37.5, -77.4)
 
 
 @override_settings(OPENROUTESERVICE_API_KEY=SecretStr("test-key"))

@@ -40,6 +40,43 @@ if (typeof globalThis.ResizeObserver === "undefined") {
   });
 }
 
+// jsdom under vitest 4 ships an incomplete Storage prototype in some pool
+// configurations (setItem/getItem missing). Match the packages/ui +
+// apps/web-auth shim so test code can interact with localStorage normally.
+class MemoryStorage implements Storage {
+  #store = new Map<string, string>();
+
+  get length(): number {
+    return this.#store.size;
+  }
+
+  key(index: number): string | null {
+    return [...this.#store.keys()][index] ?? null;
+  }
+
+  getItem(key: string): string | null {
+    return this.#store.get(key) ?? null;
+  }
+
+  setItem(key: string, value: string): void {
+    this.#store.set(key, value);
+  }
+
+  removeItem(key: string): void {
+    this.#store.delete(key);
+  }
+
+  clear(): void {
+    this.#store.clear();
+  }
+}
+
+Object.defineProperty(window, "localStorage", {
+  configurable: true,
+  writable: true,
+  value: new MemoryStorage(),
+});
+
 if (typeof window !== "undefined") {
   if (typeof window.matchMedia === "undefined") {
     window.matchMedia = vi.fn().mockImplementation((query: string) => ({

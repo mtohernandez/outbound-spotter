@@ -10,6 +10,8 @@ import { DailyLogSheetsStrip } from "@/features/log-sheet/components/daily-log-s
 import { ExportButton } from "@/features/pdf-export/components/export-button";
 import { useTripById } from "@/features/trip-planner/api/trip-by-id";
 import { useTripPlan } from "@/features/trip-planner/api/trip-plan";
+import { AssumptionsBanner } from "@/features/trip-planner/components/assumptions-banner";
+import { PlanningDisclaimer } from "@/features/trip-planner/components/planning-disclaimer";
 import { ApiError } from "@/lib/api-client";
 
 const TripMap = lazy(() => import("@/features/trip-planner/components/trip-map"));
@@ -95,40 +97,48 @@ export function TripsDetailRoute(): React.ReactElement {
   };
 
   return (
-    <Tabs
-      value={view}
-      onValueChange={handleViewChange}
-      className="flex min-h-0 min-w-0 flex-1 overflow-hidden"
-    >
-      <div className="border-border flex items-center justify-between border-b px-4 py-2">
-        <TabsList variant="line">
-          <TabsTrigger value="map">Map</TabsTrigger>
-          <TabsTrigger value="logs">Log sheets</TabsTrigger>
-        </TabsList>
-        <div className="ms-auto flex items-center">
-          <ExportButton tripId={trip.data.id} days={plan.data.days} />
-        </div>
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="px-4 pt-4">
+        <AssumptionsBanner tripId={trip.data.id} />
       </div>
-      <TabsContent
-        value="map"
-        className="flex min-h-0 min-w-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
-        forceMount
+      <Tabs
+        value={view}
+        onValueChange={handleViewChange}
+        className="flex min-h-0 min-w-0 flex-1 overflow-hidden"
       >
-        <FeatureErrorBoundary scope="trip-map">
-          <Suspense fallback={<LoadingState />}>
-            <TripMap trip={trip.data} plan={plan.data} active={view === "map"} />
-          </Suspense>
-        </FeatureErrorBoundary>
-      </TabsContent>
-      <TabsContent
-        value="logs"
-        className="flex min-h-0 min-w-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
-        forceMount
-      >
-        <FeatureErrorBoundary scope="daily-log-sheets">
-          <DailyLogSheetsStrip trip={trip.data} plan={plan.data} />
-        </FeatureErrorBoundary>
-      </TabsContent>
-    </Tabs>
+        <div className="border-border flex items-center justify-between border-b px-4 py-2">
+          <TabsList variant="line">
+            <TabsTrigger value="map">Map</TabsTrigger>
+            <TabsTrigger value="logs">Log sheets</TabsTrigger>
+          </TabsList>
+          <div className="ms-auto flex items-center">
+            <ExportButton tripId={trip.data.id} days={plan.data.days} />
+          </div>
+        </div>
+        <TabsContent
+          value="map"
+          className="flex min-h-0 min-w-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
+          forceMount
+        >
+          <FeatureErrorBoundary scope="trip-map">
+            <Suspense fallback={<LoadingState />}>
+              <TripMap trip={trip.data} plan={plan.data} active={view === "map"} />
+            </Suspense>
+          </FeatureErrorBoundary>
+        </TabsContent>
+        <TabsContent
+          value="logs"
+          className="flex min-h-0 min-w-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
+          forceMount
+        >
+          <FeatureErrorBoundary scope="daily-log-sheets">
+            <DailyLogSheetsStrip trip={trip.data} plan={plan.data} />
+          </FeatureErrorBoundary>
+        </TabsContent>
+      </Tabs>
+      <div className="border-border border-t px-4 py-2">
+        <PlanningDisclaimer />
+      </div>
+    </div>
   );
 }
