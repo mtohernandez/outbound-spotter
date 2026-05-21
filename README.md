@@ -73,11 +73,12 @@ For the full invariant list and boundary rules, see [`context/architecture.md`](
 
 ## Apps
 
-| Workspace                                       | Path             | Stack                                   | Port | Hosting |
-| ----------------------------------------------- | ---------------- | --------------------------------------- | ---- | ------- |
-| [`@outbound/web-app`](apps/web-app/README.md)   | `apps/web-app/`  | Vite 8 · React 19 · Tailwind v4         | 5173 | Vercel  |
-| [`@outbound/web-auth`](apps/web-auth/README.md) | `apps/web-auth/` | Vite 8 · React 19 · Clerk Core 3        | 5174 | Vercel  |
-| [`@outbound/web-api`](apps/web-api/README.md)   | `apps/web-api/`  | Django 5.2 LTS · DRF · uv · Postgres 17 | 8000 | Fly.io  |
+| Workspace                                       | Path             | Stack                                                 | Port | Hosting |
+| ----------------------------------------------- | ---------------- | ----------------------------------------------------- | ---- | ------- |
+| [`@outbound/web-app`](apps/web-app/README.md)   | `apps/web-app/`  | Vite 8 · React 19 · Tailwind v4                       | 5173 | Vercel  |
+| [`@outbound/web-auth`](apps/web-auth/README.md) | `apps/web-auth/` | Vite 8 · React 19 · Clerk Core 3                      | 5174 | Vercel  |
+| [`@outbound/web-apex`](apps/web-apex/README.md) | `apps/web-apex/` | Vite 8 · React 19 · Clerk satellite (apex redirector) | 5175 | Vercel  |
+| [`@outbound/web-api`](apps/web-api/README.md)   | `apps/web-api/`  | Django 5.2 LTS · DRF · uv · Postgres 17 (Neon prod)   | 8000 | Vercel  |
 
 ### Shared packages
 
@@ -130,16 +131,17 @@ uv run manage.py runserver             # http://localhost:8000
 | Quality    | ESLint flat · Prettier · Ruff · mypy `--strict` · commitlint · Husky + lint-staged                                |
 | Testing    | Vitest 4 + Testing Library 16 + MSW (frontend) · pytest 9 + pytest-django + factory_boy (backend)                 |
 | CI / CD    | GitHub Actions (lint, typecheck, test, build, commitlint)                                                         |
-| Hosting    | Vercel (web-app, web-auth) · Fly.io (web-api + Postgres)                                                          |
+| Hosting    | Vercel (web-app, web-auth, web-apex, web-api) · Neon (managed Postgres, free tier)                                |
 
 ## Project layout
 
 ```
 outbound-spotter/
 ├── apps/
-│   ├── web-app/    # Vite + React 19 — trip-planner SPA
-│   ├── web-auth/   # Vite + React 19 — Clerk-backed auth UI
-│   └── web-api/    # Django 5.2 + DRF + uv — API + HOS planner
+│   ├── web-app/    # Vite + React 19 — trip-planner SPA (app.<host>)
+│   ├── web-auth/   # Vite + React 19 — Clerk-backed auth UI (accounts.<host>)
+│   ├── web-apex/   # Vite + React 19 — apex redirector (<host>)
+│   └── web-api/    # Django 5.2 + DRF + uv — API + HOS planner (on Vercel)
 ├── packages/
 │   ├── ui/                  # Shared shadcn primitives + @theme tokens
 │   ├── eslint-config/       # Flat ESLint presets (base / react / library)
@@ -184,6 +186,28 @@ Top-level scripts run via Turborepo against every workspace; use `--filter=<work
 | `format:check` | Prettier check — what CI runs.                            |
 | `py:lint`      | `uv run ruff check` inside `apps/web-api`.                |
 | `py:format`    | `uv run ruff format` inside `apps/web-api`.               |
+
+## Production
+
+Outbound Spotter ships to free-tier Vercel + Neon. The four production URLs:
+
+| Surface  | URL                                            | Role                                                                   |
+| -------- | ---------------------------------------------- | ---------------------------------------------------------------------- |
+| Apex     | `https://outbound-spotter.vercel.app`          | Redirects signed-out visitors to accounts., signed-in to app.          |
+| web-auth | `https://outbound-spotter-accounts.vercel.app` | Sign in / sign up (Clerk primary).                                     |
+| web-app  | `https://outbound-spotter-app.vercel.app`      | Trip planner.                                                          |
+| web-api  | `https://outbound-spotter-api.vercel.app`      | Django + DRF API. `/api/healthz/` is a public DB-aware liveness probe. |
+
+Topology details (Vercel project map, Clerk satellite layout, free-tier limits, migration semantics) live in [`context/architecture.md#deployment-topology-v010`](context/architecture.md). Spec at [`context/specs/12-production-deployment.md`](context/specs/12-production-deployment.md).
+
+> [!IMPORTANT]
+> v0.1.0 runs on **Clerk development instance** keys (free-tier — Clerk's production-mode satellite domains require a paid plan). Acceptable for an assessment review since traffic is bounded; **not for real users**. Swap to a Clerk prod instance + a custom domain before any commercial use.
+
+Known free-tier behaviours documented for the reviewer:
+
+- **First request after idle takes 1–3 s** — Vercel function cold start + Neon's 5-minute scale-to-zero stack together.
+- **No background workers.** No Celery, no cron; nothing in v1 needs them.
+- **PDF export stays client-only** (architecture invariant #6) — the API stores audit metadata only.
 
 ## Contributing
 

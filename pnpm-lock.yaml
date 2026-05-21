@@ -45,6 +45,70 @@ importers:
         specifier: 6.0.3
         version: 6.0.3
 
+  apps/web-apex:
+    dependencies:
+      '@clerk/react':
+        specifier: 6.6.6
+        version: 6.6.6(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      '@outbound/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      react:
+        specifier: 19.2.6
+        version: 19.2.6
+      react-dom:
+        specifier: 19.2.6
+        version: 19.2.6(react@19.2.6)
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@outbound/eslint-config':
+        specifier: workspace:*
+        version: link:../../packages/eslint-config
+      '@outbound/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/typescript-config
+      '@tailwindcss/vite':
+        specifier: 4.3.0
+        version: 4.3.0(vite@8.0.13(@types/node@25.9.0)(jiti@2.6.1)(yaml@2.9.0))
+      '@types/node':
+        specifier: 25.9.0
+        version: 25.9.0
+      '@types/react':
+        specifier: 19.2.14
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: 19.2.3
+        version: 19.2.3(@types/react@19.2.14)
+      '@vitejs/plugin-react':
+        specifier: 6.0.2
+        version: 6.0.2(vite@8.0.13(@types/node@25.9.0)(jiti@2.6.1)(yaml@2.9.0))
+      '@vitest/coverage-v8':
+        specifier: 4.1.6
+        version: 4.1.6(vitest@4.1.6)
+      eslint:
+        specifier: 10.4.0
+        version: 10.4.0(jiti@2.6.1)
+      jsdom:
+        specifier: 29.1.1
+        version: 29.1.1
+      tailwindcss:
+        specifier: 4.3.0
+        version: 4.3.0
+      tw-animate-css:
+        specifier: 1.4.0
+        version: 1.4.0
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      vite:
+        specifier: 8.0.13
+        version: 8.0.13(@types/node@25.9.0)(jiti@2.6.1)(yaml@2.9.0)
+      vitest:
+        specifier: 4.1.6
+        version: 4.1.6(@types/node@25.9.0)(@vitest/coverage-v8@4.1.6)(jsdom@29.1.1)(msw@2.14.6(@types/node@25.9.0)(typescript@6.0.3))(vite@8.0.13(@types/node@25.9.0)(jiti@2.6.1)(yaml@2.9.0))
+
   apps/web-app:
     dependencies:
       '@clerk/react':

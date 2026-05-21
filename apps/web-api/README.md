@@ -59,15 +59,17 @@ uv run manage.py runserver    # serves on http://127.0.0.1:8000
 
 ## Environment variables
 
-Validated at boot by `web_api/settings/base.py` via pydantic-settings. No `.env*` template is tracked — create your own `.env` next to `manage.py` and Django reads it on startup. Production secrets live in the Fly.io secret store.
+Validated at boot by `web_api/settings/base.py` via pydantic-settings. No `.env*` template is tracked — create your own `.env` next to `manage.py` and Django reads it on startup. Production secrets live in the Vercel project's Environment Variables panel.
 
 | Variable                    | Type     | Purpose                                                                                                        |
 | --------------------------- | -------- | -------------------------------------------------------------------------------------------------------------- |
 | `DEBUG`                     | bool     | Django debug mode. Always false in production.                                                                 |
+| `DJANGO_SETTINGS_MODULE`    | string   | `web_api.settings.prod` in production. Default is `web_api.settings.dev` locally.                              |
 | `SECRET_KEY`                | string   | Django session and signing key. Rotated per environment.                                                       |
 | `ALLOWED_HOSTS`             | string[] | Hostnames Django will accept (JSON array).                                                                     |
-| `DATABASE_URL`              | URL      | Postgres DSN read by psycopg 3.                                                                                |
+| `DATABASE_URL`              | URL      | Postgres DSN read by psycopg 3. **In production use Neon's pooled URL** (hostname contains `-pooler`).         |
 | `CORS_ALLOWED_ORIGINS`      | URL[]    | Origins allowed to call this API cross-origin (JSON array).                                                    |
+| `CSRF_TRUSTED_ORIGINS`      | URL[]    | Scheme-qualified prod origins Django trusts for unsafe-method requests (JSON array; prod-only).                |
 | `CLERK_PUBLISHABLE_KEY`     | string   | Clerk publishable key for the same instance the frontends use.                                                 |
 | `CLERK_SECRET_KEY`          | string   | Clerk secret key. Server-side only — never reaches the browser.                                                |
 | `CLERK_JWT_ISSUER`          | URL      | Clerk instance issuer URL. Used to fetch the JWKS for JWT verification.                                        |
@@ -120,10 +122,12 @@ apps/web-api/
 
 ## Build & deploy
 
-- Dockerized with a uv-based image; runs under Gunicorn on Fly.io.
-- Postgres is provisioned alongside the app on Fly.io and reached via `DATABASE_URL`.
-- WhiteNoise serves the static admin assets directly from the app container.
-- CORS, CSRF, and the Clerk JWT issuer are configured per environment.
+- **Hosting** — Vercel's Python runtime (Fluid Compute). Vercel auto-detects Django via `manage.py`, reads `WSGI_APPLICATION` from `settings.prod`, and bundles the WSGI app as a single function. Source: <https://vercel.com/docs/frameworks/full-stack/django>.
+- **Database** — [Neon](https://neon.com) managed Postgres. The connection string in `DATABASE_URL` is the **pooled** endpoint (hostname contains `-pooler`), with the Neon-Django guide's recommended settings wired in `web_api/settings/prod.py` (`sslmode=require`, `CONN_MAX_AGE=240`, `CONN_HEALTH_CHECKS=True`, `DISABLE_SERVER_SIDE_CURSORS=True`).
+- **Static files** — Vercel runs `collectstatic` automatically during build and serves the result from the Vercel CDN. WhiteNoise stays in `MIDDLEWARE` so `vercel dev` works locally; in production it's a no-op behind the CDN.
+- **Migrations** — applied at build time via `[tool.vercel.scripts].build = "python manage.py migrate --noinput"` in `pyproject.toml`. A failing migration fails the deploy.
+- **Health check** — `GET /api/healthz/` runs a `SELECT 1` and returns `{"status": "ok", "db": true}` (503 if the DB is unreachable). The cheap `GET /healthz` (no DB) is still wired at the root for basic ping use.
+- CORS, CSRF, and the Clerk JWT issuer are configured per environment via Vercel project environment variables.
 
 ## Related
 

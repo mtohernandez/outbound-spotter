@@ -46,11 +46,12 @@ Pair with `@outbound/web-app` on `:5173` so post-auth redirects land somewhere.
 
 Validated at runtime by `src/config/env.ts` (zod). No `.env*` template is tracked — create `.env.local` with your own values and Vite picks it up.
 
-| Variable                     | Read by                   | Type   | Purpose                                                   |
-| ---------------------------- | ------------------------- | ------ | --------------------------------------------------------- |
-| `VITE_CLERK_PUBLISHABLE_KEY` | `src/app/provider.tsx`    | string | Per-environment Clerk publishable key (never the secret). |
-| `VITE_APP_URL`               | `src/features/auth/api/*` | URL    | Post-auth redirect target (the `web-app` origin).         |
-| `VITE_SUPPORT_EMAIL`         | `src/features/auth/*`     | email  | Surfaced in error UIs as a "need help?" mailto.           |
+| Variable                     | Read by                   | Type   | Purpose                                                                                                     |
+| ---------------------------- | ------------------------- | ------ | ----------------------------------------------------------------------------------------------------------- |
+| `VITE_CLERK_PUBLISHABLE_KEY` | `src/app/provider.tsx`    | string | Per-environment Clerk publishable key (never the secret).                                                   |
+| `VITE_APP_URL`               | `src/features/auth/api/*` | URL    | Post-auth redirect target (the `web-app` origin). Listed in `allowedRedirectOrigins` for satellite handoff. |
+| `VITE_APEX_URL`              | `src/app/provider.tsx`    | URL    | Apex redirector origin. Listed in `allowedRedirectOrigins` so apex satellite can hand off back.             |
+| `VITE_SUPPORT_EMAIL`         | `src/features/auth/*`     | email  | Surfaced in error UIs as a "need help?" mailto.                                                             |
 
 Production values live in the Vercel project's Environment Variables panel.
 

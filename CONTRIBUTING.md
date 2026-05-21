@@ -94,7 +94,7 @@ The `pre-push` hook runs `turbo run typecheck --affected` + `turbo run test --af
 
 - **Variable names** — each app documents its required variables (with type, purpose, and which side of the wire reads them) in its `README.md`. The runtime validators are the canonical schemas: `apps/web-app/src/config/env.ts`, `apps/web-auth/src/config/env.ts`, and `apps/web-api/web_api/settings/base.py` (pydantic-settings).
 - **Local dev** — create a working file the host tool reads (`.env.local` for Vite apps, `.env` for the Django app). Populate from your password manager / the deployment provider's dashboard. The file is gitignored.
-- **Cloud** — set each variable in the provider's secret store: Vercel for `web-app` / `web-auth`, Fly.io for `web-api` (`fly secrets set KEY=value`).
+- **Cloud** — set each variable in the Vercel project's Environment Variables panel for each of the four Vercel projects (`outbound-spotter-app`, `outbound-spotter-accounts`, `outbound-spotter`, `outbound-spotter-api`). `DATABASE_URL` for `outbound-spotter-api` is the Neon pooled connection string.
 - **Never commit secrets.** This is enforced by `.gitignore`; do not bypass it.
 
 ## 7. License acceptance

@@ -19,7 +19,8 @@ class WebApiSettings(BaseSettings):
     """Strongly-typed environment configuration.
 
     Each value either comes from the environment or has a safe default for the
-    dev environment. Production overrides happen via real env vars on Fly.io.
+    dev environment. Production overrides happen via real env vars on the
+    hosting provider (Vercel Python runtime — see `web_api/settings/prod.py`).
     """
 
     model_config = SettingsConfigDict(
@@ -38,6 +39,10 @@ class WebApiSettings(BaseSettings):
     CORS_ALLOWED_ORIGINS: list[str] = Field(
         default_factory=lambda: ["http://localhost:5173", "http://localhost:5174"]
     )
+    # Django requires scheme-qualified entries here (HTTPS in prod); CORS does
+    # not. Wired into settings only in prod (see prod.py) because dev runs over
+    # plain HTTP without CSRF concerns for our JWT-only API.
+    CSRF_TRUSTED_ORIGINS: list[str] = Field(default_factory=list)
 
     CLERK_PUBLISHABLE_KEY: str = Field(default="")
     CLERK_SECRET_KEY: str = Field(default="")
@@ -78,6 +83,7 @@ INSTALLED_APPS = [
     "web_api.apps.geocoding",
     "web_api.apps.trips",
     "web_api.apps.exports",
+    "web_api.apps.health",
 ]
 
 MIDDLEWARE = [
@@ -147,6 +153,10 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_THROTTLE_CLASSES": ["web_api.throttling.PerUserScopedThrottle"],
     "DEFAULT_THROTTLE_RATES": {
+        # `anon` is DRF's stock scope for AnonRateThrottle — used by /api/healthz/
+        # (AllowAny, but exercises the DB on each call so we cap the IP-keyed
+        # request rate to bound the Neon free-tier CU spend).
+        "anon": "30/min",
         "geocode_autocomplete": "60/min",
         "geocode_search": "20/min",
         "geocode_reverse": "30/min",
