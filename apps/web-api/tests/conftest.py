@@ -19,6 +19,7 @@ from factory.declarations import Sequence, SubFactory
 import pytest
 from rest_framework.test import APIClient
 
+from web_api.apps.exports.models import ExportMode, TripExport
 from web_api.apps.trips.models import DutyStatusChoices, LogDay, LogEvent, StopKind, Trip, TripStop
 
 if TYPE_CHECKING:
@@ -114,6 +115,28 @@ class LogDayFactory(factory.django.DjangoModelFactory[LogDay]):
     total_miles = Decimal("55.0")
 
 
+class TripExportFactory(factory.django.DjangoModelFactory[TripExport]):
+    """One ``TripExport`` per call.
+
+    ``trip`` defaults to a fresh ``TripFactory``; the denormalized label
+    fields default to its label values so the row is internally
+    consistent without per-test glue. ``mode`` and ``sheet_count`` are
+    set to representative values so the create-view tests can assert
+    on a known shape.
+    """
+
+    class Meta:
+        model = TripExport
+
+    user_id = TEST_USER_ID
+    trip = SubFactory(TripFactory)  # type: ignore[no-untyped-call]
+    trip_current_label = "Richmond, VA"
+    trip_pickup_label = "Fredericksburg, VA"
+    trip_dropoff_label = "Newark, NJ"
+    mode = ExportMode.MULTI_PAGE
+    sheet_count = 2
+
+
 @pytest.fixture
 def trip_factory() -> type[TripFactory]:
     return TripFactory
@@ -132,6 +155,11 @@ def log_event_factory() -> type[LogEventFactory]:
 @pytest.fixture
 def log_day_factory() -> type[LogDayFactory]:
     return LogDayFactory
+
+
+@pytest.fixture
+def trip_export_factory() -> type[TripExportFactory]:
+    return TripExportFactory
 
 
 @pytest.fixture

@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "web_api.apps.geocoding",
     "web_api.apps.trips",
+    "web_api.apps.exports",
 ]
 
 MIDDLEWARE = [
@@ -152,6 +153,9 @@ REST_FRAMEWORK = {
         "trip_list": "60/min",
         "trip_delete": "20/min",
         "trip_plan_retrieve": "120/min",
+        "export_create": "60/hour",
+        "export_list": "60/min",
+        "export_delete": "20/min",
     },
     "EXCEPTION_HANDLER": "web_api.exception_handler.exception_handler",
 }
