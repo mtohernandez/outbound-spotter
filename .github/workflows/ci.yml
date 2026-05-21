@@ -29,10 +29,17 @@ jobs:
         with:
           fetch-depth: 0 # required for turbo --affected
 
+      # setup-node BEFORE pnpm/action-setup so pnpm's engines.node check (>=22.13
+      # since pnpm 11) doesn't fall back to the runner's default Node 20.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
       - uses: pnpm/action-setup@v4
         with:
           run_install: false
 
+      # Re-run setup-node now that pnpm is on PATH to enable its pnpm cache.
       - uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
@@ -109,10 +116,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      # setup-node BEFORE pnpm/action-setup so pnpm's engines.node check (>=22.13
+      # since pnpm 11) doesn't fall back to the runner's default Node 20.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
       - uses: pnpm/action-setup@v4
         with:
           run_install: false
 
+      # Re-run setup-node now that pnpm is on PATH to enable its pnpm cache.
       - uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
