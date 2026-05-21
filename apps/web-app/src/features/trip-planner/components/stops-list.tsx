@@ -240,7 +240,7 @@ function StopRow({
           onBlur={() => {
             setHoveredStop(null);
           }}
-          className="hover:bg-accent/60 focus-visible:ring-ring data-[hovered=true]:bg-accent/80 flex w-full items-start gap-3 rounded-md px-2 py-1.5 text-left transition-colors outline-none focus-visible:ring-2"
+          className="hover:bg-accent/60 focus-visible:ring-ring data-[hovered=true]:bg-accent/80 flex w-full items-start gap-3 rounded-md px-2 py-1.5 text-left outline-none focus-visible:ring-2 motion-safe:transition-colors"
         >
           <span
             className="route-node relative mt-0.5 flex shrink-0"

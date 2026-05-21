@@ -358,19 +358,34 @@ Total ~7.5 working days. Each phase ends with `code-reviewer` invoked on the dif
 - `application-performance:performance-optimizer` on **11b** (cost of the day-by-day collapsible mounting; cost of the PDF preview's SVG cloning).
 - `javascript-typescript:typescript-pro` on **11b** (React 19 idioms — should `useGeolocation` be a `useActionState`? Should `useRecentLocations` use `useSyncExternalStore`?).
 
-## Accessibility audit (Phase 11c — to be populated)
+## Accessibility audit (Phase 11c — populated 2026-05-21)
 
-| Surface            | Tooling               | Finding | Severity | Remediation | Commit |
-| ------------------ | --------------------- | ------- | -------- | ----------- | ------ |
-| `/trips/new`       | `ui-visual-validator` | TBD     | TBD      | TBD         | TBD    |
-| `/trips/:id`       | `ui-visual-validator` | TBD     | TBD      | TBD         | TBD    |
-| `/trips`           | `ui-visual-validator` | TBD     | TBD      | TBD         | TBD    |
-| `/exports`         | `ui-visual-validator` | TBD     | TBD      | TBD         | TBD    |
-| `/sign-in`         | `ui-visual-validator` | TBD     | TBD      | TBD         | TBD    |
-| `/sign-up`         | `ui-visual-validator` | TBD     | TBD      | TBD         | TBD    |
-| `/forgot-password` | `ui-visual-validator` | TBD     | TBD      | TBD         | TBD    |
+| Surface                  | Tooling               | Finding                                                                                                                            | Severity | Remediation                                                                                                        | Commit    |
+| ------------------------ | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------ | --------- |
+| `/trips/new`             | `ui-visual-validator` | No findings                                                                                                                        | —        | —                                                                                                                  | —         |
+| `/trips/:id`             | `ui-visual-validator` | `stops-list.tsx:243` StopRow bare `transition-colors` (project criterion: `motion-safe:` prefix on every transition)               | LOW      | Prefixed with `motion-safe:`                                                                                       | Phase 11c |
+| `/trips/:id`, `/exports` | `ui-visual-validator` | `pdf-preview.tsx:35` SVG clone got `role="img"` with no accessible name (WCAG 1.1.1)                                               | MEDIUM   | Added `aria-label={\`Daily log sheet for ${day.date}\`}` to the clone                                              | Phase 11c |
+| `/trips`                 | `ui-visual-validator` | No findings                                                                                                                        | —        | —                                                                                                                  | —         |
+| `/exports`               | `ui-visual-validator` | `recreate-export-button.tsx:189` transient unlabeled `<a>` appended to `document.body` during download (sub-ms window in practice) | LOW      | Filed as follow-up `fix(web-app)/<NN>-download-anchor-aria-hidden` — add `aria-hidden="true"` before `appendChild` | follow-up |
+| `/sign-in`               | `ui-visual-validator` | No findings                                                                                                                        | —        | —                                                                                                                  | —         |
+| `/sign-up`               | `ui-visual-validator` | `sign-up-form.tsx:242` footer "Sign in" link missing `focus-visible:ring-*` (project convention gap; not WCAG fail)                | LOW      | Filed as follow-up `fix(web-auth)/<NN>-footer-link-focus-visible`                                                  | follow-up |
+| `/forgot-password`       | `ui-visual-validator` | `forgot-password-form.tsx:222` same footer link gap                                                                                | LOW      | Same follow-up as `/sign-up`                                                                                       | follow-up |
+| 404 / boundary fallbacks | `ui-visual-validator` | No Phase 11c regressions (11a follow-ups `EmptyTitle`-as-`<div>` + `Empty.border-dashed` remain open, ≥12-consumer blast radius)   | —        | Out-of-scope here                                                                                                  | —         |
 
-(Filled in during 11c implementation.)
+Summary: 0 HIGH, 1 MEDIUM (resolved in-branch), 4 LOW (1 resolved in-branch, 3 filed as follow-ups). The `eslint-plugin-jsx-a11y@6.10.2` install step from spec line 254 was a **no-op** — already installed and active in `packages/eslint-config/react.js:94` (`jsxA11y.flatConfigs.recommended.rules`). The Phase 11c diff is the `jest-axe` install + 4 a11y test suites + this audit table + the two in-branch a11y remediations.
+
+## Decisions amended post-implementation
+
+The implementation surfaced eight deviations from the spec text. All are factual corrections; recorded here so the spec text matches the shipped code:
+
+1. **OrsClient framing → module-level functions** (Phase 11b, Decision 7). The spec described `OrsClient.reverse(lat, lon)` as a method. The actual surface in `apps/web-api/web_api/integrations/openrouteservice.py` is module-level functions (`geocode_search`, `geocode_autocomplete`). Phase 11b added `def geocode_reverse(lat: float, lon: float, *, size: int = 1) -> list[PeliasFeature]` as a sibling function — same shape, no class refactor.
+2. **BE test layout → flat, not subdirectory** (Phase 11b). Spec said `tests/geocoding/test_views_reverse.py` + `tests/geocoding/test_client_reverse.py`. Existing convention is flat (`tests/test_geocoding_views.py` + `tests/test_openrouteservice_client.py`). Phase 11b extended both existing files.
+3. **`stop-kind-labels.ts` path** (Phase 11b, Decision 16). Spec referenced `features/trip-planner/utils/stop-kind-labels.ts`. Actual path is `features/trip-planner/components/map/stop-kind-labels.ts`. Phase 11b edited at the real path.
+4. **`StopRow` inline reason text already rendered** (Phase 11b, Decision 16). Per user direction at planning time: Phase 11b kept the inline rendering AND added the `<WhyThisStopTooltip>` wrapper. `MarkerPopup` consumes the same constant; the now-unreachable `meta.reason === ""` branch in `marker-popup.tsx` was deleted (TypeScript was already flagging it).
+5. **`feature-error-boundary.tsx` naming** (Phase 11a). Spec referenced `feature-error-fallback.tsx`. The implementation lives at `feature-error-boundary.tsx` because the file IS the boundary (exports `FeatureErrorBoundary`), not just the fallback element.
+6. **`reportableError` second arg semantics** (Phase 11a). Code-reviewer round 1 surfaced that the spec's `context`-as-toast-description bled the developer scope tag into user-facing copy under sonner's `richColors`. The contract is now: `reportableError(error, scope?)` — `scope` lands in `console.error` only. User-facing copy lives in `error.message`; underlying errors preserved via `new Error(msg, { cause: original })`.
+7. **`FeatureErrorBoundary.onReset` is defensive, not the query-error UX surface** (Phase 11a). The route's inline `isError` short-circuits in `trips-detail.tsx` handle query-state errors before the boundary mounts. The boundary catches render-time crashes; `useQueryErrorResetBoundary().reset()` wiring is the layered seam for a future `useQuery({ throwOnError: true })` inside `<TripMap />` or `<DailyLogSheetsStrip />`. Documented inline in the boundary component.
+8. **`eslint-plugin-jsx-a11y@6.10.2` install was a no-op** (Phase 11c). Already at 6.10.2 in `packages/eslint-config/react.js:94`. Phase 11c was the `jest-axe` install + 4 a11y suites + the audit + the two in-branch remediations.
 
 ## Out of scope (deliberate)
 

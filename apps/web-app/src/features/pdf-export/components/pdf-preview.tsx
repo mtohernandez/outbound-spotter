@@ -33,6 +33,10 @@ export function PdfPreview({ days, mode }: Props): React.ReactElement | null {
       clone.style.width = "100%";
       clone.style.height = "auto";
       clone.setAttribute("role", "img");
+      // role="img" without a name fails WCAG 1.1.1; the clone's <title>
+      // child references in the live tree are now dangling, so name the
+      // clone explicitly with the day's date.
+      clone.setAttribute("aria-label", `Daily log sheet for ${day.date}`);
       host.appendChild(clone);
     }
   }, [visibleDays]);
