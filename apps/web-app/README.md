@@ -49,12 +49,13 @@ pnpm --filter @outbound/web-app dev   # serves on http://localhost:5173
 
 Validated at runtime by `src/config/env.ts` (zod). No `.env*` template is tracked — create `.env.local` with your own values and Vite picks it up.
 
-| Variable                     | Read by                | Type   | Purpose                                                    |
-| ---------------------------- | ---------------------- | ------ | ---------------------------------------------------------- |
-| `VITE_API_URL`               | `src/config/env.ts`    | URL    | Base URL for the Django `web-api` service.                 |
-| `VITE_CLERK_PUBLISHABLE_KEY` | `src/app/provider.tsx` | string | Per-environment Clerk publishable key (never the secret).  |
-| `VITE_AUTH_SIGN_IN_URL`      | `src/app/provider.tsx` | URL    | Where `<ClerkProvider>` sends signed-out users to sign in. |
-| `VITE_AUTH_SIGN_UP_URL`      | `src/app/provider.tsx` | URL    | Where `<ClerkProvider>` sends signed-out users to sign up. |
+| Variable                     | Read by                | Type   | Purpose                                                                                                            |
+| ---------------------------- | ---------------------- | ------ | ------------------------------------------------------------------------------------------------------------------ |
+| `VITE_API_URL`               | `src/config/env.ts`    | URL    | Base URL for the Django `web-api` service.                                                                         |
+| `VITE_CLERK_PUBLISHABLE_KEY` | `src/app/provider.tsx` | string | Per-environment Clerk publishable key (never the secret).                                                          |
+| `VITE_AUTH_SIGN_IN_URL`      | `src/app/provider.tsx` | URL    | Where `<ClerkProvider>` sends signed-out users to sign in.                                                         |
+| `VITE_AUTH_SIGN_UP_URL`      | `src/app/provider.tsx` | URL    | Where `<ClerkProvider>` sends signed-out users to sign up.                                                         |
+| `VITE_APP_URL`               | `src/app/provider.tsx` | URL    | Own deployed origin. Required by Clerk satellite-domain mode so the primary knows which satellite to call back to. |
 
 Production values live in the Vercel project's Environment Variables panel.
 

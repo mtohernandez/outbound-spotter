@@ -96,9 +96,10 @@ Before committing:
 ```
 outbound-spotter/
 ├── apps/
-│   ├── web-app/    Vite + React 19 + TS — trip planner
-│   ├── web-auth/   Vite + React 19 + TS — Clerk auth UI
-│   └── web-api/    Django 5.2 LTS + DRF + uv — API + HOS planner
+│   ├── web-app/    Vite + React 19 + TS — trip planner (app.<host>)
+│   ├── web-auth/   Vite + React 19 + TS — Clerk auth UI (accounts.<host>, Clerk primary)
+│   ├── web-apex/   Vite + React 19 + TS — apex redirector (<host>, Clerk satellite)
+│   └── web-api/    Django 5.2 LTS + DRF + uv — API + HOS planner (on Vercel Python runtime)
 ├── packages/
 │   ├── ui/                  shared shadcn primitives + @theme block (source of truth)
 │   ├── eslint-config/       flat config presets (base / react / library)

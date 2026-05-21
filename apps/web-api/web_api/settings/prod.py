@@ -1,6 +1,14 @@
-"""Production settings."""
+"""Production settings — Vercel Python runtime + Neon Postgres.
+
+Neon recommendations (sslmode=require, DISABLE_SERVER_SIDE_CURSORS,
+CONN_HEALTH_CHECKS, CONN_MAX_AGE ≤ Neon's 5-min scale-to-zero) are sourced from
+<https://neon.com/docs/guides/django>. Vercel's CDN serves collected static
+files automatically — WhiteNoise stays in MIDDLEWARE so `vercel dev` works
+locally, but in production it's a no-op behind the CDN.
+"""
 
 from web_api.settings.base import *  # noqa: F403
+from web_api.settings.base import settings_obj
 
 DEBUG = False
 
@@ -12,3 +20,37 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+
+CSRF_TRUSTED_ORIGINS = settings_obj.CSRF_TRUSTED_ORIGINS
+
+# Neon serverless tuning. psycopg's app-level pool conflicts with Neon's
+# pgbouncer-style pooler, so we drop OPTIONS["pool"] and rely on the `-pooler`
+# hostname in DATABASE_URL. CONN_MAX_AGE stays under Neon's 5-min idle suspend
+# so reused connections never wake up dead.
+DATABASES["default"]["OPTIONS"] = {"sslmode": "require"}  # noqa: F405
+DATABASES["default"]["CONN_MAX_AGE"] = 240  # noqa: F405
+DATABASES["default"]["CONN_HEALTH_CHECKS"] = True  # noqa: F405
+DATABASES["default"]["DISABLE_SERVER_SIDE_CURSORS"] = True  # noqa: F405
+
+# Vercel captures stdout per-invocation into the function log stream. No file
+# handlers — serverless containers have ephemeral filesystems.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "json": {
+            "format": '{"level":"%(levelname)s","logger":"%(name)s","msg":%(message)r}',
+        },
+    },
+    "handlers": {
+        "stdout": {
+            "class": "logging.StreamHandler",
+            "formatter": "json",
+        },
+    },
+    "root": {"handlers": ["stdout"], "level": "INFO"},
+    "loggers": {
+        "django.request": {"handlers": ["stdout"], "level": "WARNING", "propagate": False},
+        "web_api": {"handlers": ["stdout"], "level": "INFO", "propagate": False},
+    },
+}

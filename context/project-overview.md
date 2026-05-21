@@ -14,7 +14,7 @@ Outbound Spotter is a trip-planning web app for property-carrying interstate tru
 
 ## Core User Flow
 
-1. Driver lands on `app.<host>` (web-app). If signed out, redirected to `auth.<host>` (web-auth — Clerk session).
+1. Driver lands on `app.<host>` (web-app). If signed out, redirected to `accounts.<host>` (web-auth — Clerk session).
 2. After sign-in, driver sees the trip form and chooses **New trip**.
 3. Driver enters: current location, pickup location, dropoff location (all geocoded via OpenRouteService), and cycle hours used (0–70).
 4. Driver submits. web-app POSTs `/api/trips/` to web-api.

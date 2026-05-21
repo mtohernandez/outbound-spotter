@@ -40,6 +40,8 @@ export function AppProvider({ children }: Props): React.ReactElement {
       afterSignOutUrl={env.VITE_AUTH_SIGN_IN_URL}
       signInUrl={env.VITE_AUTH_SIGN_IN_URL}
       signUpUrl={env.VITE_AUTH_SIGN_UP_URL}
+      isSatellite
+      domain={env.VITE_APP_URL}
     >
       <QueryClientProvider client={queryClient}>
         <ThemedTree>
