@@ -1,7 +1,9 @@
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
 import { describe, expect, it, vi } from "vitest";
 
+import { env } from "@/config/env";
 import { buildClerkMocks } from "@/testing/clerk-mocks";
 import { mockExportsList, mockExportsListEmpty } from "@/testing/handlers";
 import { renderWithProviders } from "@/testing/render";
@@ -51,7 +53,7 @@ describe("ExportsHistoryRoute", () => {
     });
 
     const link = await screen.findByRole("link", {
-      name: /Open trip Richmond, VA to Newark, NJ/i,
+      name: /Open trip Richmond, VA via Fredericksburg, VA to Newark, NJ/i,
     });
     expect(link).toHaveAttribute("href", "/trips/00000000-0000-4000-8000-000000000001");
   });
@@ -95,6 +97,27 @@ describe("ExportsHistoryRoute", () => {
       await screen.findByRole("alertdialog", { name: /Remove this export from history/i }),
     ).toBeInTheDocument();
     expect(screen.getByText(/PDF on disk is unaffected/i)).toBeInTheDocument();
+  });
+
+  it("renders the error empty + Retry button when the list query fails", async () => {
+    server.use(
+      http.get(`${env.VITE_API_URL}/api/exports/`, () =>
+        HttpResponse.json({ detail: "Internal server error" }, { status: 500 }),
+      ),
+    );
+
+    renderWithProviders(<ExportsHistoryRoute />, {
+      initialEntries: ["/exports"],
+      routePath: "/exports",
+    });
+
+    await waitFor(
+      () => {
+        expect(screen.getByText(/Couldn’t load exports/i)).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
+    expect(screen.getByRole("button", { name: /Retry/i })).toBeInTheDocument();
   });
 
   it("paginates when count > pageSize", async () => {

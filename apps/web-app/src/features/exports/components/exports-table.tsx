@@ -74,7 +74,7 @@ function RouteCell({ row }: CellContext<SavedExport, unknown>): React.ReactEleme
   return (
     <Link
       to={paths.tripsDetail(record.trip_id)}
-      aria-label={`Open trip ${record.trip_current_label} to ${record.trip_dropoff_label}`}
+      aria-label={`Open trip ${record.trip_current_label} via ${record.trip_pickup_label} to ${record.trip_dropoff_label}`}
       className="focus-visible:ring-ring focus-visible:ring-offset-background flex min-w-0 items-center gap-1.5 rounded-sm text-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-offset-2"
     >
       <span className="max-w-[180px] truncate" title={record.trip_current_label}>
@@ -167,7 +167,7 @@ export function ExportsTable({
 
   if (isError) {
     return (
-      <Empty className="border-destructive/40">
+      <Empty className="border-destructive/40 border">
         <EmptyHeader>
           <EmptyTitle>Couldn&rsquo;t load exports.</EmptyTitle>
           <EmptyDescription>Check your connection and try again.</EmptyDescription>

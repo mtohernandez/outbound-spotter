@@ -50,7 +50,7 @@ export function DeleteExportDialog({
             event.stopPropagation();
           }}
         >
-          <Trash2 />
+          <Trash2 data-icon aria-hidden="true" />
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent

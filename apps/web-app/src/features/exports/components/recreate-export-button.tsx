@@ -54,13 +54,11 @@ export function RecreateExportButton({ record }: RecreateExportButtonProps): Rea
   const tripUnavailable = record.trip_id === null;
 
   async function handleRecreate(): Promise<void> {
-    if (record.trip_id === null) {
-      toast.error("Original trip is no longer available. Remove this record from history.");
-      return;
-    }
-    if (!isExportMode(record.mode)) {
-      // Defensive: an unknown wire mode (future enum drift) means the
-      // orchestrator can't honor the recorded layout.
+    // ``trip_id === null`` is already gated by the disabled button below; the
+    // type guard plus the ``mode`` enum check is enough belt-and-suspenders
+    // for future enum drift (e.g. a third mode added BE-side without an FE
+    // bump).
+    if (record.trip_id === null || !isExportMode(record.mode)) {
       toast.error("Export mode no longer supported.");
       return;
     }
@@ -71,11 +69,13 @@ export function RecreateExportButton({ record }: RecreateExportButtonProps): Rea
 
     try {
       const token = await getToken();
+      // Stale-result guard immediately after every async boundary so a fast
+      // second click that already advanced the generation drops this run.
+      if (generation !== generationRef.current) return;
       const [tripRaw, planRaw] = await Promise.all([
         apiFetch<unknown>(`/api/trips/${record.trip_id}/`, { token }),
         apiFetch<unknown>(`/api/trips/${record.trip_id}/plan/`, { token }),
       ]);
-      // Stale-result guard: a faster second click already started; ignore.
       if (generation !== generationRef.current) return;
 
       const trip = tripResponseSchema.parse(tripRaw);
