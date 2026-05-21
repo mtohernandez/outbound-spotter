@@ -34,7 +34,7 @@ The Django + DRF service. Owns the HOS planner, the OpenRouteService client, all
 | `/api/schema/`               | GET    | OpenAPI 3 schema (drf-spectacular).                | —                   |
 | `/api/docs/`                 | GET    | Swagger UI rendered from the schema above.         | —                   |
 
-All mutating endpoints require a valid Clerk JWT in the `Authorization: Bearer …` header. Ownership is enforced per-row — a user can only read or write trips and exports they own.
+All mutating endpoints require a valid Clerk JWT in the `Authorization: Bearer …` header. Ownership is enforced per-row — a user can only read or write trips and exports they own. A `—` in the throttle column means the endpoint does not set a `throttle_scope` and is therefore not rate-limited by the project's `PerUserScopedThrottle`.
 
 ## Apps
 
@@ -61,18 +61,18 @@ uv run manage.py runserver    # serves on http://127.0.0.1:8000
 
 Validated at boot by `web_api/settings/base.py` via pydantic-settings. No `.env*` template is tracked — create your own `.env` next to `manage.py` and Django reads it on startup. Production secrets live in the Fly.io secret store.
 
-| Variable                    | Type     | Purpose                                                                 |
-| --------------------------- | -------- | ----------------------------------------------------------------------- |
-| `DEBUG`                     | bool     | Django debug mode. Always false in production.                          |
-| `SECRET_KEY`                | string   | Django session and signing key. Rotated per environment.                |
-| `ALLOWED_HOSTS`             | string[] | Hostnames Django will accept (JSON array).                              |
-| `DATABASE_URL`              | URL      | Postgres DSN read by psycopg 3.                                         |
-| `CORS_ALLOWED_ORIGINS`      | URL[]    | Origins allowed to call this API cross-origin (JSON array).             |
-| `CLERK_PUBLISHABLE_KEY`     | string   | Clerk publishable key for the same instance the frontends use.          |
-| `CLERK_SECRET_KEY`          | string   | Clerk secret key. Server-side only — never reaches the browser.         |
-| `CLERK_JWT_ISSUER`          | URL      | Clerk instance issuer URL. Used to fetch the JWKS for JWT verification. |
-| `OPENROUTESERVICE_API_KEY`  | secret   | HeiGIT ORS key. Free standard plan is 2 000 req/day, 40 req/min.        |
-| `OPENROUTESERVICE_BASE_URL` | URL      | ORS base URL. Override only when self-hosting the engine (HTTPS-only).  |
+| Variable                    | Type     | Purpose                                                                                                        |
+| --------------------------- | -------- | -------------------------------------------------------------------------------------------------------------- |
+| `DEBUG`                     | bool     | Django debug mode. Always false in production.                                                                 |
+| `SECRET_KEY`                | string   | Django session and signing key. Rotated per environment.                                                       |
+| `ALLOWED_HOSTS`             | string[] | Hostnames Django will accept (JSON array).                                                                     |
+| `DATABASE_URL`              | URL      | Postgres DSN read by psycopg 3.                                                                                |
+| `CORS_ALLOWED_ORIGINS`      | URL[]    | Origins allowed to call this API cross-origin (JSON array).                                                    |
+| `CLERK_PUBLISHABLE_KEY`     | string   | Clerk publishable key for the same instance the frontends use.                                                 |
+| `CLERK_SECRET_KEY`          | string   | Clerk secret key. Server-side only — never reaches the browser.                                                |
+| `CLERK_JWT_ISSUER`          | URL      | Clerk instance issuer URL. Used to fetch the JWKS for JWT verification.                                        |
+| `OPENROUTESERVICE_API_KEY`  | secret   | HeiGIT ORS key. Free standard plan is 2 000 req/day, 40 req/min.                                               |
+| `OPENROUTESERVICE_BASE_URL` | URL      | ORS base URL. Locked to the documented HeiGIT host by an SSRF-defense allowlist in `web_api/settings/base.py`. |
 
 ## Project layout
 

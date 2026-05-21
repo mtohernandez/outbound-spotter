@@ -23,7 +23,6 @@ The trip-planner SPA — the UI a driver actually uses. Pulls the shared theme a
 | `/trips/new` | Trip-input form (current, pickup, dropoff, cycle hours).  | required |
 | `/trips/:id` | Trip workspace — map, route summary, daily log sheets.    | required |
 | `/exports`   | Audit history of every PDF export the user has triggered. | required |
-| `*`          | 404 fallback.                                             | required |
 
 Unauthenticated visitors are redirected to the auth origin (`@outbound/web-auth`).
 
