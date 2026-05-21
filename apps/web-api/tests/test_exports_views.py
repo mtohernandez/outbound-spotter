@@ -31,6 +31,10 @@ if TYPE_CHECKING:
 
 @pytest.fixture(autouse=True)
 def _clear_throttle_cache() -> None:
+    # Throttle buckets live in the default cache keyed by scope + user_id.
+    # Clearing between tests is what lets `with patch(THROTTLE_RATES)` blocks
+    # exercise specific limits in isolation; without it, hits from earlier
+    # tests would poison the bucket.
     cache.clear()
 
 
@@ -303,6 +307,32 @@ def test_create_throttle_enforces_per_user_limit(
             format="json",
         )
     assert second.status_code == 429
+
+
+@pytest.mark.django_db
+def test_create_runs_in_constant_query_count(
+    authenticated_client: APIClient,
+    trip_factory: type[TripFactory],
+    log_day_factory: type[LogDayFactory],
+    django_assert_num_queries: DjangoAssertNumQueries,
+) -> None:
+    """Locks the contract: ownership re-check + ``log_days`` count + insert
+    stay constant regardless of how many ``LogDay`` rows hang off the trip.
+
+    Expected: 2 queries: one Trip SELECT annotated with Count(log_days), one
+    TripExport INSERT.
+    """
+    trip = trip_factory.create()
+    log_day_factory.create_batch(5, trip=trip)
+
+    with django_assert_num_queries(2):
+        response = authenticated_client.post(
+            "/api/exports/",
+            data={"trip_id": str(trip.id), "mode": "multi-page"},
+            format="json",
+        )
+    assert response.status_code == 201
+    assert response.json()["sheet_count"] == 5
 
 
 # -- TRIP-DELETION SURVIVAL ---------------------------------------------------

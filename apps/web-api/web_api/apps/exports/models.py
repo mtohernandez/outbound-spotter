@@ -33,20 +33,37 @@ import uuid
 from django.db import models
 
 from web_api.apps.exports.managers import TripExportManager
-from web_api.apps.trips.models import Trip
 
 
 class ExportMode(models.TextChoices):
     MULTI_PAGE = "multi_page", "Multi-page"
     SINGLE_PAGE = "single_page", "Single-page"
 
+    @classmethod
+    def to_wire(cls, db_value: str) -> str:
+        """Translate the snake_case DB value to its kebab-case wire form.
+
+        The wire contract uses kebab-case (``"multi-page"`` / ``"single-page"``)
+        to mirror the FE ``ExportMode`` discriminated union. Derived from
+        ``choices`` so a new member is automatically supported without
+        editing the serializer.
+        """
+        return db_value.replace("_", "-")
+
+    @classmethod
+    def from_wire(cls, wire_value: str) -> str:
+        """Translate the kebab-case wire value to its snake_case DB form."""
+        return wire_value.replace("-", "_")
+
 
 class TripExport(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user_id = models.CharField(max_length=64)
 
+    # String FK reference decouples the model file from the trips app at
+    # import time; Django resolves the relation at migration time.
     trip = models.ForeignKey(
-        Trip,
+        "trips.Trip",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

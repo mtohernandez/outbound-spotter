@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
-from django.db import transaction
+from django.db.models import Count
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import APIException
@@ -25,7 +25,6 @@ from web_api.apps.exports.models import TripExport
 from web_api.apps.exports.serializers import (
     TripExportCreateRequestSerializer,
     TripExportListItemSerializer,
-    TripExportResponseSerializer,
 )
 from web_api.apps.trips.models import Trip
 
@@ -81,51 +80,53 @@ class TripExportListCreateView(ListAPIView[TripExport]):
 
     @extend_schema(
         request=TripExportCreateRequestSerializer,
-        responses={201: TripExportResponseSerializer},
+        responses={201: TripExportListItemSerializer},
     )
     def post(self, request: Request) -> Response:
         serializer = TripExportCreateRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user_id = _request_user_id(request)
 
-        # Ownership re-check: 404 (not 403) so the existence of a Trip UUID
-        # isn't leakable across users (no oracle — matches the spec-09
-        # destroy-view precedent).
-        trip = Trip.objects.filter(
-            id=serializer.validated_data["trip_id"],
-            user_id=user_id,
-        ).first()
+        # Single query: ownership filter + Count("log_days") annotation. The
+        # ownership re-check returns 404 (not 403) on foreign IDs so the
+        # existence of a Trip UUID isn't leakable across users (no oracle).
+        # Server-side count is non-negotiable — an FE-supplied sheet_count
+        # would be tamperable.
+        trip = (
+            Trip.objects.filter(id=serializer.validated_data["trip_id"], user_id=user_id)
+            .annotate(_sheet_count=Count("log_days"))
+            .first()
+        )
         if trip is None:
             return Response(
                 {"detail": "Trip not found.", "errors": None},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # Server-side compute; FE-supplied count would be tamperable.
-        sheet_count = trip.log_days.count()
+        # ``_sheet_count`` is attached by the ``.annotate()`` above; underscore
+        # prefix keeps it from colliding with any future model field.
+        sheet_count = trip._sheet_count
         if sheet_count == 0:
             # Spec 06's plan-table invariant guarantees this can't happen on
-            # any persisted Trip, but the view stays defensive so a future
-            # data-migration bug surfaces here as 422 rather than persisting
-            # a misleading audit row.
+            # any persisted Trip; the defensive 422 catches a hypothetical
+            # data-migration regression so the audit row never lies.
             return Response(
                 {"detail": _TRIP_HAS_NO_LOG_DAYS, "errors": None},
                 status=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
 
-        with transaction.atomic():
-            export = TripExport.objects.create(
-                user_id=user_id,
-                trip=trip,
-                trip_current_label=trip.current_label,
-                trip_pickup_label=trip.pickup_label,
-                trip_dropoff_label=trip.dropoff_label,
-                mode=serializer.validated_data["mode"],
-                sheet_count=sheet_count,
-            )
+        export = TripExport.objects.create(
+            user_id=user_id,
+            trip=trip,
+            trip_current_label=trip.current_label,
+            trip_pickup_label=trip.pickup_label,
+            trip_dropoff_label=trip.dropoff_label,
+            mode=serializer.validated_data["mode"],
+            sheet_count=sheet_count,
+        )
 
         return Response(
-            TripExportResponseSerializer(export).data,
+            TripExportListItemSerializer(export).data,
             status=status.HTTP_201_CREATED,
         )
 
