@@ -40,12 +40,12 @@ describe("AppErrorBoundary", () => {
     expect(screen.getByRole("button", { name: /reload/i })).toBeInTheDocument();
   });
 
-  it("recovers and re-renders the child when Reload is clicked", async () => {
+  it("re-attempts render and re-shows the fallback when Reload is clicked and the child still throws", async () => {
     function Container() {
       const [shouldThrow, setShouldThrow] = useState(true);
       return (
-        <AppErrorBoundary key={String(shouldThrow)}>
-          {shouldThrow ? <ThrowOnce shouldThrow /> : <ThrowOnce shouldThrow={false} />}
+        <AppErrorBoundary>
+          <ThrowOnce shouldThrow={shouldThrow} />
           <button
             type="button"
             onClick={() => {
@@ -66,10 +66,10 @@ describe("AppErrorBoundary", () => {
 
     expect(screen.getByText(/something went wrong/i)).toBeInTheDocument();
 
+    // resetErrorBoundary() forces another render attempt; since the parent
+    // hasn't been disarmed, the child throws again and the fallback re-shows.
     await user.click(screen.getByRole("button", { name: /reload/i }));
 
-    // The boundary resets; the child still throws because the parent hasn't
-    // toggled state yet — assert the fallback re-renders, proving onReset wired.
     expect(screen.getByText(/something went wrong/i)).toBeInTheDocument();
   });
 });

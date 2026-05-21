@@ -57,7 +57,10 @@ export function usePlanTrip(): UseMutationResult<TripResponse, Error, TripInput>
     },
     onError: (error) => {
       const detail = extractDetail(error);
-      reportableError(detail === null ? error : new Error(detail), "plan-trip");
+      // Preserve the original ApiError as `cause` so console.error still surfaces
+      // status code + body for telemetry; the synthesized Error.message is what
+      // the user reads on the toast.
+      reportableError(detail === null ? error : new Error(detail, { cause: error }), "plan-trip");
     },
   });
 }

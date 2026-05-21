@@ -46,6 +46,14 @@ function FeatureErrorFallback({ resetErrorBoundary }: FallbackProps): React.Reac
   );
 }
 
+/**
+ * Section-scoped boundary. Catches synchronous render-time failures from the
+ * wrapped subtree (e.g., a malformed `plan` makes Leaflet blow up, jsPDF
+ * trips on an unexpected SVG node). Query-state errors are handled at the
+ * route level before this boundary mounts, so the wired
+ * `useQueryErrorResetBoundary().reset()` is defensive — covers the future
+ * case where a descendant `useQuery({ throwOnError: true })` lands.
+ */
 export function FeatureErrorBoundary({ children, scope }: Props): React.ReactElement {
   const { reset } = useQueryErrorResetBoundary();
   return (

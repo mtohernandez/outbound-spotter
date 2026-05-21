@@ -43,6 +43,9 @@ export function RouteErrorElement(): React.ReactElement {
             >
               Reload
             </Button>
+            {/* Literal "/sign-in" rather than `paths.signIn` because the
+                latter is "/sign-in/*" (the React Router child-route wildcard)
+                which would be a malformed href. */}
             <Button asChild variant="outline">
               <a href="/sign-in">Sign in</a>
             </Button>

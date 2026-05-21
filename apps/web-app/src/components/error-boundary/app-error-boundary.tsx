@@ -38,6 +38,9 @@ function AppErrorFallback({ resetErrorBoundary }: FallbackProps): React.ReactEle
             >
               Reload
             </Button>
+            {/* Plain <a> (not <Link>): if the app shell itself crashed there is
+                no router context, and we want a hard reload anyway to discard
+                the in-memory state that produced the failure. */}
             <Button asChild variant="outline">
               <a href={paths.tripsNew}>Return home</a>
             </Button>

@@ -1,9 +1,9 @@
 import { ClerkProvider } from "@clerk/react";
 import { SpotterLoader } from "@outbound/ui/components/brand/spotter-loader";
 import { ThemeProvider } from "@outbound/ui/components/theme/theme-provider";
+import { Toaster } from "@outbound/ui/components/ui/sonner";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Suspense } from "react";
-import { Toaster } from "sonner";
 
 import { AppErrorBoundary } from "@/components/error-boundary/app-error-boundary";
 import { env } from "@/config/env";

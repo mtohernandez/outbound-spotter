@@ -14,7 +14,6 @@ interface Props {
 export function AppProvider({ children }: Props): React.ReactElement {
   return (
     <ThemeProvider defaultTheme="system">
-      <Toaster position="bottom-right" richColors closeButton />
       <ClerkProvider
         publishableKey={env.VITE_CLERK_PUBLISHABLE_KEY}
         signInFallbackRedirectUrl={env.VITE_APP_URL}
@@ -32,6 +31,7 @@ export function AppProvider({ children }: Props): React.ReactElement {
             {children}
           </Suspense>
         </AppErrorBoundary>
+        <Toaster position="bottom-right" richColors closeButton />
       </ClerkProvider>
     </ThemeProvider>
   );
