@@ -204,13 +204,26 @@
 .trip-marker {
   background: transparent;
   border: 0;
+  /* Smooth the on-hover "pulse" the sidebar↔map sync triggers via the
+   * .trip-marker--is-pulsing class added to the wrapper. transform-origin at
+   * the pin tip so the pin scales from its anchor point, not its centre. */
+  transform-origin: 50% 100%;
+  transition:
+    transform 160ms ease-out,
+    filter 160ms ease-out;
+}
+.trip-marker--is-pulsing {
+  /* Drives the wrapper class set by <StopMarker isHovered>. Z-index ensures
+   * the pulsed pin sits above its neighbours in the marker pane. */
+  transform: scale(1.18);
+  z-index: 1000 !important;
 }
 .trip-marker__icon {
   display: inline-flex;
   /* White halo so markers stay visible against any OSM tile background
    * (gray land, beige farmland, blue water). Without this the lighter teal
    * markers fail WCAG 1.4.11 against many tiles (ui-visual-validator C-1). */
-  filter: drop-shadow(0 0 2px oklch(1 0 0 / 0.9)) drop-shadow(0 0 1px oklch(1 0 0 / 0.75));
+  filter: drop-shadow(0 1px 2px oklch(0 0 0 / 0.35)) drop-shadow(0 0 1px oklch(1 0 0 / 0.85));
 }
 /* Each kind sets BOTH a custom property (the kind color, for downstream
  * cascade — e.g. the popup Badge border) AND `color` itself (which paints
@@ -262,7 +275,9 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .trip-marker__icon {
+  /* Marker fade-in is scoped to icons inside a leaflet wrapper so the same
+   * icon reused in the sidebar StopsList (or elsewhere) doesn't double-animate. */
+  .trip-marker > .trip-marker__icon {
     opacity: 0;
     animation: trip-marker-in 200ms ease-out 80ms forwards;
   }
@@ -273,5 +288,21 @@
   }
   .leaflet-tile {
     transition: opacity 150ms ease-out;
+  }
+  /* Premium "drone lowering" entrance: tile pane only, so markers + popups
+   * keep correct hit boxes (they're in a sibling pane). 600ms, fades to flat. */
+  .leaflet-tile-pane {
+    animation: leaflet-tile-pane-in 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes leaflet-tile-pane-in {
+    from {
+      opacity: 0.4;
+      transform: perspective(900px) rotateX(8deg) scale(1.04);
+      transform-origin: 50% 100%;
+    }
+    to {
+      opacity: 1;
+      transform: perspective(900px) rotateX(0) scale(1);
+    }
   }
 }

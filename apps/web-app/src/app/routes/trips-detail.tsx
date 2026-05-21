@@ -8,8 +8,6 @@ import { useTripById } from "@/features/trip-planner/api/trip-by-id";
 import { useTripPlan } from "@/features/trip-planner/api/trip-plan";
 import { ApiError } from "@/lib/api-client";
 
-// Lazy-loads the leaflet-vendor chunk only on /trips/:id. The default export
-// pairs with React.lazy's default-import resolution.
 const TripMap = lazy(() => import("@/features/trip-planner/components/trip-map"));
 
 function LoadingState(): React.ReactElement {
@@ -29,8 +27,6 @@ export function TripsDetailRoute(): React.ReactElement {
     return <LoadingState />;
   }
 
-  // Trip 404 — the row itself is gone (or never owned). Offer recovery (plan
-  // a new trip); the user has no way back to this id.
   if (trip.isError) {
     const isNotFound = trip.error instanceof ApiError && trip.error.status === 404;
     return (
@@ -53,10 +49,6 @@ export function TripsDetailRoute(): React.ReactElement {
     );
   }
 
-  // Plan-missing — under spec-06's atomic contract this cannot happen for a
-  // post-spec-06 trip; if it does, it's a data-integrity event rather than a
-  // UX condition. No "plan a new trip" link (the trip exists; a new one is
-  // the wrong action).
   if (plan.isError) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center p-6">
@@ -72,7 +64,7 @@ export function TripsDetailRoute(): React.ReactElement {
   }
 
   return (
-    <div className="flex min-h-0 flex-1">
+    <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
       <Suspense fallback={<LoadingState />}>
         <TripMap trip={trip.data} plan={plan.data} />
       </Suspense>

@@ -26,11 +26,12 @@ describe("buildMarkerIcon", () => {
     expect(html).toContain('aria-hidden="true"');
   });
 
-  it("sets a square iconSize and bottom-centered anchor", () => {
+  it("sets a teardrop iconSize and bottom-tip anchor", () => {
     const icon = buildMarkerIcon("pickup");
 
-    expect(icon.options.iconSize).toEqual([28, 28]);
-    expect(icon.options.iconAnchor).toEqual([14, 28]);
+    expect(icon.options.iconSize).toEqual([30, 38]);
+    // Anchor at the pin tip so the marker sits exactly on its lat/lon.
+    expect(icon.options.iconAnchor).toEqual([15, 38]);
   });
 
   it("uses the className 'trip-marker' to suppress Leaflet's default chrome", () => {

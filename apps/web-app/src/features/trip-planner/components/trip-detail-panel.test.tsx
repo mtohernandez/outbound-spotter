@@ -14,23 +14,26 @@ vi.mock("@clerk/react", () => ({
 const { TripDetailPanel } = await import("@/features/trip-planner/components/trip-detail-panel");
 
 describe("TripDetailPanel", () => {
-  it("renders the three resolved addresses + cycle hours for a planned trip", async () => {
+  it("renders a nav-app-style heading (Origin → Destination + cycle hint)", async () => {
     renderWithProviders(<TripDetailPanel />, {
-      initialEntries: ["/trips/abc-id"],
+      initialEntries: ["/trips/00000000-0000-4000-8000-000000000001"],
       routePath: "/trips/:id",
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/Richmond, VA/i)).toBeInTheDocument();
+      // Heading: Richmond, VA → Newark, NJ (USA suffix stripped). The arrow
+      // span is aria-hidden so the accessible name omits it; flex children
+      // don't insert whitespace between siblings in the accessibility tree.
+      expect(
+        screen.getByRole("heading", { name: /Richmond, VA.*Newark, NJ/i }),
+      ).toBeInTheDocument();
     });
-    expect(screen.getByText(/Fredericksburg, VA/i)).toBeInTheDocument();
-    expect(screen.getByText(/Newark, NJ/i)).toBeInTheDocument();
-    expect(screen.getByText(/35\.0 h of 70 h/i)).toBeInTheDocument();
+    expect(screen.getByText(/35\.0 h used · 70-hour/i)).toBeInTheDocument();
   });
 
-  it("renders the Route SidebarGroup with mono distance · duration", async () => {
+  it("renders the Route SidebarGroup with mono distance · duration via RouteSummary", async () => {
     renderWithProviders(<TripDetailPanel />, {
-      initialEntries: ["/trips/abc-id"],
+      initialEntries: ["/trips/00000000-0000-4000-8000-000000000001"],
       routePath: "/trips/:id",
     });
 
@@ -39,17 +42,21 @@ describe("TripDetailPanel", () => {
     });
   });
 
-  it("renders a Departs line in the Route SidebarGroup formatted in America/New_York", async () => {
+  it("renders the Stops SidebarGroup populated from the plan endpoint", async () => {
     renderWithProviders(<TripDetailPanel />, {
-      initialEntries: ["/trips/abc-id"],
+      initialEntries: ["/trips/00000000-0000-4000-8000-000000000001"],
       routePath: "/trips/:id",
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/Departs/)).toBeInTheDocument();
+      // Default plan handler returns 2 stops (pickup at Fredericksburg + dropoff at Newark).
+      expect(screen.getByRole("list", { name: /trip stops/i })).toBeInTheDocument();
     });
-    // MSW handler emits 2026-05-21T14:00:00-04:00 → 2:00 PM EDT (May = DST).
-    expect(screen.getByText(/2:00/)).toBeInTheDocument();
-    expect(screen.getByText(/May 21, 2026/)).toBeInTheDocument();
+    // Start row + 2 plan stops + arrival row = 4 list items.
+    const list = screen.getByRole("list", { name: /trip stops/i });
+    expect(list.querySelectorAll("li")).toHaveLength(4);
+    // Stop kinds match the plan envelope (Pickup + Dropoff buttons rendered).
+    expect(screen.getByRole("button", { name: /pickup/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /dropoff/i })).toBeInTheDocument();
   });
 });

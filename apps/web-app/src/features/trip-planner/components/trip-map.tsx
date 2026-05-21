@@ -9,6 +9,7 @@ import { RoutePolyline } from "@/features/trip-planner/components/map/route-poly
 import { StopMarker } from "@/features/trip-planner/components/map/stop-marker";
 import type { TripPlan } from "@/features/trip-planner/schemas/trip-plan";
 import type { TripResponse } from "@/features/trip-planner/schemas/trip-response";
+import { useHoveredStopId } from "@/features/trip-planner/state/hovered-stop";
 import { isModifierKey } from "@/features/trip-planner/utils/keyboard";
 
 import type { Map as LeafletMap } from "leaflet";
@@ -32,6 +33,7 @@ const MAP_ARIA_LABEL =
 
 export default function TripMap({ trip, plan }: Props): React.ReactElement {
   const mapRef = useRef<LeafletMap | null>(null);
+  const hoveredStopId = useHoveredStopId();
 
   // Pre-swap [lon, lat] (GeoJSON / ORS) → [lat, lon] (Leaflet) once at the
   // top of the tree so children consume the swapped representation. Also lets
@@ -103,7 +105,12 @@ export default function TripMap({ trip, plan }: Props): React.ReactElement {
         <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} />
         <RoutePolyline positions={positions} />
         {plan.stops.map((stop) => (
-          <StopMarker key={stop.id} stop={stop} tz={plan.home_terminal_tz} />
+          <StopMarker
+            key={stop.id}
+            stop={stop}
+            tz={plan.home_terminal_tz}
+            isHovered={hoveredStopId === stop.id}
+          />
         ))}
         <FitToRoute positions={positions} />
       </MapContainer>
