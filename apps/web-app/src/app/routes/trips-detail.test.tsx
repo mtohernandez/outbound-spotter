@@ -133,6 +133,37 @@ describe("TripsDetailRoute (Tabs wrap)", () => {
     });
   });
 
+  it("mounts the Export PDF trigger in the TabsList trailing area", async () => {
+    renderWithProviders(<TripsDetailRoute />, {
+      initialEntries: ["/trips/00000000-0000-4000-8000-000000000001"],
+      routePath: "/trips/:id",
+    });
+
+    const trigger = await screen.findByTestId("export-pdf-trigger");
+    expect(trigger).toHaveTextContent(/export pdf/i);
+    expect(trigger).not.toBeDisabled();
+  });
+
+  it("hides the Export PDF trigger when the trip 404s", async () => {
+    server.use(
+      http.get("http://localhost:8000/api/trips/:id/", () =>
+        HttpResponse.json({ detail: "Trip not found.", errors: null }, { status: 404 }),
+      ),
+    );
+
+    renderWithProviders(<TripsDetailRoute />, {
+      initialEntries: ["/trips/missing"],
+      routePath: "/trips/:id",
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/trip not found/i)).toBeInTheDocument();
+    });
+    // The Export button is only rendered inside the Tabs wrap, which the
+    // Empty state replaces. Verify it never paints.
+    expect(screen.queryByTestId("export-pdf-trigger")).toBeNull();
+  });
+
   it("still shows the Trip-not-found Empty state when the trip is 404", async () => {
     server.use(
       http.get("http://localhost:8000/api/trips/:id/", () =>

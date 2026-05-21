@@ -6,6 +6,7 @@ import { Link, useParams, useSearchParams } from "react-router";
 
 import { paths } from "@/config/paths";
 import { DailyLogSheetsStrip } from "@/features/log-sheet/components/daily-log-sheets-strip";
+import { ExportButton } from "@/features/pdf-export/components/export-button";
 import { useTripById } from "@/features/trip-planner/api/trip-by-id";
 import { useTripPlan } from "@/features/trip-planner/api/trip-plan";
 import { ApiError } from "@/lib/api-client";
@@ -103,6 +104,9 @@ export function TripsDetailRoute(): React.ReactElement {
           <TabsTrigger value="map">Map</TabsTrigger>
           <TabsTrigger value="logs">Log sheets</TabsTrigger>
         </TabsList>
+        <div className="ms-auto flex items-center">
+          <ExportButton tripId={trip.data.id} days={plan.data.days} />
+        </div>
       </div>
       <TabsContent
         value="map"
