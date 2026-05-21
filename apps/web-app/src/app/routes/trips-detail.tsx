@@ -1,14 +1,25 @@
 import { SpotterLoader } from "@outbound/ui/components/brand/spotter-loader";
 import { Empty, EmptyDescription, EmptyTitle } from "@outbound/ui/components/ui/empty";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@outbound/ui/components/ui/tabs";
 import { lazy, Suspense } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useParams, useSearchParams } from "react-router";
 
 import { paths } from "@/config/paths";
+import { DailyLogSheetsStrip } from "@/features/log-sheet/components/daily-log-sheets-strip";
 import { useTripById } from "@/features/trip-planner/api/trip-by-id";
 import { useTripPlan } from "@/features/trip-planner/api/trip-plan";
 import { ApiError } from "@/lib/api-client";
 
 const TripMap = lazy(() => import("@/features/trip-planner/components/trip-map"));
+
+type TripsDetailView = "map" | "logs";
+
+const VIEW_PARAM = "view";
+const DEFAULT_VIEW: TripsDetailView = "map";
+
+function isView(value: string | null): value is TripsDetailView {
+  return value === "map" || value === "logs";
+}
 
 function LoadingState(): React.ReactElement {
   return (
@@ -22,6 +33,9 @@ export function TripsDetailRoute(): React.ReactElement {
   const { id } = useParams<{ id: string }>();
   const trip = useTripById(id);
   const plan = useTripPlan(id);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const viewParam = searchParams.get(VIEW_PARAM);
+  const view: TripsDetailView = isView(viewParam) ? viewParam : DEFAULT_VIEW;
 
   if (trip.isPending || plan.isPending) {
     return <LoadingState />;
@@ -63,11 +77,49 @@ export function TripsDetailRoute(): React.ReactElement {
     );
   }
 
+  const handleViewChange = (next: string): void => {
+    setSearchParams(
+      (prev) => {
+        const params = new URLSearchParams(prev);
+        if (next === DEFAULT_VIEW) {
+          params.delete(VIEW_PARAM);
+        } else {
+          params.set(VIEW_PARAM, next);
+        }
+        return params;
+      },
+      { replace: true },
+    );
+  };
+
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
-      <Suspense fallback={<LoadingState />}>
-        <TripMap trip={trip.data} plan={plan.data} />
-      </Suspense>
-    </div>
+    <Tabs
+      value={view}
+      onValueChange={handleViewChange}
+      className="flex min-h-0 min-w-0 flex-1 overflow-hidden"
+    >
+      <div className="border-border flex items-center justify-between border-b px-4 py-2">
+        <TabsList variant="line">
+          <TabsTrigger value="map">Map</TabsTrigger>
+          <TabsTrigger value="logs">Log sheets</TabsTrigger>
+        </TabsList>
+      </div>
+      <TabsContent
+        value="map"
+        className="flex min-h-0 min-w-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
+        forceMount
+      >
+        <Suspense fallback={<LoadingState />}>
+          <TripMap trip={trip.data} plan={plan.data} active={view === "map"} />
+        </Suspense>
+      </TabsContent>
+      <TabsContent
+        value="logs"
+        className="flex min-h-0 min-w-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
+        forceMount
+      >
+        <DailyLogSheetsStrip trip={trip.data} plan={plan.data} />
+      </TabsContent>
+    </Tabs>
   );
 }

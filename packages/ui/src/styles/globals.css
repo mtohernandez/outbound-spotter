@@ -318,6 +318,31 @@
   color: var(--trip-marker-color);
 }
 
+/* Route stops list (TripDetailPanel sidebar) — visual grammar:
+ *   .route-trunk   = the vertical line connecting Start → Arrive.
+ *   .route-node    = each row's icon wrapper. Sits on the trunk when
+ *                    `data-branch="false"` (driver-input stops + Start/Arrive
+ *                    + drive segments); deviates right with a horizontal
+ *                    stub line when `data-branch="true"` (planner-inserted
+ *                    break/sleeper/fuel/restart).
+ * The stub is a `::before` pseudo so the icon's flex slot (and the row's
+ * label column) keep their position — translate-only shift, no reflow.
+ */
+.route-node[data-branch="true"] {
+  transform: translateX(0.5rem);
+}
+.route-node[data-branch="true"]::before {
+  content: "";
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  width: 0.5rem;
+  height: 1px;
+  background: color-mix(in oklab, var(--color-border) 70%, transparent);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
 /* Popup Badge: text color overridden to `--foreground` so the label stays
  * WCAG 4.5:1 against the popover background (ui-visual-validator C-2 —
  * lighter teals would fail at 12px otherwise). Border keeps the kind color
