@@ -52,9 +52,17 @@ jobs:
         run: pnpm exec turbo run typecheck --affected
 
       - name: Test
+        env:
+          # Vite apps' `src/config/env.ts` requires VITE_CLERK_PUBLISHABLE_KEY
+          # via a zod `.min(1)` schema. The value is meaningless under jsdom +
+          # MSW (every Clerk call is stubbed) but has to be present so the
+          # module import doesn't throw at parse time. Same shape for build.
+          VITE_CLERK_PUBLISHABLE_KEY: pk_test_ci_placeholder
         run: pnpm exec turbo run test --affected
 
       - name: Build
+        env:
+          VITE_CLERK_PUBLISHABLE_KEY: pk_test_ci_placeholder
         run: pnpm exec turbo run build --affected
 
       - name: Prettier formatting check
