@@ -49,7 +49,7 @@ Anchored on the brand hexes; intermediate stops interpolate L at the brand hue, 
 | 400  | `oklch(0.685 0.082 196)`      | `#5FA1A4`           | mid-tone, icons in light mode          |
 | 500  | `oklch(0.620 0.097 195.5)`    | `#3D9296`           | bright primary alt                     |
 | 600  | `oklch(0.5431 0.0927 194.77)` | `#008080`           | ★ brand teal (primary)                 |
-| 700  | `oklch(0.455 0.080 195)`      | `#106D6D`           | primary hover/pressed                  |
+| 700  | `oklch(0.455 0.030 195)`      | `#5E7271`           | muted-foreground (light mode)          |
 | 800  | `oklch(0.355 0.060 195)`      | `#1B5454`           | dark surface variant                   |
 | 900  | `oklch(0.255 0.040 195)`      | `#1A3737`           | dark elevated surface                  |
 | 950  | `oklch(0.1650 0.0282 194.77)` | `#001212`           | ★ brand black (dark bg)                |
@@ -153,7 +153,7 @@ The block below lands in `apps/web-app/src/styles/globals.css` and the same file
   --teal-400: oklch(0.685 0.082 196);
   --teal-500: oklch(0.62 0.097 195.5);
   --teal-600: oklch(0.5431 0.0927 194.77);
-  --teal-700: oklch(0.455 0.08 195);
+  --teal-700: oklch(0.455 0.03 195);
   --teal-800: oklch(0.355 0.06 195);
   --teal-900: oklch(0.255 0.04 195);
   --teal-950: oklch(0.165 0.0282 194.77);

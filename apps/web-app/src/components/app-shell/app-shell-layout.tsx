@@ -6,6 +6,7 @@ import {
   useSidebar,
 } from "@outbound/ui/components/ui/sidebar";
 import { TooltipProvider } from "@outbound/ui/components/ui/tooltip";
+import { useEffect } from "react";
 import { Outlet, useMatches } from "react-router";
 
 import { AppSidebar } from "@/components/app-shell/app-sidebar";
@@ -30,9 +31,18 @@ function useRouteHandle(): RouteHandle | undefined {
 
 function AppShellInner(): React.ReactElement {
   const handle = useRouteHandle();
-  const { isMobile } = useSidebar();
+  const { isMobile, setOpen } = useSidebar();
   const Secondary = handle?.Secondary;
   const title = handle?.title;
+  const hasSecondary = Secondary !== undefined;
+
+  // Couple the desktop sidebar's open state to whether the active route owns a
+  // Secondary panel. On routes that don't (/trips list, future settings, …) the
+  // secondary slot would otherwise sit empty consuming ~19rem of viewport. The
+  // manual toggle still works as a per-route override — navigation re-evaluates.
+  useEffect(() => {
+    if (!isMobile) setOpen(hasSecondary);
+  }, [hasSecondary, isMobile, setOpen]);
 
   return (
     <>

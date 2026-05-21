@@ -139,7 +139,7 @@ CORS_ALLOW_CREDENTIALS = True
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    "DEFAULT_PAGINATION_CLASS": "web_api.pagination.CappedLimitOffsetPagination",
     "PAGE_SIZE": 50,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_AUTHENTICATION_CLASSES": ["web_api.auth.ClerkAuthentication"],
@@ -149,6 +149,8 @@ REST_FRAMEWORK = {
         "geocode_autocomplete": "60/min",
         "geocode_search": "20/min",
         "trip_create": "30/hour",
+        "trip_list": "60/min",
+        "trip_delete": "20/min",
         "trip_plan_retrieve": "120/min",
     },
     "EXCEPTION_HANDLER": "web_api.exception_handler.exception_handler",

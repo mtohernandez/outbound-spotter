@@ -96,6 +96,8 @@ def _set_test_rates(monkeypatch: pytest.MonkeyPatch, **overrides: str) -> None:
         "geocode_autocomplete": "60/min",
         "geocode_search": "20/min",
         "trip_create": "30/hour",
+        "trip_list": "60/min",
+        "trip_delete": "20/min",
         "trip_plan_retrieve": "120/min",
     }
     monkeypatch.setattr(SimpleRateThrottle, "THROTTLE_RATES", {**base, **overrides})
@@ -185,4 +187,6 @@ def test_production_throttle_rates_are_intact() -> None:
     assert rates["geocode_autocomplete"] == "60/min"
     assert rates["geocode_search"] == "20/min"
     assert rates["trip_create"] == "30/hour"
+    assert rates["trip_list"] == "60/min"
+    assert rates["trip_delete"] == "20/min"
     assert rates["trip_plan_retrieve"] == "120/min"

@@ -1,14 +1,26 @@
-"""Trip endpoints — create + retrieve + plan with ownership enforcement.
+"""Trip endpoints — list + create + retrieve + destroy + plan with ownership.
 
-``TripCreateView`` runs ORS validation BEFORE persisting any row and runs
-the HOS planner inside the same atomic block (spec 06). Any failure — ORS
-4xx/5xx, ORS rate limit, planner ``ValueError`` — returns the project
-``{detail, errors}`` envelope; the row never persists. The FE renders
-``detail`` as a toast and preserves the form state (senior-review directive,
-post-live-smoke).
+``TripListCreateView`` answers both ``GET /api/trips/`` (paginated owned
+trips, thin serializer) and ``POST /api/trips/`` (the bespoke ORS+HOS create
+flow from spec 04). Per-method throttle scopes (``trip_list`` vs
+``trip_create``) are wired via ``get_throttles`` since DRF's
+``ScopedRateThrottle`` reads ``view.throttle_scope`` at request time.
 
-``TripPlanView`` returns the persisted HOS plan envelope. ``get_queryset``
-filters on ``request.user_id`` so foreign trips surface as 404 (no oracle).
+``TripRetrieveDestroyView`` answers ``GET /api/trips/<id>/`` (verbatim
+spec-04 retrieve) and ``DELETE /api/trips/<id>/`` (spec 09 — hard delete,
+cascade via FK ``on_delete=CASCADE``, 204 on success). DELETE is throttled
+under ``trip_delete``; GET keeps the pre-spec-09 unthrottled behavior.
+
+Django paths are path-only — two ``path("")`` entries (or two
+``path("<uuid:id>/")`` entries) would collide on the first match — so these
+multi-method views are how the same URL serves both verbs (spec 09
+deviation; see plan file).
+
+POST validation runs BEFORE any row persists; planner / ORS failures
+return the project ``{detail, errors}`` envelope so the FE can toast.
+``TripPlanView`` returns the persisted HOS plan envelope. All ownership
+filtering happens in ``get_queryset`` so foreign trips surface as 404
+(no oracle).
 """
 
 from __future__ import annotations
@@ -17,15 +29,15 @@ from typing import TYPE_CHECKING, ClassVar
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.exceptions import APIException, NotFound
-from rest_framework.generics import RetrieveAPIView
+from rest_framework.exceptions import APIException
+from rest_framework.generics import ListAPIView, RetrieveAPIView, RetrieveDestroyAPIView
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from web_api.apps.trips.models import Trip
 from web_api.apps.trips.serializers import (
     TripCreateRequestSerializer,
+    TripListItemSerializer,
     TripPlanSerializer,
     TripResponseSerializer,
 )
@@ -37,13 +49,11 @@ from web_api.integrations.openrouteservice import (
 )
 
 if TYPE_CHECKING:
-    import uuid
-
     from django.db.models import QuerySet
     from rest_framework.request import Request
+    from rest_framework.throttling import BaseThrottle
 
 
-_TRIP_NOT_FOUND = "Trip not found."
 # User-facing copy. Avoid naming internal subsystems ("HOS planner",
 # "fuel-stop solver", etc.) in error messages — security-auditor M-3.
 _PLANNER_FAILED = (
@@ -111,15 +121,33 @@ def _routing_error_response(exc: Exception) -> Response:
     raise exc
 
 
-class TripCreateView(APIView):
-    """``POST /api/trips/`` — validate via ORS, then persist on success.
+class TripListCreateView(ListAPIView[Trip]):
+    """``POST /api/trips/`` (custom ORS+HOS create) + ``GET /api/trips/`` (list).
 
-    On routing failure the response is an HTTP error envelope; no row is
-    persisted. The FE toasts ``detail`` and keeps the form state.
+    POST keeps the bespoke validate-then-persist pipeline so ORS failures
+    short-circuit before any row hits the DB. GET answers the spec-09 list:
+    ownership-filtered, ordered newest-first, paginated by the project-wide
+    ``LimitOffsetPagination``, annotated with ``days_count`` via the manager
+    so the response stays a single grouped JOIN.
     """
 
     permission_classes: ClassVar[list[type[BasePermission]]] = [IsAuthenticated]  # type: ignore[misc]
-    throttle_scope = "trip_create"
+    # serializer_class powers GET. POST returns ``TripResponseSerializer`` directly.
+    serializer_class = TripListItemSerializer
+
+    def get_throttles(self) -> list[BaseThrottle]:
+        # Per-method scope: ScopedRateThrottle reads ``view.throttle_scope``
+        # at request time, so flipping it here is safe.
+        self.throttle_scope = "trip_list" if self.request.method == "GET" else "trip_create"
+        return super().get_throttles()
+
+    def get_queryset(self) -> QuerySet[Trip]:
+        # Used by GET only. POST never reads it.
+        return (
+            Trip.objects.with_days_count()
+            .filter(user_id=_request_user_id(self.request))
+            .order_by("-created_at")
+        )
 
     @extend_schema(
         request=TripCreateRequestSerializer,
@@ -149,17 +177,30 @@ class TripCreateView(APIView):
         )
 
 
-class TripRetrieveView(APIView):
-    """``GET /api/trips/<uuid:id>/`` — fetch a trip; ownership enforced."""
+class TripRetrieveDestroyView(RetrieveDestroyAPIView[Trip]):
+    """``GET /api/trips/<uuid:id>/`` + ``DELETE /api/trips/<uuid:id>/``.
+
+    GET returns the spec-04 retrieve envelope. DELETE (spec 09) hard-deletes
+    the row; FK ``on_delete=CASCADE`` removes ``TripStop`` / ``LogEvent`` /
+    ``LogDay`` in the same statement. Ownership filtering lives in
+    ``get_queryset`` so foreign UUIDs surface as 404 (no oracle — matches
+    the spec-04 ``TripRetrieveView`` and spec-06 ``TripPlanView`` precedents).
+    """
 
     permission_classes: ClassVar[list[type[BasePermission]]] = [IsAuthenticated]  # type: ignore[misc]
+    serializer_class = TripResponseSerializer
+    lookup_field = "id"
 
-    @extend_schema(responses={200: TripResponseSerializer})
-    def get(self, request: Request, id: uuid.UUID) -> Response:
-        trip = Trip.objects.filter(pk=id, user_id=_request_user_id(request)).first()
-        if trip is None:
-            raise NotFound(_TRIP_NOT_FOUND)
-        return Response(TripResponseSerializer(trip).data)
+    def get_throttles(self) -> list[BaseThrottle]:
+        # GET keeps the pre-spec-09 unthrottled behavior; DELETE is scoped.
+        # Leaving ``throttle_scope`` unset on GET makes ``PerUserScopedThrottle``
+        # a no-op (see ``web_api/throttling.py``).
+        if self.request.method == "DELETE":
+            self.throttle_scope = "trip_delete"
+        return super().get_throttles()
+
+    def get_queryset(self) -> QuerySet[Trip]:
+        return Trip.objects.filter(user_id=_request_user_id(self.request))
 
 
 class TripPlanView(RetrieveAPIView[Trip]):

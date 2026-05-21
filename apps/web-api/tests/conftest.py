@@ -2,22 +2,24 @@
 
 Pytest-django picks up ``DJANGO_SETTINGS_MODULE`` from pyproject.toml. The
 fixtures below give DB-touching tests a stable Clerk-authenticated APIClient
-and a ``TripFactory`` that round-trips through the ``Trip`` ORM.
+and factories that round-trip through the Trip ORM (Trip + the spec-06 plan
+tables: TripStop / LogEvent / LogDay).
 """
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import TYPE_CHECKING, ClassVar
 from unittest.mock import patch
 
 from clerk_backend_api.security import AuthStatus, RequestState
 import factory
+from factory.declarations import Sequence, SubFactory
 import pytest
 from rest_framework.test import APIClient
 
-from web_api.apps.trips.models import Trip
+from web_api.apps.trips.models import DutyStatusChoices, LogDay, LogEvent, StopKind, Trip, TripStop
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -63,9 +65,73 @@ class TripFactory(factory.django.DjangoModelFactory[Trip]):
     route_summary: ClassVar[dict[str, float | int]] = {"distance_mi": 342.7, "duration_s": 19080}
 
 
+class TripStopFactory(factory.django.DjangoModelFactory[TripStop]):
+    """One ``TripStop`` per call. ``sequence`` increments globally so multiple
+    instances on the same Trip stay unique on ``(trip, sequence)``.
+    """
+
+    class Meta:
+        model = TripStop
+
+    trip = SubFactory(TripFactory)  # type: ignore[no-untyped-call]
+    kind = StopKind.PICKUP
+    sequence = Sequence(int)  # type: ignore[no-untyped-call]
+    polyline_index = 1
+    lat = Decimal("38.303200")
+    lon = Decimal("-77.460500")
+    label = ""
+    scheduled_at = TEST_START_AT
+    duration_s = 3600
+
+
+class LogEventFactory(factory.django.DjangoModelFactory[LogEvent]):
+    class Meta:
+        model = LogEvent
+
+    trip = SubFactory(TripFactory)  # type: ignore[no-untyped-call]
+    sequence = Sequence(int)  # type: ignore[no-untyped-call]
+    status = DutyStatusChoices.DRIVING
+    start = TEST_START_AT
+    duration_s = 3600
+    location = "Richmond, VA"
+    note = ""
+
+
+class LogDayFactory(factory.django.DjangoModelFactory[LogDay]):
+    """``date`` advances per-factory-call so ``(trip, date)`` stays unique
+    across batches on the same Trip without per-test arithmetic.
+    """
+
+    class Meta:
+        model = LogDay
+
+    trip = SubFactory(TripFactory)  # type: ignore[no-untyped-call]
+    date = Sequence(lambda n: date(2030, 1, 15) + timedelta(days=n))  # type: ignore[no-untyped-call]
+    off_duty_s = 0
+    sleeper_s = 0
+    driving_s = 3600
+    on_duty_not_driving_s = 3600
+    total_miles = Decimal("55.0")
+
+
 @pytest.fixture
 def trip_factory() -> type[TripFactory]:
     return TripFactory
+
+
+@pytest.fixture
+def trip_stop_factory() -> type[TripStopFactory]:
+    return TripStopFactory
+
+
+@pytest.fixture
+def log_event_factory() -> type[LogEventFactory]:
+    return LogEventFactory
+
+
+@pytest.fixture
+def log_day_factory() -> type[LogDayFactory]:
+    return LogDayFactory
 
 
 @pytest.fixture

@@ -81,6 +81,31 @@ class TripResponseSerializer(serializers.ModelSerializer[Trip]):
         read_only_fields = fields
 
 
+class TripListItemSerializer(serializers.ModelSerializer[Trip]):
+    """Thin row shape for ``GET /api/trips/`` (spec 09).
+
+    ``days_count`` is sourced from the queryset annotation in
+    ``TripManager.with_days_count``; the view that forgets to annotate will
+    raise at serialization time (loud failure beats a wrong number).
+    """
+
+    days_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Trip
+        fields: ClassVar[list[str]] = [
+            "id",
+            "current_label",
+            "pickup_label",
+            "dropoff_label",
+            "route_summary",
+            "days_count",
+            "start_at",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
 class TripStopSerializer(serializers.ModelSerializer[TripStop]):
     kind = serializers.ChoiceField(choices=StopKind.choices)
 
