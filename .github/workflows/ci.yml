@@ -60,7 +60,12 @@ jobs:
     name: Python — ruff · mypy
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ hashFiles('apps/web-api/**/*.py') != '' }}
+    # hashFiles() is rejected by the workflow parser at the job-level `if`
+    # (GHA reports "Unrecognized function: 'hashFiles'" at parse time, which
+    # is what aborted every CI run since this conditional was introduced and
+    # produced the 0-jobs/0-second failures). The conditional was a premature
+    # optimization — ruff/mypy/pytest are sub-second when there are no Python
+    # changes. Job always runs now; turbo --affected handles the JS side.
 
     steps:
       - uses: actions/checkout@v4
