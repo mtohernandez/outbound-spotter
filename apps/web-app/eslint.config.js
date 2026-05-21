@@ -93,9 +93,29 @@ export default [
             {
               target: "./src/features/pdf-export",
               from: "./src/features",
-              except: ["./pdf-export", "./log-sheet", "./trip-planner"],
+              except: ["./pdf-export", "./log-sheet", "./trip-planner", "./exports"],
               message:
-                "Features may not import from sibling features. pdf-export may consume log-sheet (the DailyLogSheet SVG id contract + grid geometry constants) and trip-planner (LogDay + TripPlan schemas + useTripPlan); everything else lifts to src/components, src/hooks, src/lib, or a packages/* workspace.",
+                "Features may not import from sibling features. pdf-export may consume log-sheet (the DailyLogSheet SVG id contract + grid geometry constants), trip-planner (LogDay + TripPlan schemas + useTripPlan), and exports (useCreateExportRecord); everything else lifts to src/components, src/hooks, src/lib, or a packages/* workspace.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/features/exports/**/*.{ts,tsx,js,jsx}"],
+    rules: {
+      "import-x/no-restricted-paths": [
+        "error",
+        {
+          zones: [
+            ...BULLETPROOF_ZONES,
+            {
+              target: "./src/features/exports",
+              from: "./src/features",
+              except: ["./exports", "./pdf-export", "./trip-planner", "./log-sheet"],
+              message:
+                "Features may not import from sibling features. exports may consume pdf-export (ExportMode + the renderTripPdf orchestrator for Recreate), trip-planner (useTripPlan + schemas), and log-sheet (DailyLogSheetsStrip for the Recreate-time hidden mount); everything else lifts to src/components, src/hooks, src/lib, or a packages/* workspace.",
             },
           ],
         },

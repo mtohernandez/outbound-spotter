@@ -2,12 +2,12 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { SavedTripsPagination } from "@/features/saved-trips/components/saved-trips-pagination";
+import { DataTablePagination } from "@/components/data-table/data-table-pagination";
 
-describe("SavedTripsPagination", () => {
+describe("DataTablePagination", () => {
   it("disables Previous on page 1 and Next on the last page", () => {
     render(
-      <SavedTripsPagination pageIndex={0} pageCount={1} onPrevious={vi.fn()} onNext={vi.fn()} />,
+      <DataTablePagination pageIndex={0} pageCount={1} onPrevious={vi.fn()} onNext={vi.fn()} />,
     );
 
     expect(screen.getByRole("button", { name: "Previous page" })).toBeDisabled();
@@ -17,7 +17,7 @@ describe("SavedTripsPagination", () => {
 
   it("enables both buttons on a middle page", () => {
     render(
-      <SavedTripsPagination pageIndex={1} pageCount={3} onPrevious={vi.fn()} onNext={vi.fn()} />,
+      <DataTablePagination pageIndex={1} pageCount={3} onPrevious={vi.fn()} onNext={vi.fn()} />,
     );
 
     expect(screen.getByRole("button", { name: "Previous page" })).toBeEnabled();
@@ -30,7 +30,7 @@ describe("SavedTripsPagination", () => {
     const onNext = vi.fn();
     const user = userEvent.setup();
     render(
-      <SavedTripsPagination pageIndex={1} pageCount={3} onPrevious={onPrevious} onNext={onNext} />,
+      <DataTablePagination pageIndex={1} pageCount={3} onPrevious={onPrevious} onNext={onNext} />,
     );
 
     await user.click(screen.getByRole("button", { name: "Previous page" }));
@@ -42,7 +42,7 @@ describe("SavedTripsPagination", () => {
 
   it("renders Page 0 of 1 when pageCount is 0 (empty state shouldn't usually mount this)", () => {
     render(
-      <SavedTripsPagination pageIndex={0} pageCount={0} onPrevious={vi.fn()} onNext={vi.fn()} />,
+      <DataTablePagination pageIndex={0} pageCount={0} onPrevious={vi.fn()} onNext={vi.fn()} />,
     );
 
     expect(screen.getByText(/Page 0 of 1/)).toBeInTheDocument();

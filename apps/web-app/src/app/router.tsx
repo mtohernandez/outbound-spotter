@@ -17,6 +17,13 @@ const TripsHistoryRoute = lazy(() =>
   import("@/app/routes/trips-history").then((m) => ({ default: m.TripsHistoryRoute })),
 );
 
+// Same pattern for /exports — keeps the exports feature folder + react-table
+// re-use out of the entry chunk on routes that don't need them (spec 10
+// phase 3).
+const ExportsHistoryRoute = lazy(() =>
+  import("@/app/routes/exports-history").then((m) => ({ default: m.ExportsHistoryRoute })),
+);
+
 function RouteSuspenseFallback(): React.ReactElement {
   return (
     <div className="flex min-h-0 flex-1 items-center justify-center">
@@ -49,6 +56,15 @@ const router = createBrowserRouter([
         path: "trips/:id",
         element: <TripsDetailRoute />,
         handle: { Secondary: TripDetailPanel, title: "Trip workspace" } satisfies RouteHandle,
+      },
+      {
+        path: "exports",
+        element: (
+          <Suspense fallback={<RouteSuspenseFallback />}>
+            <ExportsHistoryRoute />
+          </Suspense>
+        ),
+        handle: { title: "Exports" } satisfies RouteHandle,
       },
     ],
   },

@@ -1,23 +1,39 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
-import { http, HttpResponse } from "msw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { env } from "@/config/env";
 import { useExportPdf } from "@/features/pdf-export/hooks/use-export-pdf";
 import type { LogDay } from "@/features/trip-planner/schemas/trip-plan";
-import { server } from "@/testing/setup";
 
 const renderTripPdfMock =
   vi.fn<(input: { days: readonly LogDay[]; mode: string }) => Promise<Blob>>();
+
+interface CreateMutateOptions {
+  onError?: (error: Error) => void;
+  onSuccess?: () => void;
+}
+
+const createMutationState = {
+  mutate:
+    vi.fn<(input: { trip_id: string; mode: string }, options?: CreateMutateOptions) => void>(),
+  shouldFail: false as boolean | Error,
+};
 
 vi.mock("@/features/pdf-export/lib/render-trip-pdf", () => ({
   renderTripPdf: (input: { days: readonly LogDay[]; mode: string }) => renderTripPdfMock(input),
 }));
 
-vi.mock("@clerk/react", () => ({
-  useAuth: () => ({
-    getToken: () => Promise.resolve("test-jwt"),
+vi.mock("@/features/exports/api/create-export", () => ({
+  useCreateExportRecord: () => ({
+    mutate: (input: { trip_id: string; mode: string }, options?: CreateMutateOptions) => {
+      createMutationState.mutate(input, options);
+      const failure = createMutationState.shouldFail;
+      if (failure !== false) {
+        options?.onError?.(failure instanceof Error ? failure : new Error("create failed"));
+      } else {
+        options?.onSuccess?.();
+      }
+    },
   }),
 }));
 
@@ -30,6 +46,8 @@ beforeEach(() => {
   });
   Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() });
   renderTripPdfMock.mockResolvedValue(new Blob(["%PDF-stub"], { type: "application/pdf" }));
+  createMutationState.mutate.mockReset();
+  createMutationState.shouldFail = false;
 });
 
 afterEach(() => {
@@ -87,16 +105,7 @@ describe("useExportPdf", () => {
     });
   });
 
-  it("renders the PDF and fires the audit-record POST after success", async () => {
-    const recordedPayloads: unknown[] = [];
-    server.use(
-      http.post(`${env.VITE_API_URL}/api/exports/`, async ({ request }) => {
-        const body = (await request.json()) as unknown;
-        recordedPayloads.push(body);
-        return HttpResponse.json({}, { status: 201 });
-      }),
-    );
-
+  it("renders the PDF and fires the audit-record mutation with the chosen mode", async () => {
     const { result } = renderHook(() => useExportPdf({ tripId: TRIP_ID, days: [DAY] }), {
       wrapper,
     });
@@ -104,25 +113,26 @@ describe("useExportPdf", () => {
     await result.current.exportPdf("single-page");
 
     expect(renderTripPdfMock).toHaveBeenCalledWith({ days: [DAY], mode: "single-page" });
-    await waitFor(() => {
-      expect(recordedPayloads).toHaveLength(1);
+    expect(createMutationState.mutate).toHaveBeenCalledTimes(1);
+    expect(createMutationState.mutate.mock.calls[0]?.[0]).toEqual({
+      trip_id: TRIP_ID,
+      mode: "single-page",
     });
-    expect(recordedPayloads[0]).toEqual({ trip_id: TRIP_ID, mode: "single-page" });
   });
 
-  it("does NOT show a toast or surface an error when the audit record fails", async () => {
+  it("does NOT surface a toast or error when the audit-record mutation fails", async () => {
     const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    server.use(http.post(`${env.VITE_API_URL}/api/exports/`, () => HttpResponse.error()));
+    createMutationState.shouldFail = new Error("network down");
 
     const { result } = renderHook(() => useExportPdf({ tripId: TRIP_ID, days: [DAY] }), {
       wrapper,
     });
 
     await result.current.exportPdf("multi-page");
+
     await waitFor(() => {
       expect(consoleWarn).toHaveBeenCalled();
     });
-    // The hook resolved cleanly (no thrown error); the PDF download succeeded.
     expect(result.current.error).toBeNull();
 
     consoleWarn.mockRestore();
@@ -140,5 +150,7 @@ describe("useExportPdf", () => {
       expect(result.current.error).not.toBeNull();
     });
     expect(result.current.error?.message).toBe("svg2pdf failed");
+    // Mutation should never fire when the PDF rendering itself failed.
+    expect(createMutationState.mutate).not.toHaveBeenCalled();
   });
 });

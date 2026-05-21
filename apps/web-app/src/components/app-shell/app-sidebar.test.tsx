@@ -61,3 +61,28 @@ describe("AppSidebar — Saved trips nav item", () => {
     expect(newTrip).toHaveAttribute("data-active", "true");
   });
 });
+
+describe("AppSidebar — Exports nav item", () => {
+  it("renders the Exports link with the right href", () => {
+    renderAt("/trips");
+
+    const link = screen.getByRole("link", { name: /Exports/ });
+    expect(link).toHaveAttribute("href", "/exports");
+  });
+
+  it("marks Exports active on /exports and inactive on /trips", () => {
+    renderAt("/exports");
+
+    const exportsLink = screen.getByRole("link", { name: /Exports/ });
+    const saved = screen.getByRole("link", { name: /Saved trips/ });
+    expect(exportsLink).toHaveAttribute("data-active", "true");
+    expect(saved).toHaveAttribute("data-active", "false");
+  });
+
+  it("keeps Exports inactive on /trips/<id>", () => {
+    renderAt("/trips/00000000-0000-4000-8000-000000000001");
+
+    const exportsLink = screen.getByRole("link", { name: /Exports/ });
+    expect(exportsLink).toHaveAttribute("data-active", "false");
+  });
+});

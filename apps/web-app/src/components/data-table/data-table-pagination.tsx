@@ -1,19 +1,26 @@
 import { Button } from "@outbound/ui/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-export interface SavedTripsPaginationProps {
+export interface DataTablePaginationProps {
   readonly pageIndex: number;
   readonly pageCount: number;
   readonly onPrevious: () => void;
   readonly onNext: () => void;
 }
 
-export function SavedTripsPagination({
+/**
+ * Shared Previous/Next pagination shell. Lifted from
+ * ``features/saved-trips/components/saved-trips-pagination.tsx`` for the
+ * spec-10 phase-3 ``features/exports/`` consumer; the table column shapes
+ * stay per-feature (the "fourth-duplicate" rule from
+ * ``context/code-standards.md``).
+ */
+export function DataTablePagination({
   pageIndex,
   pageCount,
   onPrevious,
   onNext,
-}: SavedTripsPaginationProps): React.ReactElement {
+}: DataTablePaginationProps): React.ReactElement {
   const displayPage = pageCount === 0 ? 0 : pageIndex + 1;
   const displayTotal = Math.max(pageCount, 1);
   return (
