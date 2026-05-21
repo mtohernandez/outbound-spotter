@@ -3,4 +3,5 @@ export const paths = {
   tripsNew: "/trips/new",
   tripsHistory: "/trips",
   tripsDetail: (id: string): string => `/trips/${id}`,
+  exportsHistory: "/exports",
 } as const;

@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@outbound/ui/components/ui/sidebar";
-import { Plus, Route as RouteIcon } from "lucide-react";
+import { History, Plus, Route as RouteIcon } from "lucide-react";
 import { Link, useLocation } from "react-router";
 
 import { NavUser } from "@/components/app-shell/nav-user";
@@ -28,6 +28,7 @@ export function AppSidebar({ Secondary }: Props): React.ReactElement {
   const isSavedTripsActive =
     location.pathname === paths.tripsHistory ||
     (location.pathname.startsWith("/trips/") && location.pathname !== paths.tripsNew);
+  const isExportsActive = location.pathname === paths.exportsHistory;
 
   return (
     <Sidebar
@@ -76,6 +77,19 @@ export function AppSidebar({ Secondary }: Props): React.ReactElement {
                     <Link to={paths.tripsHistory satisfies string}>
                       <RouteIcon />
                       <span>Saved trips</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={{ children: "Exports", hidden: false }}
+                    isActive={isExportsActive}
+                    className="px-2.5 md:px-2"
+                  >
+                    <Link to={paths.exportsHistory satisfies string}>
+                      <History />
+                      <span>Exports</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

@@ -1,5 +1,7 @@
 import { http, HttpResponse } from "msw";
 
+import type { ExportsListResponse } from "@/features/exports/schemas/exports-list-response";
+import type { SavedExport } from "@/features/exports/schemas/saved-export";
 import type { SavedTrip } from "@/features/saved-trips/schemas/saved-trip";
 import type { TripsListResponse } from "@/features/saved-trips/schemas/trips-list-response";
 import type { TripPlan } from "@/features/trip-planner/schemas/trip-plan";
@@ -244,6 +246,76 @@ export function mockDeleteTrip() {
   return http.delete(`${BASE}/api/trips/:id/`, () => new HttpResponse(null, { status: 204 }));
 }
 
+const SAVED_EXPORT_FIXTURE: SavedExport[] = [
+  {
+    id: "00000000-0000-4000-8000-0000000004a1",
+    trip_id: "00000000-0000-4000-8000-000000000001",
+    mode: "multi-page",
+    sheet_count: 2,
+    trip_current_label: "Richmond, VA",
+    trip_pickup_label: "Fredericksburg, VA",
+    trip_dropoff_label: "Newark, NJ",
+    created_at: "2026-05-21T13:05:00Z",
+  },
+  {
+    id: "00000000-0000-4000-8000-0000000004a2",
+    trip_id: null,
+    mode: "single-page",
+    sheet_count: 3,
+    trip_current_label: "Los Angeles, CA",
+    trip_pickup_label: "Phoenix, AZ",
+    trip_dropoff_label: "Albuquerque, NM",
+    created_at: "2026-05-15T20:14:30Z",
+  },
+];
+
+export function mockExportsList(rows: readonly SavedExport[] = SAVED_EXPORT_FIXTURE) {
+  return http.get(`${BASE}/api/exports/`, ({ request }) => {
+    const url = new URL(request.url);
+    const limit = Number(url.searchParams.get("limit") ?? "50");
+    const offset = Number(url.searchParams.get("offset") ?? "0");
+    const slice = rows.slice(offset, offset + limit);
+    const envelope: ExportsListResponse = {
+      count: rows.length,
+      next:
+        offset + limit < rows.length
+          ? `${BASE}/api/exports/?limit=${limit}&offset=${offset + limit}`
+          : null,
+      previous:
+        offset > 0
+          ? `${BASE}/api/exports/?limit=${limit}&offset=${Math.max(0, offset - limit)}`
+          : null,
+      results: [...slice],
+    };
+    return HttpResponse.json(envelope);
+  });
+}
+
+export function mockExportsListEmpty() {
+  return mockExportsList([]);
+}
+
+export function mockCreateExport() {
+  return http.post(`${BASE}/api/exports/`, async ({ request }) => {
+    const body = (await request.json()) as { trip_id: string; mode: SavedExport["mode"] };
+    const row: SavedExport = {
+      id: "00000000-0000-4000-8000-0000000004ff",
+      trip_id: body.trip_id,
+      mode: body.mode,
+      sheet_count: 2,
+      trip_current_label: "Richmond, VA",
+      trip_pickup_label: "Fredericksburg, VA",
+      trip_dropoff_label: "Newark, NJ",
+      created_at: new Date().toISOString(),
+    };
+    return HttpResponse.json(row, { status: 201 });
+  });
+}
+
+export function mockDeleteExport() {
+  return http.delete(`${BASE}/api/exports/:id/`, () => new HttpResponse(null, { status: 204 }));
+}
+
 // Multi-day plan variant for spec 08 strip tests. Mirrors a LA → Albuquerque
 // 3-day shape with realistic per-status totals on each day. Opt-in via
 // `mockTripPlan(MULTI_DAY_PLAN_OVERRIDES)` — keeps the single-day default for
@@ -377,4 +449,7 @@ export const handlers = [
   mockTripPlan(),
   mockSavedTripsList(),
   mockDeleteTrip(),
+  mockExportsList(),
+  mockCreateExport(),
+  mockDeleteExport(),
 ];
