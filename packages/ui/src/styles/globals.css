@@ -71,9 +71,18 @@
     --sidebar-ring: var(--teal-600);
 
     --radius: 0.375rem; /* 6px base — dense pro-tool median */
+
+    /* Tell the browser this surface is light so native form controls
+       (datetime-local picker indicator, scrollbars, autofill chrome) pick
+       the matching palette automatically. */
+    color-scheme: light;
   }
 
   .dark {
+    /* Native form controls auto-invert (calendar icon goes light, scrollbar
+       chrome darkens) without per-element overrides. */
+    color-scheme: dark;
+
     --background: var(--teal-950);
     --foreground: var(--teal-50);
     --card: var(--teal-900);
