@@ -19,6 +19,7 @@ import pytest
 from web_api.apps.trips.models import Trip
 
 if TYPE_CHECKING:
+    from pytest_django import DjangoAssertNumQueries
     from rest_framework.test import APIClient
 
     from tests.conftest import LogDayFactory, TripFactory
@@ -167,3 +168,43 @@ def test_list_throttle_enforces_per_user_limit(
         assert first.status_code == 200
         second = authenticated_client.get("/api/trips/")
     assert second.status_code == 429
+
+
+@pytest.mark.django_db
+def test_list_runs_in_constant_query_count(
+    authenticated_client: APIClient,
+    trip_factory: type[TripFactory],
+    log_day_factory: type[LogDayFactory],
+    django_assert_num_queries: DjangoAssertNumQueries,
+) -> None:
+    """Locks the manager + serializer contract: list call stays one grouped
+    SELECT plus DRF's COUNT regardless of row or LogDay cardinality. Any
+    future serializer or queryset change that introduces N+1 should fail this.
+    """
+    trips = trip_factory.create_batch(20)
+    for trip in trips:
+        log_day_factory.create_batch(5, trip=trip)
+
+    # 2 queries: 1 COUNT(*) (LimitOffsetPagination) + 1 SELECT … LEFT JOIN log_days
+    # … GROUP BY trip.id (the annotated list query).
+    with django_assert_num_queries(2):
+        response = authenticated_client.get("/api/trips/")
+    assert response.status_code == 200
+    assert response.json()["count"] == 20
+
+
+@pytest.mark.django_db
+def test_list_rejects_limit_over_cap(
+    authenticated_client: APIClient,
+    trip_factory: type[TripFactory],
+) -> None:
+    """CappedLimitOffsetPagination caps ``?limit=`` at 200 so an attacker
+    can't force the worker to materialize unbounded result sets."""
+    trip_factory.create_batch(3)
+
+    response = authenticated_client.get("/api/trips/?limit=1000000")
+
+    assert response.status_code == 200
+    # DRF silently clamps to max_limit; assert the page reflects the cap, not
+    # the request.
+    assert len(response.json()["results"]) == 3  # all rows fit under the cap

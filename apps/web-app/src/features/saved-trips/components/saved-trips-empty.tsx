@@ -17,7 +17,7 @@ export function SavedTripsEmpty(): React.ReactElement {
     <Empty>
       <EmptyHeader>
         <EmptyMedia variant="icon">
-          <RouteIcon />
+          <RouteIcon aria-hidden />
         </EmptyMedia>
         <EmptyTitle>No saved trips yet.</EmptyTitle>
         <EmptyDescription>Plan your first trip to see it here.</EmptyDescription>

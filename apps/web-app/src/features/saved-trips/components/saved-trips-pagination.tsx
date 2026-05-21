@@ -18,9 +18,12 @@ export function SavedTripsPagination({
   const displayTotal = Math.max(pageCount, 1);
   return (
     <div className="flex items-center justify-between gap-4 px-1 py-3">
-      <p className="text-muted-foreground text-sm" aria-live="polite">
+      {/* aria-atomic + persistent wrapper so the SR re-announces the whole
+          "Page X of Y" string on change, not just the changed digit. Wrapping
+          element never unmounts (the inner text node is updated in place). */}
+      <div className="text-muted-foreground text-sm" aria-live="polite" aria-atomic="true">
         Page {displayPage} of {displayTotal}
-      </p>
+      </div>
       <div className="flex items-center gap-2">
         <Button
           variant="outline"

@@ -17,15 +17,25 @@ export interface TripListParams {
 
 const ONE_MIN = 60_000;
 
+// Skip retries on auth + not-found errors — retrying a 401 burns the JWT
+// verifier without changing the outcome (code-reviewer M2). Network 5xx still
+// gets one retry.
+const NO_RETRY_STATUSES = new Set([401, 403, 404]);
+
 export function useTripList(params: TripListParams): UseQueryResult<TripsListResponse> {
   const { getToken } = useAuth();
   return useQuery<TripsListResponse>({
-    // Params live in the key so each (limit, offset) tuple caches separately;
-    // a prefix-match invalidation on ["trips","list"] still clears every page.
-    queryKey: ["trips", "list", params],
+    // Primitive key parts (typescript-pro M1) — each (limit, offset) tuple
+    // caches separately; prefix invalidation on ["trips","list"] still
+    // clears every page.
+    queryKey: ["trips", "list", params.limit, params.offset],
     staleTime: ONE_MIN,
     refetchOnWindowFocus: false,
-    retry: 1,
+    retry: (failureCount, error) => {
+      if (failureCount >= 1) return false;
+      if (error instanceof ApiError && NO_RETRY_STATUSES.has(error.status)) return false;
+      return true;
+    },
     queryFn: async () => {
       const token = await getToken();
       const search = new URLSearchParams({

@@ -87,12 +87,31 @@ describe("useTripList", () => {
     });
   });
 
-  it("surfaces a 401 as an ApiError after exhausting the retry budget", async () => {
+  it("does not retry on a 401 — auth-class failures fail fast", async () => {
     let callCount = 0;
     server.use(
       http.get(`${BASE}/api/trips/`, () => {
         callCount += 1;
         return HttpResponse.json({ detail: "Unauthorized." }, { status: 401 });
+      }),
+    );
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useTripList({ limit: 50, offset: 0 }), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true);
+    });
+    // 401/403/404 short-circuit the retry budget; only one request goes out.
+    expect(callCount).toBe(1);
+    expect((result.current.error as ApiError).status).toBe(401);
+  });
+
+  it("retries once on a transient 500", async () => {
+    let callCount = 0;
+    server.use(
+      http.get(`${BASE}/api/trips/`, () => {
+        callCount += 1;
+        return HttpResponse.json({ detail: "Server error." }, { status: 500 });
       }),
     );
     const { wrapper } = makeWrapper();
@@ -104,8 +123,6 @@ describe("useTripList", () => {
       },
       { timeout: 4000 },
     );
-    // Hook configures retry: 1, so we expect 2 attempts before the error surfaces.
-    expect(callCount).toBe(2);
-    expect((result.current.error as ApiError).status).toBe(401);
+    expect(callCount).toBe(2); // initial + 1 retry
   });
 });

@@ -103,11 +103,16 @@ describe("SavedTripsTable", () => {
       />,
     );
 
-    const rows = screen.getAllByRole("link", { name: /Open trip/ });
-    expect(rows).toHaveLength(3);
-    expect(within(rows[0]!).getByText("Richmond, VA")).toBeInTheDocument();
-    expect(within(rows[0]!).getByText("342.7 mi")).toBeInTheDocument();
-    expect(within(rows[1]!).getByText("3")).toBeInTheDocument();
+    // Anchor per data row provides the navigation; the row's other cells
+    // (Distance, Days, Departs) are sibling <td>s, not nested in the anchor.
+    const anchors = screen.getAllByRole("link", { name: /Open trip/ });
+    expect(anchors).toHaveLength(3);
+    expect(within(anchors[0]!).getByText("Richmond, VA")).toBeInTheDocument();
+
+    const dataRows = screen.getAllByRole("row").slice(1); // skip the header row
+    expect(dataRows).toHaveLength(3);
+    expect(within(dataRows[0]!).getByText("342.7 mi")).toBeInTheDocument();
+    expect(within(dataRows[1]!).getByText(/^3/)).toBeInTheDocument(); // "3" + sr-only " days"
   });
 
   it("navigates to /trips/<id> on row click", async () => {

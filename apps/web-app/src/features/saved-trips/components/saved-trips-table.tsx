@@ -18,8 +18,9 @@ import {
   type PaginationState,
 } from "@tanstack/react-table";
 import { ArrowRight } from "lucide-react";
-import { useNavigate } from "react-router";
+import { Link } from "react-router";
 
+import { paths } from "@/config/paths";
 import { DeleteTripDialog } from "@/features/saved-trips/components/delete-trip-dialog";
 import { SavedTripsEmpty } from "@/features/saved-trips/components/saved-trips-empty";
 import { SavedTripsPagination } from "@/features/saved-trips/components/saved-trips-pagination";
@@ -44,8 +45,17 @@ const SKELETON_ROWS = 10;
 // renderers — no hooks, no internal state.
 
 function RouteCell({ row }: CellContext<SavedTrip, unknown>): React.ReactElement {
+  // Real <a> as the navigation primitive (a11y review CRITICAL-1/2):
+  // <tr role="link"> + hand-rolled keyboard handlers are an AT anti-pattern
+  // because NVDA/JAWS in browse mode never see the keydown. A <Link> renders
+  // as a native anchor that AT activates with Enter natively in both browse
+  // and application modes.
   return (
-    <div className="flex min-w-0 items-center gap-1.5 text-sm">
+    <Link
+      to={paths.tripsDetail(row.original.id)}
+      aria-label={`Open trip ${row.original.current_label} to ${row.original.dropoff_label}`}
+      className="focus-visible:ring-ring focus-visible:ring-offset-background flex min-w-0 items-center gap-1.5 rounded-sm text-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-offset-2"
+    >
       <span className="max-w-[180px] truncate" title={row.original.current_label}>
         {row.original.current_label}
       </span>
@@ -57,7 +67,7 @@ function RouteCell({ row }: CellContext<SavedTrip, unknown>): React.ReactElement
       <span className="max-w-[180px] truncate" title={row.original.dropoff_label}>
         {row.original.dropoff_label}
       </span>
-    </div>
+    </Link>
   );
 }
 
@@ -70,7 +80,13 @@ function DistanceCell({ row }: CellContext<SavedTrip, unknown>): React.ReactElem
 }
 
 function DaysCell({ row }: CellContext<SavedTrip, unknown>): React.ReactElement {
-  return <span className="text-sm tabular-nums">{row.original.days_count}</span>;
+  // sr-only "days" so screen readers announce "3 days" instead of a bare integer.
+  return (
+    <span className="text-sm tabular-nums">
+      {row.original.days_count}
+      <span className="sr-only"> days</span>
+    </span>
+  );
 }
 
 function DepartsCell({ row }: CellContext<SavedTrip, unknown>): React.ReactElement {
@@ -109,9 +125,11 @@ export function SavedTripsTable({
   onPaginationChange,
   onRetry,
 }: SavedTripsTableProps): React.ReactElement {
-  const navigate = useNavigate();
   const rows = data?.results ?? [];
-  const pageCount = data ? Math.max(1, Math.ceil(data.count / pagination.pageSize)) : 0;
+  // pageCount = -1 while loading so TanStack treats it as "unknown" rather than
+  // "no pages" (performance review m1). Pagination footer is gated on pageCount > 0
+  // so the chrome doesn't appear with stale numbers during the first paint.
+  const pageCount = data ? Math.max(1, Math.ceil(data.count / pagination.pageSize)) : -1;
 
   // React Compiler can't safely memoize TanStack Table's hooks (their return
   // functions intentionally capture mutable state). The skip warning is the
@@ -156,7 +174,7 @@ export function SavedTripsTable({
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead key={header.id} scope="col">
                     {flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 ))}
@@ -175,22 +193,7 @@ export function SavedTripsTable({
                   </TableRow>
                 ))
               : table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    role="link"
-                    tabIndex={0}
-                    aria-label={`Open trip ${row.original.current_label} to ${row.original.dropoff_label}`}
-                    className="cursor-pointer"
-                    onClick={() => {
-                      void navigate(`/trips/${row.original.id}`);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        void navigate(`/trips/${row.original.id}`);
-                      }
-                    }}
-                  >
+                  <TableRow key={row.id}>
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -201,16 +204,18 @@ export function SavedTripsTable({
           </TableBody>
         </Table>
       </div>
-      <SavedTripsPagination
-        pageIndex={pagination.pageIndex}
-        pageCount={pageCount}
-        onPrevious={() => {
-          table.previousPage();
-        }}
-        onNext={() => {
-          table.nextPage();
-        }}
-      />
+      {pageCount > 0 ? (
+        <SavedTripsPagination
+          pageIndex={pagination.pageIndex}
+          pageCount={pageCount}
+          onPrevious={() => {
+            table.previousPage();
+          }}
+          onNext={() => {
+            table.nextPage();
+          }}
+        />
+      ) : null}
     </div>
   );
 }
