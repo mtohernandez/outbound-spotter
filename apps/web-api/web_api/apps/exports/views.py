@@ -3,10 +3,18 @@
 Mirrors the spec-09 ``TripListCreateView`` / ``TripRetrieveDestroyView``
 shape so the same per-method throttle-scope flip works here. POST re-checks
 ownership of the supplied ``trip_id`` against ``Trip`` (404 on foreign IDs
-— no oracle). ``sheet_count`` is server-computed from
-``trip.log_days.count()`` so a malicious client can't inflate it. The row
-write is wrapped in ``transaction.atomic`` for parity with
-``services.plan_trip``.
+— no oracle). ``sheet_count`` is server-computed from the trip's
+``log_days`` annotation in the same SELECT as the ownership filter so the
+write path stays at 2 queries (1 SELECT + 1 INSERT) regardless of
+``LogDay`` cardinality. The single-INSERT create is autocommit-wrapped
+by Django; no explicit ``transaction.atomic`` is needed today.
+
+**Known v2 hardening (security-auditor M2)**: there is no per-(user, trip,
+mode) dedup on POST. A client can spam the endpoint up to the
+``export_create=60/hour`` throttle ceiling and grow the audit table
+unboundedly within that envelope. Acceptable for v1 (small absolute
+volume); a dedup window or a row cap is tracked in
+``context/progress-tracker.md`` Next Up.
 """
 
 from __future__ import annotations
