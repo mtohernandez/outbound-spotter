@@ -34,6 +34,15 @@ interface ExportPdfRunOptions {
  * 10 phase-3 history surface — not load-bearing for the UX. Phase 3
  * replaces the inline ``_writeExportRecord`` helper with the
  * ``useCreateExportRecord`` mutation from ``features/exports/``.
+ *
+ * **`useState` + `useCallback` over `useActionState`** (spec 10 decision
+ * 10 deviation): `useActionState` is tuned for form submissions where the
+ * action returns the next state and a derived `isPending` is enough. Here
+ * the orchestrator runs imperatively and **rethrows** so
+ * ``ExportDialog.handleExport`` can keep the modal open on failure;
+ * `useActionState` swallows rejections into its returned state, which
+ * would require threading the dialog's keep-open behavior through the
+ * tuple. The simpler imperative shape was preferred.
  */
 export function useExportPdf({ tripId, days }: UseExportPdfInput): UseExportPdfResult {
   const { getToken } = useAuth();
