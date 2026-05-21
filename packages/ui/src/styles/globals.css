@@ -46,7 +46,10 @@
     --muted-foreground: var(--teal-700);
     --accent: var(--teal-200);
     --accent-foreground: var(--teal-900);
-    --destructive: var(--red-500);
+    /* WCAG 2.1 AA requires ≥4.5:1 on destructive bg + foreground. red-500 (brand)
+       lands at 4.37:1 on teal-50 — semantic-token shifts to red-600 to clear AA
+       while the brand red ramp remains available as `--red-500` for charts. */
+    --destructive: var(--red-600);
     --destructive-foreground: var(--teal-50);
     --border: var(--teal-200);
     --input: var(--teal-200);
@@ -85,7 +88,7 @@
     --muted-foreground: var(--teal-300);
     --accent: var(--teal-800);
     --accent-foreground: var(--teal-50);
-    --destructive: var(--red-500);
+    --destructive: var(--red-600);
     --destructive-foreground: var(--teal-50);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);

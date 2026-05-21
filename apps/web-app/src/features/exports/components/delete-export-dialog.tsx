@@ -66,10 +66,12 @@ export function DeleteExportDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={mutation.isPending}>Cancel</AlertDialogCancel>
-          <AlertDialogAction asChild>
-            <Button variant="destructive" disabled={mutation.isPending} onClick={handleConfirm}>
-              {mutation.isPending ? "Removing…" : "Remove"}
-            </Button>
+          <AlertDialogAction
+            variant="destructive"
+            disabled={mutation.isPending}
+            onClick={handleConfirm}
+          >
+            {mutation.isPending ? "Removing…" : "Remove"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

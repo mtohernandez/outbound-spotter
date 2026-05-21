@@ -68,13 +68,12 @@ export function DeleteTripDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={mutation.isPending}>Cancel</AlertDialogCancel>
-          {/* Wrap with asChild so the action button uses the canonical
-              destructive variant (theme tokens via buttonVariants) instead of
-              raw bg-* classes. */}
-          <AlertDialogAction asChild>
-            <Button variant="destructive" disabled={mutation.isPending} onClick={handleConfirm}>
-              {mutation.isPending ? "Deleting…" : "Delete"}
-            </Button>
+          <AlertDialogAction
+            variant="destructive"
+            disabled={mutation.isPending}
+            onClick={handleConfirm}
+          >
+            {mutation.isPending ? "Deleting…" : "Delete"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
