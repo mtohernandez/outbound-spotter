@@ -1,16 +1,24 @@
-import { Map } from "lucide-react";
+import { SpotterLoader } from "@outbound/ui/components/brand/spotter-loader";
+import { lazy, Suspense } from "react";
+
+// Lazy-loads the leaflet chunk only when the driver lands on /trips/new (or
+// /trips/:id); other routes (sign-in, redirect) ship without it.
+const TripPreviewMap = lazy(() => import("@/features/trip-planner/components/trip-preview-map"));
+
+function LoadingState(): React.ReactElement {
+  return (
+    <div className="flex min-h-0 flex-1 items-center justify-center">
+      <SpotterLoader size="lg" />
+    </div>
+  );
+}
 
 export function TripsNewRoute(): React.ReactElement {
   return (
-    <div className="hidden flex-1 flex-col items-center justify-center gap-3 p-8 text-center md:flex">
-      <Map className="text-muted-foreground/50 size-16" aria-hidden />
-      <h2 className="font-display text-xl font-medium tracking-tight">
-        Your route + log sheets will appear here
-      </h2>
-      <p className="text-muted-foreground max-w-md text-sm">
-        Fill the form in the panel on the left — current location, pickup, dropoff, and cycle hours
-        used. Submit to see the routed map and FMCSA Daily Log Sheets.
-      </p>
+    <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
+      <Suspense fallback={<LoadingState />}>
+        <TripPreviewMap />
+      </Suspense>
     </div>
   );
 }

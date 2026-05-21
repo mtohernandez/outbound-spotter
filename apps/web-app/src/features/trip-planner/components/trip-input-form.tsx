@@ -2,7 +2,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { SpotterLoader } from "@outbound/ui/components/brand/spotter-loader";
 import { Button } from "@outbound/ui/components/ui/button";
 import { FieldGroup } from "@outbound/ui/components/ui/field";
-import { useForm } from "react-hook-form";
+import { useEffect } from "react";
+import { useForm, useWatch } from "react-hook-form";
 
 import { usePlanTrip } from "@/features/trip-planner/api/plan-trip";
 import { AddressField } from "@/features/trip-planner/components/address-field";
@@ -13,7 +14,28 @@ import {
   tripInputSchema,
   type TripInput,
 } from "@/features/trip-planner/schemas/trip-input";
+import { clearTripDraft, setTripDraft } from "@/features/trip-planner/state/trip-input-draft";
 import { roundUpToNext15Min } from "@/features/trip-planner/utils/round-time";
+
+import type { Control } from "react-hook-form";
+
+function DraftSync({ control }: { readonly control: Control<TripInput> }): null {
+  const current = useWatch({ control, name: "current" });
+  const pickup = useWatch({ control, name: "pickup" });
+  const dropoff = useWatch({ control, name: "dropoff" });
+
+  useEffect(() => {
+    setTripDraft({ current, pickup, dropoff });
+  }, [current, pickup, dropoff]);
+
+  useEffect(() => {
+    return () => {
+      clearTripDraft();
+    };
+  }, []);
+
+  return null;
+}
 
 export function TripInputForm(): React.ReactElement {
   const planTrip = usePlanTrip();
@@ -44,6 +66,7 @@ export function TripInputForm(): React.ReactElement {
       noValidate
       className="flex flex-col gap-6"
     >
+      <DraftSync control={form.control} />
       <FieldGroup>
         <AddressField
           control={form.control}

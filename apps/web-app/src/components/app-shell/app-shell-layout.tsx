@@ -44,7 +44,7 @@ function AppShellInner(): React.ReactElement {
           {title ? <span className="font-display text-sm font-medium">{title}</span> : null}
         </header>
         {isMobile && Secondary ? (
-          <div className="border-b">
+          <div className="max-h-[38vh] overflow-y-auto border-b">
             <Secondary />
           </div>
         ) : null}

@@ -77,3 +77,7 @@ coverage/
 # Playwright MCP snapshots + on-demand E2E screenshots (never committed)
 .playwright-mcp/
 e2e-*.png
+
+# Playwright MCP browser smoke screenshots — ephemeral evidence, not committed.
+/spec07-*.png
+/.playwright-mcp/

@@ -14,42 +14,47 @@ vi.mock("@clerk/react", () => ({
 const { TripDetailPanel } = await import("@/features/trip-planner/components/trip-detail-panel");
 
 describe("TripDetailPanel", () => {
-  it("renders the three resolved addresses + cycle hours for a planned trip", async () => {
+  it("renders a nav-app heading (Origin → Destination + cycle hint)", async () => {
     renderWithProviders(<TripDetailPanel />, {
-      initialEntries: ["/trips/abc-id"],
+      initialEntries: ["/trips/00000000-0000-4000-8000-000000000001"],
       routePath: "/trips/:id",
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/Richmond, VA/i)).toBeInTheDocument();
+      // Heading: Richmond, VA → Newark, NJ (USA stripped; arrow aria-hidden).
+      expect(
+        screen.getByRole("heading", { name: /Richmond, VA.*Newark, NJ/i }),
+      ).toBeInTheDocument();
     });
-    expect(screen.getByText(/Fredericksburg, VA/i)).toBeInTheDocument();
-    expect(screen.getByText(/Newark, NJ/i)).toBeInTheDocument();
-    expect(screen.getByText(/35\.0 h of 70 h/i)).toBeInTheDocument();
+    expect(screen.getByText(/35\.0 h used · 70-hour/i)).toBeInTheDocument();
   });
 
-  it("renders the Route SidebarGroup with mono distance · duration", async () => {
+  it("renders ONE unified Route group containing the Stops timeline", async () => {
     renderWithProviders(<TripDetailPanel />, {
-      initialEntries: ["/trips/abc-id"],
+      initialEntries: ["/trips/00000000-0000-4000-8000-000000000001"],
       routePath: "/trips/:id",
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/342\.7 mi · 5h 18m/)).toBeInTheDocument();
+      expect(screen.getByRole("list", { name: /trip stops/i })).toBeInTheDocument();
     });
+    // Stops timeline contains Start + planner stops + Arrive plus drive-segment rows.
+    expect(screen.getByRole("button", { name: /pickup/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /dropoff/i })).toBeInTheDocument();
+    // Departure (2:00 PM EDT) appears at least in the summary header + Start row.
+    expect(screen.getAllByText(/2:00.*PM/).length).toBeGreaterThanOrEqual(1);
   });
 
-  it("renders a Departs line in the Route SidebarGroup formatted in America/New_York", async () => {
+  it("renders the trip distance + duration in the summary header (one source of truth)", async () => {
     renderWithProviders(<TripDetailPanel />, {
-      initialEntries: ["/trips/abc-id"],
+      initialEntries: ["/trips/00000000-0000-4000-8000-000000000001"],
       routePath: "/trips/:id",
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/Departs/)).toBeInTheDocument();
+      // formatDuration(19080) → "5h 18m" + formatDistance(342.7) → "342.7 mi"
+      expect(screen.getByText(/5h 18m/)).toBeInTheDocument();
     });
-    // MSW handler emits 2026-05-21T14:00:00-04:00 → 2:00 PM EDT (May = DST).
-    expect(screen.getByText(/2:00/)).toBeInTheDocument();
-    expect(screen.getByText(/May 21, 2026/)).toBeInTheDocument();
+    expect(screen.getByText(/342\.7 mi/)).toBeInTheDocument();
   });
 });
