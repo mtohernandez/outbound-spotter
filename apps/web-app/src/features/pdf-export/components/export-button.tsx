@@ -25,6 +25,7 @@ export function ExportButton({ tripId, days, disabled }: ExportButtonProps): Rea
         }}
         disabled={disabled === true || !hasDays}
         aria-haspopup="dialog"
+        aria-expanded={open}
         data-testid="export-pdf-trigger"
       >
         <FileDown data-icon aria-hidden="true" />

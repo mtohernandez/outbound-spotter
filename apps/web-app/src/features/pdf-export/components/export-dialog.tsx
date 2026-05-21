@@ -85,23 +85,27 @@ export function ExportDialog({
             <ToggleGroupItem
               value="multi-page"
               aria-label="Multi-page (one log per page)"
-              className="flex-1 justify-start gap-2"
+              className="group/toggle flex-1 justify-start gap-2"
             >
               <Files data-icon aria-hidden="true" />
               <div className="flex flex-col items-start text-left">
                 <span className="text-sm font-medium">Multi-page</span>
-                <span className="text-muted-foreground text-xs">One log per page</span>
+                <span className="text-muted-foreground group-data-[state=on]/toggle:text-accent-foreground/85 text-xs">
+                  One log per page
+                </span>
               </div>
             </ToggleGroupItem>
             <ToggleGroupItem
               value="single-page"
               aria-label="Single-page (all logs stacked)"
-              className="flex-1 justify-start gap-2"
+              className="group/toggle flex-1 justify-start gap-2"
             >
               <FileText data-icon aria-hidden="true" />
               <div className="flex flex-col items-start text-left">
                 <span className="text-sm font-medium">Single-page</span>
-                <span className="text-muted-foreground text-xs">All logs stacked</span>
+                <span className="text-muted-foreground group-data-[state=on]/toggle:text-accent-foreground/85 text-xs">
+                  All logs stacked
+                </span>
               </div>
             </ToggleGroupItem>
           </ToggleGroup>

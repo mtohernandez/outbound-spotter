@@ -45,6 +45,16 @@ describe("ExportButton", () => {
     expect(screen.getByRole("heading", { name: /export pdf/i })).toBeInTheDocument();
   });
 
+  it("reflects the dialog state via aria-expanded", async () => {
+    renderWithProviders(<ExportButton tripId={TRIP_ID} days={[DAY]} />);
+    const user = userEvent.setup();
+    const trigger = screen.getByTestId("export-pdf-trigger");
+
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await user.click(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+  });
+
   it("is disabled when explicitly disabled", () => {
     renderWithProviders(<ExportButton tripId={TRIP_ID} days={[DAY]} disabled />);
 

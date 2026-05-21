@@ -50,8 +50,15 @@ export async function renderTripPdf({ days, mode }: RenderTripPdfInput): Promise
 
     return pdf.output("blob");
   } finally {
+    // Best-effort teardown: one cleanup throwing must not leave the
+    // remaining off-screen wrappers in the DOM.
     while (cleanups.length > 0) {
-      cleanups.pop()?.();
+      const next = cleanups.pop();
+      try {
+        next?.();
+      } catch {
+        // Swallow; nothing the user can do about a stale clone wrapper.
+      }
     }
   }
 }
