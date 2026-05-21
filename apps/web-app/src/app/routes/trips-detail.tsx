@@ -92,10 +92,6 @@ export function TripsDetailRoute(): React.ReactElement {
     );
   };
 
-  // Both TabsContent panels render simultaneously (CSS `data-[state=inactive]:hidden`)
-  // so the spec-07 Leaflet map's pan/zoom AND the spec-08 ephemeral sheet
-  // metadata both survive toggling. The spec for the Tabs primitive emits a
-  // `data-state="inactive"` attribute we hide via Tailwind variant.
   return (
     <Tabs
       value={view}
@@ -114,7 +110,7 @@ export function TripsDetailRoute(): React.ReactElement {
         forceMount
       >
         <Suspense fallback={<LoadingState />}>
-          <TripMap trip={trip.data} plan={plan.data} />
+          <TripMap trip={trip.data} plan={plan.data} active={view === "map"} />
         </Suspense>
       </TabsContent>
       <TabsContent

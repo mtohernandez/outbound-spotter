@@ -7,8 +7,10 @@ import type { TripPlan } from "@/features/trip-planner/schemas/trip-plan";
 import type { TripResponse } from "@/features/trip-planner/schemas/trip-response";
 
 const fitBounds = vi.fn();
+const invalidateSize = vi.fn();
 const mockMap = {
   fitBounds,
+  invalidateSize,
   // getContainer() resolves at call time so it returns the live <div> the
   // MapContainer mock just rendered — the only element that can hold focus.
   getContainer: (): HTMLElement => {
@@ -148,17 +150,39 @@ const PLAN: TripPlan = {
 
 afterEach(() => {
   fitBounds.mockClear();
+  invalidateSize.mockClear();
 });
 
 describe("TripMap", () => {
-  it("renders one marker per stop with keyboard enabled", () => {
+  it("renders one marker per stop with keyboard enabled, plus the non-interactive current-location marker", () => {
     render(<TripMap trip={TRIP} plan={PLAN} />);
     const markers = screen.getAllByTestId("marker");
 
-    expect(markers).toHaveLength(2);
-    for (const marker of markers) {
-      expect(marker.dataset.keyboard).toBe("true");
-    }
+    // 2 stop markers (pickup + dropoff, keyboard enabled) + 1 current-location
+    // marker (non-interactive, no keyboard).
+    expect(markers).toHaveLength(3);
+    const keyboardEnabled = markers.filter((m) => m.dataset.keyboard === "true");
+    expect(keyboardEnabled).toHaveLength(2);
+    const currentLocation = markers.find(
+      (m) =>
+        m.dataset.lat === String(TRIP.current_lat) && m.dataset.lon === String(TRIP.current_lon),
+    );
+    expect(currentLocation).toBeDefined();
+    expect(currentLocation?.dataset.keyboard).toBe("false");
+  });
+
+  it("calls invalidateSize when the Map tab becomes active again (Tabs forceMount fix)", async () => {
+    const { rerender } = render(<TripMap trip={TRIP} plan={PLAN} active={true} />);
+    invalidateSize.mockClear();
+    rerender(<TripMap trip={TRIP} plan={PLAN} active={false} />);
+    rerender(<TripMap trip={TRIP} plan={PLAN} active={true} />);
+    // raf-deferred — await one frame.
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        resolve();
+      });
+    });
+    expect(invalidateSize).toHaveBeenCalled();
   });
 
   it("renders the OSM tile layer + polyline + accessible aria-label", () => {

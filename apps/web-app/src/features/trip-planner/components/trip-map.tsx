@@ -1,8 +1,9 @@
 import "leaflet/dist/leaflet.css";
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { MapContainer, TileLayer } from "react-leaflet";
+import { MapContainer, Marker, TileLayer } from "react-leaflet";
 
+import { buildCurrentLocationIcon } from "@/features/trip-planner/components/map/current-location-icon";
 import { FitToRoute } from "@/features/trip-planner/components/map/fit-to-route";
 import { RecenterControl } from "@/features/trip-planner/components/map/recenter-control";
 import { RoutePolyline } from "@/features/trip-planner/components/map/route-polyline";
@@ -17,6 +18,7 @@ import type { Map as LeafletMap } from "leaflet";
 interface Props {
   readonly trip: TripResponse;
   readonly plan: TripPlan;
+  readonly active?: boolean;
 }
 
 const OSM_TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -31,7 +33,7 @@ const FALLBACK_ZOOM = 4;
 const MAP_ARIA_LABEL =
   "Trip route map. Use arrow keys to pan, plus and minus to zoom, R to recenter, Tab to step through stops.";
 
-export default function TripMap({ trip, plan }: Props): React.ReactElement {
+export default function TripMap({ trip, plan, active = true }: Props): React.ReactElement {
   const mapRef = useRef<LeafletMap | null>(null);
   const hoveredStopId = useHoveredStopId();
 
@@ -94,6 +96,20 @@ export default function TripMap({ trip, plan }: Props): React.ReactElement {
     };
   }, [recenter]);
 
+  useEffect(() => {
+    if (!active) return;
+    const map = mapRef.current;
+    if (!map) return;
+    const raf = requestAnimationFrame(() => {
+      map.invalidateSize({ animate: false });
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+    };
+  }, [active]);
+
+  const currentLocationIcon = useMemo(() => buildCurrentLocationIcon(), []);
+
   return (
     <div className="relative size-full">
       <MapContainer
@@ -104,6 +120,12 @@ export default function TripMap({ trip, plan }: Props): React.ReactElement {
       >
         <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} />
         <RoutePolyline positions={positions} />
+        <Marker
+          position={[trip.current_lat, trip.current_lon]}
+          icon={currentLocationIcon}
+          keyboard={false}
+          interactive={false}
+        />
         {plan.stops.map((stop) => (
           <StopMarker
             key={stop.id}

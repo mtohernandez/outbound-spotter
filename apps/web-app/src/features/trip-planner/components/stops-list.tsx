@@ -4,11 +4,21 @@ import { Fragment } from "react";
 import { CurrentLocationDot } from "@/features/trip-planner/components/map/current-location-dot";
 import { StopKindIcon } from "@/features/trip-planner/components/map/stop-kind-icon";
 import { STOP_KIND_META } from "@/features/trip-planner/components/map/stop-kind-labels";
-import type { TripPlan, TripStop } from "@/features/trip-planner/schemas/trip-plan";
+import type { StopKind, TripPlan, TripStop } from "@/features/trip-planner/schemas/trip-plan";
 import type { TripResponse } from "@/features/trip-planner/schemas/trip-response";
 import { setHoveredStop, useHoveredStopId } from "@/features/trip-planner/state/hovered-stop";
 import { formatDistance } from "@/features/trip-planner/utils/format-distance";
 import { formatDuration } from "@/features/trip-planner/utils/format-duration";
+
+// Driver-input stops (Pickup + Dropoff) sit ON the route's trunk line — they
+// are the trip's defining waypoints. Everything else (break, sleeper, fuel,
+// restart) is planner-inserted and renders as a short branch deviating from
+// the trunk, then merging back: same visual grammar as a gitgraph, applied to
+// a route. Senior-review fix #2.
+const TRUNK_STOP_KINDS: ReadonlySet<StopKind> = new Set(["pickup", "dropoff"]);
+function isOnTrunk(kind: StopKind): boolean {
+  return TRUNK_STOP_KINDS.has(kind);
+}
 
 interface Props {
   readonly trip: TripResponse;
@@ -59,7 +69,21 @@ export function StopsList({ trip, plan }: Props): React.ReactElement {
         departure={fmt.format(new Date(trip.start_at))}
         arrival={arrival ? fmt.format(arrival) : null}
       />
-      <ol className="relative flex flex-col gap-1" aria-label="Trip stops in chronological order">
+      <ol
+        className="route-stops relative flex flex-col gap-1"
+        aria-label="Trip stops in chronological order"
+      >
+        {/*
+          Decorative trunk — vertical line connecting Start → Arrive through every icon.
+          Driver-input stops (pickup/dropoff) sit ON the trunk; planner-inserted stops
+          render as branches that deviate right (.route-node[data-branch="true"]) and
+          merge back. Aligned with the icon column center: px-2 (0.5rem) padding-left
+          + half of w-5 (0.625rem) = 1.125rem.
+        */}
+        <span
+          aria-hidden="true"
+          className="route-trunk bg-border/70 pointer-events-none absolute top-5 bottom-5 left-4.5 w-px -translate-x-1/2"
+        />
         <StartRow time={fmt.format(new Date(trip.start_at))} label={trip.current_label} />
         {plan.stops.map((stop, index) => {
           // The matching ORS leg sits BEFORE this stop — leg index aligns with
@@ -144,7 +168,11 @@ function DriveSegmentRow({
 }): React.ReactElement {
   return (
     <li className="text-muted-foreground flex items-center gap-3 px-2 py-1 text-xs">
-      <span className="flex w-5 shrink-0 justify-center" aria-hidden="true">
+      <span
+        className="route-node text-muted-foreground/70 relative flex w-5 shrink-0 justify-center"
+        data-branch="false"
+        aria-hidden="true"
+      >
         <ArrowDown className="size-3.5" />
       </span>
       <span className="font-mono">
@@ -166,7 +194,11 @@ function StartRow({
 }): React.ReactElement {
   return (
     <li className="flex items-start gap-3 rounded-md px-2 py-1.5">
-      <span className="mt-0.5 flex w-5 shrink-0 justify-center" aria-hidden="true">
+      <span
+        className="route-node relative mt-0.5 flex w-5 shrink-0 justify-center"
+        data-branch="false"
+        aria-hidden="true"
+      >
         <CurrentLocationDot className="size-5" />
       </span>
       <div className="flex min-w-0 flex-1 flex-col">
@@ -187,6 +219,7 @@ function StopRow({
   readonly isHovered: boolean;
 }): React.ReactElement {
   const meta = STOP_KIND_META[stop.kind];
+  const branch = !isOnTrunk(stop.kind);
   return (
     <li>
       <button
@@ -207,7 +240,13 @@ function StopRow({
         }}
         className="hover:bg-accent/60 focus-visible:ring-ring data-[hovered=true]:bg-accent/80 flex w-full items-start gap-3 rounded-md px-2 py-1.5 text-left transition-colors outline-none focus-visible:ring-2"
       >
-        <StopKindIcon kind={stop.kind} className="mt-0.5 shrink-0" />
+        <span
+          className="route-node relative mt-0.5 flex shrink-0"
+          data-branch={branch ? "true" : "false"}
+          aria-hidden="true"
+        >
+          <StopKindIcon kind={stop.kind} />
+        </span>
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex items-baseline justify-between gap-2">
             <span className="font-mono text-xs">
@@ -235,7 +274,11 @@ function StopRow({
 function ArrivalRow({ time }: { readonly time: string }): React.ReactElement {
   return (
     <li className="flex items-start gap-3 rounded-md px-2 py-1.5">
-      <span className="text-primary mt-0.5 flex w-5 shrink-0 justify-center" aria-hidden="true">
+      <span
+        className="route-node text-primary relative mt-0.5 flex w-5 shrink-0 justify-center"
+        data-branch="false"
+        aria-hidden="true"
+      >
         <Flag className="size-5" />
       </span>
       <div className="flex min-w-0 flex-1 flex-col">
