@@ -11,6 +11,7 @@ import { ToggleGroup, ToggleGroupItem } from "@outbound/ui/components/ui/toggle-
 import { FileText, Files, Loader2 } from "lucide-react";
 import { useState } from "react";
 
+import { PdfPreview } from "@/features/pdf-export/components/pdf-preview";
 import { useExportPdf } from "@/features/pdf-export/hooks/use-export-pdf";
 import {
   EXPORT_MODES,
@@ -68,6 +69,10 @@ export function ExportDialog({
             standard fonts (Helvetica) for cross-reader compatibility.
           </DialogDescription>
         </DialogHeader>
+
+        <div className="py-2">
+          <PdfPreview days={days} mode={mode} />
+        </div>
 
         <div className="py-2">
           <ToggleGroup

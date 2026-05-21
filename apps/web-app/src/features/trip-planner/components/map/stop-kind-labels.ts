@@ -8,9 +8,19 @@ interface StopKindMeta {
 }
 
 export const STOP_KIND_META = {
-  pickup: { label: "Pickup", reason: "" },
-  dropoff: { label: "Dropoff", reason: "" },
-  fuel: { label: "Fuel stop", reason: "" },
+  pickup: {
+    label: "Pickup",
+    reason: "1 hr on-duty (not driving) — assignment brief assumes 1 hour for pickup.",
+  },
+  dropoff: {
+    label: "Dropoff",
+    reason: "1 hr on-duty (not driving) — assignment brief assumes 1 hour for drop-off.",
+  },
+  fuel: {
+    label: "Fuel stop",
+    reason:
+      "On-duty (not driving) — assignment brief assumes fueling at least once every 1,000 miles.",
+  },
   break: {
     label: "30-min break",
     reason: "§395.3(a)(3)(ii) — required after 8 cumulative driving hours",

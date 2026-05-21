@@ -4,6 +4,7 @@ import { Fragment } from "react";
 import { CurrentLocationDot } from "@/features/trip-planner/components/map/current-location-dot";
 import { StopKindIcon } from "@/features/trip-planner/components/map/stop-kind-icon";
 import { STOP_KIND_META } from "@/features/trip-planner/components/map/stop-kind-labels";
+import { WhyThisStopTooltip } from "@/features/trip-planner/components/why-this-stop-tooltip";
 import type { StopKind, TripPlan, TripStop } from "@/features/trip-planner/schemas/trip-plan";
 import type { TripResponse } from "@/features/trip-planner/schemas/trip-response";
 import { setHoveredStop, useHoveredStopId } from "@/features/trip-planner/state/hovered-stop";
@@ -222,51 +223,51 @@ function StopRow({
   const branch = !isOnTrunk(stop.kind);
   return (
     <li>
-      <button
-        type="button"
-        data-stop-kind={stop.kind}
-        data-hovered={isHovered ? "true" : "false"}
-        onMouseEnter={() => {
-          setHoveredStop(stop.id);
-        }}
-        onMouseLeave={() => {
-          setHoveredStop(null);
-        }}
-        onFocus={() => {
-          setHoveredStop(stop.id);
-        }}
-        onBlur={() => {
-          setHoveredStop(null);
-        }}
-        className="hover:bg-accent/60 focus-visible:ring-ring data-[hovered=true]:bg-accent/80 flex w-full items-start gap-3 rounded-md px-2 py-1.5 text-left transition-colors outline-none focus-visible:ring-2"
-      >
-        <span
-          className="route-node relative mt-0.5 flex shrink-0"
-          data-branch={branch ? "true" : "false"}
-          aria-hidden="true"
+      <WhyThisStopTooltip kind={stop.kind}>
+        <button
+          type="button"
+          data-stop-kind={stop.kind}
+          data-hovered={isHovered ? "true" : "false"}
+          onMouseEnter={() => {
+            setHoveredStop(stop.id);
+          }}
+          onMouseLeave={() => {
+            setHoveredStop(null);
+          }}
+          onFocus={() => {
+            setHoveredStop(stop.id);
+          }}
+          onBlur={() => {
+            setHoveredStop(null);
+          }}
+          className="hover:bg-accent/60 focus-visible:ring-ring data-[hovered=true]:bg-accent/80 flex w-full items-start gap-3 rounded-md px-2 py-1.5 text-left transition-colors outline-none focus-visible:ring-2"
         >
-          <StopKindIcon kind={stop.kind} />
-        </span>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="font-mono text-xs">
-              <span className="text-foreground">{time}</span>
-              <span className="text-muted-foreground"> · {meta.label}</span>
-            </span>
-            <span className="text-muted-foreground font-mono text-xs">
-              {formatDuration(stop.duration_s)}
-            </span>
-          </div>
-          <span className="truncate text-sm">
-            {stop.label.trim().length > 0
-              ? stop.label
-              : `${stop.lat.toFixed(4)}, ${stop.lon.toFixed(4)}`}
+          <span
+            className="route-node relative mt-0.5 flex shrink-0"
+            data-branch={branch ? "true" : "false"}
+            aria-hidden="true"
+          >
+            <StopKindIcon kind={stop.kind} />
           </span>
-          {meta.reason === "" ? null : (
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="font-mono text-xs">
+                <span className="text-foreground">{time}</span>
+                <span className="text-muted-foreground"> · {meta.label}</span>
+              </span>
+              <span className="text-muted-foreground font-mono text-xs">
+                {formatDuration(stop.duration_s)}
+              </span>
+            </div>
+            <span className="truncate text-sm">
+              {stop.label.trim().length > 0
+                ? stop.label
+                : `${stop.lat.toFixed(4)}, ${stop.lon.toFixed(4)}`}
+            </span>
             <span className="text-muted-foreground text-xs leading-snug">{meta.reason}</span>
-          )}
-        </div>
-      </button>
+          </div>
+        </button>
+      </WhyThisStopTooltip>
     </li>
   );
 }

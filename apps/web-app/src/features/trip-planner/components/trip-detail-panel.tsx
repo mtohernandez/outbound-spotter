@@ -10,6 +10,7 @@ import { useParams } from "react-router";
 
 import { useTripById } from "@/features/trip-planner/api/trip-by-id";
 import { useTripPlan } from "@/features/trip-planner/api/trip-plan";
+import { DayBreakdownAccordion } from "@/features/trip-planner/components/day-breakdown-accordion";
 import { StopsList } from "@/features/trip-planner/components/stops-list";
 import type { TripResponse } from "@/features/trip-planner/schemas/trip-response";
 
@@ -94,6 +95,14 @@ export function TripDetailPanel(): React.ReactElement {
             )}
           </SidebarGroupContent>
         </SidebarGroup>
+        {plan.isSuccess ? (
+          <SidebarGroup className="px-0">
+            <SidebarGroupLabel>By day</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <DayBreakdownAccordion plan={plan.data} />
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : null}
       </SidebarContent>
     </>
   );

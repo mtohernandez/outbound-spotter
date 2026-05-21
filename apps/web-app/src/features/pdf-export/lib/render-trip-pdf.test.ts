@@ -17,6 +17,17 @@ vi.mock("jspdf", () => {
     default: class {
       svg = vi.fn().mockResolvedValue(undefined);
       addPage = vi.fn();
+      setPage = vi.fn();
+      setFont = vi.fn();
+      setFontSize = vi.fn();
+      getFontSize = vi.fn().mockReturnValue(11);
+      text = vi.fn();
+      internal = {
+        pageSize: {
+          getHeight: vi.fn().mockReturnValue(792),
+          getWidth: vi.fn().mockReturnValue(612),
+        },
+      };
       output = vi.fn(
         () => new Blob([new Uint8Array([0x25, 0x50, 0x44, 0x46])], { type: "application/pdf" }),
       );

@@ -39,9 +39,7 @@ export function MarkerPopup({ stop, tz }: Props): React.ReactElement {
       <Badge variant="outline" className={STOP_TYPE_CLASSNAMES[stop.kind]}>
         {meta.label}
       </Badge>
-      {meta.reason === "" ? null : (
-        <p className="text-muted-foreground text-xs leading-snug">{meta.reason}</p>
-      )}
+      <p className="text-muted-foreground text-xs leading-snug">{meta.reason}</p>
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
         <dt className="text-muted-foreground">When</dt>
         <dd className="font-mono">{scheduled}</dd>

@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import "svg2pdf.js";
 
+import { PLANNING_DISCLAIMER } from "@/config/strings";
 import { cloneSvgForExport } from "@/features/pdf-export/lib/clone-svg-for-export";
 import type { ExportMode } from "@/features/pdf-export/types/export-mode";
 import type { LogDay } from "@/features/trip-planner/schemas/trip-plan";
@@ -47,6 +48,8 @@ export async function renderTripPdf({ days, mode }: RenderTripPdfInput): Promise
     } else {
       await renderSinglePage(pdf, sheets, cleanups);
     }
+
+    stampDisclaimerOnFirstPage(pdf);
 
     return pdf.output("blob");
   } finally {
@@ -109,6 +112,22 @@ async function renderMultiPage(
       pdf.addPage();
     }
   }
+}
+
+function stampDisclaimerOnFirstPage(pdf: jsPDF): void {
+  // Read the actual page height so single-page mode (variable-height page)
+  // gets the disclaimer at its own bottom, not the US-Letter constant.
+  // jsPDF page numbers are 1-indexed; setPage(1) is the right call for both
+  // multi-page (first sheet) and single-page (only page) modes.
+  pdf.setPage(1);
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const previousSize = pdf.getFontSize();
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(8);
+  pdf.text(PLANNING_DISCLAIMER, PAGE_MARGIN, pageHeight - 18, {
+    maxWidth: USABLE_WIDTH,
+  });
+  pdf.setFontSize(previousSize);
 }
 
 async function renderSinglePage(
