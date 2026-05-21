@@ -178,6 +178,87 @@ export function mockTripPlan(overrides?: Partial<TripPlan>) {
   );
 }
 
+// Multi-day plan variant for spec 08 strip tests. Mirrors a LA → Albuquerque
+// 3-day shape with realistic per-status totals on each day. Opt-in via
+// `mockTripPlan(MULTI_DAY_PLAN_OVERRIDES)` — keeps the single-day default for
+// the spec-07 tests.
+export const MULTI_DAY_PLAN_OVERRIDES: Partial<TripPlan> = {
+  home_terminal_tz: "America/Los_Angeles",
+  days: [
+    {
+      id: "00000000-0000-4000-8000-000000000311",
+      date: "2026-05-21",
+      off_duty_s: 0,
+      sleeper_s: 0,
+      driving_s: 39_600, // 11h
+      on_duty_not_driving_s: 7_200,
+      total_miles: 612.4,
+    },
+    {
+      id: "00000000-0000-4000-8000-000000000312",
+      date: "2026-05-22",
+      off_duty_s: 36_000, // 10h off-duty
+      sleeper_s: 0,
+      driving_s: 39_600,
+      on_duty_not_driving_s: 10_800,
+      total_miles: 620.0,
+    },
+    {
+      id: "00000000-0000-4000-8000-000000000313",
+      date: "2026-05-23",
+      off_duty_s: 36_000,
+      sleeper_s: 0,
+      driving_s: 36_000,
+      on_duty_not_driving_s: 14_400,
+      total_miles: 580.2,
+    },
+  ],
+  stops: [
+    {
+      id: "00000000-0000-4000-8000-000000000111",
+      kind: "pickup",
+      sequence: 0,
+      polyline_index: 1,
+      lat: 34.0522,
+      lon: -118.2437,
+      label: "Los Angeles, CA",
+      scheduled_at: "2026-05-21T15:00:00-07:00",
+      duration_s: 3600,
+    },
+    {
+      id: "00000000-0000-4000-8000-000000000112",
+      kind: "dropoff",
+      sequence: 1,
+      polyline_index: 5,
+      lat: 35.0844,
+      lon: -106.6504,
+      label: "Albuquerque, NM",
+      scheduled_at: "2026-05-23T17:00:00-06:00",
+      duration_s: 3600,
+    },
+  ],
+  events: [
+    {
+      id: "00000000-0000-4000-8000-000000000211",
+      sequence: 0,
+      status: "on_duty_not_driving",
+      start: "2026-05-21T14:00:00-07:00",
+      duration_s: 1800,
+      location: "Los Angeles, CA",
+      note: "Pre-trip inspection",
+    },
+    {
+      id: "00000000-0000-4000-8000-000000000212",
+      sequence: 1,
+      status: "driving",
+      start: "2026-05-21T14:30:00-07:00",
+      duration_s: 39_600,
+      location: "Los Angeles, CA",
+      note: "En route",
+    },
+  ],
+};
+
 export const handlers = [
   http.get(`${BASE}/api/geocode/autocomplete/`, ({ request }) => {
     const url = new URL(request.url);

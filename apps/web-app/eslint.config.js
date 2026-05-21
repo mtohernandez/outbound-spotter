@@ -47,6 +47,29 @@ export default [
     },
   },
   {
+    // log-sheet (spec 08) is allowed to import from trip-planner one-way: TripPlan / TripResponse
+    // zod types and the formatLatLon util. The reverse direction is still blocked by the
+    // trip-planner block above. This mirrors spec 03's carve-out shape.
+    files: ["src/features/log-sheet/**/*.{ts,tsx,js,jsx}"],
+    rules: {
+      "import-x/no-restricted-paths": [
+        "error",
+        {
+          zones: [
+            ...BULLETPROOF_ZONES,
+            {
+              target: "./src/features/log-sheet",
+              from: "./src/features",
+              except: ["./log-sheet", "./trip-planner"],
+              message:
+                "Features may not import from sibling features. log-sheet may consume trip-planner schemas and the formatLatLon util; everything else lifts to src/components, src/hooks, src/lib, or a packages/* workspace.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     ignores: ["dist", "coverage", "node_modules", ".turbo"],
   },
 ];

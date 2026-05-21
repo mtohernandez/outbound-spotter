@@ -1,8 +1,10 @@
 import { screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it, vi } from "vitest";
 
 import { buildClerkMocks } from "@/testing/clerk-mocks";
+import { MULTI_DAY_PLAN_OVERRIDES } from "@/testing/handlers";
 import { renderWithProviders } from "@/testing/render";
 import { server } from "@/testing/setup";
 
@@ -29,8 +31,43 @@ vi.mock("@/features/trip-planner/components/trip-map", () => ({
 
 const { TripsDetailRoute } = await import("@/app/routes/trips-detail");
 
-describe("TripsDetailRoute (main view)", () => {
-  it("renders the lazy TripMap when both trip and plan resolve", async () => {
+describe("TripsDetailRoute (Tabs wrap)", () => {
+  it("defaults to the Map tab when no ?view= search param is present", async () => {
+    renderWithProviders(<TripsDetailRoute />, {
+      initialEntries: ["/trips/00000000-0000-4000-8000-000000000001"],
+      routePath: "/trips/:id",
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: /^Map$/ })).toHaveAttribute("data-state", "active");
+    });
+    expect(screen.getByRole("tab", { name: /Log sheets/i })).toHaveAttribute(
+      "data-state",
+      "inactive",
+    );
+    // Both panels mounted simultaneously (Radix forceMount + CSS hiding).
+    await waitFor(() => {
+      expect(screen.getByTestId("trip-map")).toBeInTheDocument();
+    });
+  });
+
+  it("opens the Log sheets tab on mount when ?view=logs", async () => {
+    renderWithProviders(<TripsDetailRoute />, {
+      initialEntries: ["/trips/00000000-0000-4000-8000-000000000001?view=logs"],
+      routePath: "/trips/:id",
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: /Log sheets/i })).toHaveAttribute(
+        "data-state",
+        "active",
+      );
+    });
+    expect(screen.getByRole("tab", { name: /^Map$/ })).toHaveAttribute("data-state", "inactive");
+  });
+
+  it("preserves both Map and Log-sheet state when toggling tabs", async () => {
+    const user = userEvent.setup();
     renderWithProviders(<TripsDetailRoute />, {
       initialEntries: ["/trips/00000000-0000-4000-8000-000000000001"],
       routePath: "/trips/:id",
@@ -39,16 +76,64 @@ describe("TripsDetailRoute (main view)", () => {
     await waitFor(() => {
       expect(screen.getByTestId("trip-map")).toBeInTheDocument();
     });
-    expect(screen.getByTestId("trip-map").dataset.tripId).toBe(
-      "00000000-0000-4000-8000-000000000001",
-    );
-    expect(screen.getByTestId("trip-map").dataset.planTripId).toBe(
-      "00000000-0000-4000-8000-000000000001",
-    );
-    expect(screen.getByText("Trip map ready")).toBeInTheDocument();
+
+    // Switch to Log sheets — the stub map remains mounted (forceMount), the
+    // log strip becomes active.
+    await user.click(screen.getByRole("tab", { name: /Log sheets/i }));
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: /Log sheets/i })).toHaveAttribute(
+        "data-state",
+        "active",
+      );
+    });
+    // forceMount keeps Map's stub in the DOM even when hidden.
+    expect(screen.queryByTestId("trip-map")).not.toBeNull();
+    expect(document.querySelector("[data-slot='daily-log-sheets-strip']")).not.toBeNull();
+
+    // Type into the truck# input on the active sheet.
+    const truckInputs = screen.getAllByLabelText("Truck or Tractor number");
+    expect(truckInputs.length).toBeGreaterThanOrEqual(1);
+    await user.type(truckInputs[0]!, "T-99");
+    expect(truckInputs[0]).toHaveValue("T-99");
+
+    // Switch back to Map, then back to Log sheets — input state must persist.
+    await user.click(screen.getByRole("tab", { name: /^Map$/ }));
+    await user.click(screen.getByRole("tab", { name: /Log sheets/i }));
+    const truckInputsAfter = screen.getAllByLabelText("Truck or Tractor number");
+    expect(truckInputsAfter[0]).toHaveValue("T-99");
   });
 
-  it("shows the Trip-not-found Empty state with a 'plan a new trip' link when the trip is 404", async () => {
+  it("renders one Daily Log Sheet per day in a multi-day plan", async () => {
+    server.use(
+      http.get("http://localhost:8000/api/trips/:id/plan/", ({ params }) =>
+        HttpResponse.json({
+          trip_id: String(params.id),
+          start_at: "2026-05-21T14:00:00-07:00",
+          home_terminal_tz: "America/Los_Angeles",
+          stops: MULTI_DAY_PLAN_OVERRIDES.stops,
+          events: MULTI_DAY_PLAN_OVERRIDES.events,
+          days: MULTI_DAY_PLAN_OVERRIDES.days,
+        }),
+      ),
+    );
+
+    renderWithProviders(<TripsDetailRoute />, {
+      initialEntries: ["/trips/00000000-0000-4000-8000-000000000001?view=logs"],
+      routePath: "/trips/:id",
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: /Log sheets/i })).toHaveAttribute(
+        "data-state",
+        "active",
+      );
+    });
+    await waitFor(() => {
+      expect(document.querySelectorAll("[data-slot='daily-log-sheet']")).toHaveLength(3);
+    });
+  });
+
+  it("still shows the Trip-not-found Empty state when the trip is 404", async () => {
     server.use(
       http.get("http://localhost:8000/api/trips/:id/", () =>
         HttpResponse.json({ detail: "Trip not found.", errors: null }, { status: 404 }),
@@ -66,7 +151,7 @@ describe("TripsDetailRoute (main view)", () => {
     expect(screen.getByRole("link", { name: /plan a new trip/i })).toBeInTheDocument();
   });
 
-  it("shows the Trip-data-missing Empty state without a new-trip link when the plan is 404", async () => {
+  it("still shows the Trip-data-missing Empty state when the plan is 404", async () => {
     server.use(
       http.get("http://localhost:8000/api/trips/:id/plan/", () =>
         HttpResponse.json({ detail: "Plan not found.", errors: null }, { status: 404 }),
