@@ -19,4 +19,5 @@ urlpatterns = [
     path("api/me/", MeView.as_view(), name="me"),
     path("api/geocode/", include("web_api.apps.geocoding.urls")),
     path("api/trips/", include("web_api.apps.trips.urls")),
+    path("api/exports/", include("web_api.apps.exports.urls")),
 ]
