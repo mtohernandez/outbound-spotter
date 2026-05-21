@@ -7,17 +7,33 @@ import {
   type ThemeContextValue,
 } from "./theme-context";
 
-const STORAGE_KEY = "outbound-theme";
+const DEFAULT_STORAGE_KEY = "outbound-theme";
 const VALID_THEMES = new Set<Theme>(["light", "dark", "system"]);
 
 interface ThemeProviderProps {
   children: ReactNode;
   defaultTheme?: Theme;
+  /**
+   * localStorage key for persisting the user's theme choice. Pass a
+   * per-user value (e.g., `outbound-theme:${clerkUserId}`) so themes do
+   * not leak across accounts on a shared kiosk. Defaults to
+   * `outbound-theme`.
+   */
+  storageKey?: string;
 }
 
-export function ThemeProvider({ children, defaultTheme = "system" }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<Theme>(() => readStoredTheme(defaultTheme));
+export function ThemeProvider({
+  children,
+  defaultTheme = "system",
+  storageKey = DEFAULT_STORAGE_KEY,
+}: ThemeProviderProps) {
+  const [theme, setThemeState] = useState<Theme>(() => readStoredTheme(storageKey, defaultTheme));
   const [systemPrefersDark, setSystemPrefersDark] = useState<boolean>(readSystemPrefersDark);
+
+  // Consumers that need a different storageKey at runtime (e.g. swapping the
+  // anonymous key for a per-user key after sign-in) should remount the
+  // provider via `<ThemeProvider key={storageKey} ...>` — the initial
+  // useState reader handles the rehydration on the fresh mount.
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
@@ -39,15 +55,18 @@ export function ThemeProvider({ children, defaultTheme = "system" }: ThemeProvid
     document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
   }, [resolvedTheme]);
 
-  const setTheme = useCallback((next: Theme) => {
-    setThemeState(next);
-    if (typeof window === "undefined") return;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      // localStorage can throw in private-mode Safari and sandboxed iframes; in-memory state still updates.
-    }
-  }, []);
+  const setTheme = useCallback(
+    (next: Theme) => {
+      setThemeState(next);
+      if (typeof window === "undefined") return;
+      try {
+        window.localStorage.setItem(storageKey, next);
+      } catch {
+        // localStorage can throw in private-mode Safari and sandboxed iframes; in-memory state still updates.
+      }
+    },
+    [storageKey],
+  );
 
   const value = useMemo<ThemeContextValue>(
     () => ({ theme, resolvedTheme, setTheme }),
@@ -57,10 +76,10 @@ export function ThemeProvider({ children, defaultTheme = "system" }: ThemeProvid
   return <ThemeContext value={value}>{children}</ThemeContext>;
 }
 
-function readStoredTheme(defaultTheme: Theme): Theme {
+function readStoredTheme(storageKey: string, defaultTheme: Theme): Theme {
   if (typeof window === "undefined") return defaultTheme;
   try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
+    const stored = window.localStorage.getItem(storageKey);
     if (stored !== null && VALID_THEMES.has(stored as Theme)) return stored as Theme;
   } catch {
     // see setTheme — localStorage may be unavailable; fall through to default.

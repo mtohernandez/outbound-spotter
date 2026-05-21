@@ -9,6 +9,7 @@ import { TooltipProvider } from "@outbound/ui/components/ui/tooltip";
 import { useEffect } from "react";
 import { Outlet, useMatches } from "react-router";
 
+import { AppClock } from "@/components/app-shell/app-clock";
 import { AppSidebar } from "@/components/app-shell/app-sidebar";
 import { RequireAuth } from "@/components/require-auth";
 
@@ -52,6 +53,9 @@ function AppShellInner(): React.ReactElement {
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
           {title ? <span className="font-display text-sm font-medium">{title}</span> : null}
+          <div className="ms-auto">
+            <AppClock />
+          </div>
         </header>
         {isMobile && Secondary ? (
           <div className="max-h-[38vh] overflow-y-auto border-b">
