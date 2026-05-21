@@ -184,6 +184,19 @@ def test_reverse_out_of_range_lon_returns_400(authenticated_client: APIClient) -
     assert response.status_code == 400
 
 
+def test_reverse_nan_lat_returns_400(authenticated_client: APIClient) -> None:
+    response = authenticated_client.get("/api/geocode/reverse/?lat=nan&lon=0")
+
+    assert response.status_code == 400
+    assert response.json()["errors"] is not None
+
+
+def test_reverse_inf_lon_returns_400(authenticated_client: APIClient) -> None:
+    response = authenticated_client.get("/api/geocode/reverse/?lat=0&lon=infinity")
+
+    assert response.status_code == 400
+
+
 def test_reverse_rate_limit_returns_429(authenticated_client: APIClient) -> None:
     with patch(
         "web_api.apps.geocoding.views.geocode_reverse",

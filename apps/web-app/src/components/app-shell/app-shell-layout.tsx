@@ -5,7 +5,6 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@outbound/ui/components/ui/sidebar";
-import { TooltipProvider } from "@outbound/ui/components/ui/tooltip";
 import { useEffect } from "react";
 import { Outlet, useMatches } from "react-router";
 
@@ -73,11 +72,9 @@ function AppShellInner(): React.ReactElement {
 export function AppShellLayout(): React.ReactElement {
   return (
     <RequireAuth>
-      <TooltipProvider delayDuration={200}>
-        <SidebarProvider style={SIDEBAR_STYLE}>
-          <AppShellInner />
-        </SidebarProvider>
-      </TooltipProvider>
+      <SidebarProvider style={SIDEBAR_STYLE}>
+        <AppShellInner />
+      </SidebarProvider>
     </RequireAuth>
   );
 }

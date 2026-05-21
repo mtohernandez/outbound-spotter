@@ -1,3 +1,4 @@
+import { TooltipProvider } from "@outbound/ui/components/ui/tooltip";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -5,6 +6,10 @@ import { describe, expect, it, vi } from "vitest";
 import type { TripPlan } from "@/features/trip-planner/schemas/trip-plan";
 import type { TripResponse } from "@/features/trip-planner/schemas/trip-response";
 import { buildClerkMocks } from "@/testing/clerk-mocks";
+
+function renderInProviders(ui: React.ReactElement): ReturnType<typeof render> {
+  return render(<TooltipProvider>{ui}</TooltipProvider>);
+}
 
 const clerk = buildClerkMocks();
 
@@ -93,7 +98,7 @@ const MULTI_DAY: TripPlan["days"] = [
 
 describe("DailyLogSheetsStrip", () => {
   it("renders one DailyLogSheet per LogDay in ascending date order", () => {
-    render(<DailyLogSheetsStrip trip={TRIP} plan={makePlan(MULTI_DAY)} />);
+    renderInProviders(<DailyLogSheetsStrip trip={TRIP} plan={makePlan(MULTI_DAY)} />);
     const sheets = document.querySelectorAll("[data-slot='daily-log-sheet']");
     expect(sheets).toHaveLength(3);
     const ids = Array.from(sheets).map((s) => s.getAttribute("data-sheet-id"));
@@ -105,7 +110,7 @@ describe("DailyLogSheetsStrip", () => {
   });
 
   it("renders date headers per day in the home-terminal tz", () => {
-    render(<DailyLogSheetsStrip trip={TRIP} plan={makePlan(MULTI_DAY)} />);
+    renderInProviders(<DailyLogSheetsStrip trip={TRIP} plan={makePlan(MULTI_DAY)} />);
     // Each day's header is matched by the strip's `<h3>` (with "Day N of 3"
     // suffix); the inner SVG title also carries the date so getAllByText
     // returns multiple — scope to the strip's H3 headings.
@@ -117,19 +122,19 @@ describe("DailyLogSheetsStrip", () => {
   });
 
   it("uses Clerk's user to pre-fill the driver legal name on every sheet", () => {
-    render(<DailyLogSheetsStrip trip={TRIP} plan={makePlan(SINGLE_DAY)} />);
+    renderInProviders(<DailyLogSheetsStrip trip={TRIP} plan={makePlan(SINGLE_DAY)} />);
     // Clerk mock returns Jane Driver
     expect(screen.getAllByText("Jane Driver").length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders an empty-state message when the plan has no log days", () => {
-    render(<DailyLogSheetsStrip trip={TRIP} plan={makePlan([])} />);
+    renderInProviders(<DailyLogSheetsStrip trip={TRIP} plan={makePlan([])} />);
     expect(screen.getByText(/No log days were planned for this trip/i)).toBeInTheDocument();
   });
 
   it("shares the SheetMetadata across every sheet in the strip", async () => {
     const user = userEvent.setup();
-    render(<DailyLogSheetsStrip trip={TRIP} plan={makePlan(MULTI_DAY)} />);
+    renderInProviders(<DailyLogSheetsStrip trip={TRIP} plan={makePlan(MULTI_DAY)} />);
 
     // Each sheet has its own truck input, but they're all wired through the
     // strip-level useState, so typing into day 1's input must reflect in day 2/3.
@@ -142,7 +147,7 @@ describe("DailyLogSheetsStrip", () => {
   });
 
   it("renders the strip as a vertical scroll container", () => {
-    render(<DailyLogSheetsStrip trip={TRIP} plan={makePlan(SINGLE_DAY)} />);
+    renderInProviders(<DailyLogSheetsStrip trip={TRIP} plan={makePlan(SINGLE_DAY)} />);
     const strip = document.querySelector("[data-slot='daily-log-sheets-strip']");
     expect(strip).toHaveClass("overflow-y-auto");
   });

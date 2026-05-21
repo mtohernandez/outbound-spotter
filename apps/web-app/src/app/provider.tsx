@@ -43,7 +43,7 @@ export function AppProvider({ children }: Props): React.ReactElement {
     >
       <ThemedTree>
         <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
+          <TooltipProvider delayDuration={200}>
             <AppErrorBoundary>
               <Suspense
                 fallback={

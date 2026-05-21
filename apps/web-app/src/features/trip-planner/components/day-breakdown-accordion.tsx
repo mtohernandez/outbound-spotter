@@ -4,7 +4,7 @@ import {
   CollapsibleTrigger,
 } from "@outbound/ui/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import type { LogDay, LogEvent, TripPlan } from "@/features/trip-planner/schemas/trip-plan";
 
@@ -34,27 +34,35 @@ function formatEventTime(iso: string, tz: string): string {
   }).format(new Date(iso));
 }
 
-function eventsForDay(events: readonly LogEvent[], day: LogDay, tz: string): LogEvent[] {
-  const dayKey = day.date;
-  return events.filter((event) => {
-    // Wall-clock-date comparison: an event belongs to the day if its `start`
-    // falls on the same calendar date in the home-terminal TZ.
-    const partDay = new Intl.DateTimeFormat("en-CA", {
-      timeZone: tz,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date(event.start));
-    return partDay === dayKey;
-  });
-}
-
 interface Props {
   readonly plan: TripPlan;
 }
 
 export function DayBreakdownAccordion({ plan }: Props): React.ReactElement {
   const tz = plan.home_terminal_tz;
+
+  // Single pass: bucket each event by its wall-clock YYYY-MM-DD in the
+  // home-terminal TZ. One Intl.DateTimeFormat per render (vs N × M before).
+  const eventsByDate = useMemo(() => {
+    const fmt = new Intl.DateTimeFormat("en-CA", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    const buckets = new Map<string, LogEvent[]>();
+    for (const event of plan.events) {
+      const key = fmt.format(new Date(event.start));
+      const list = buckets.get(key);
+      if (list === undefined) {
+        buckets.set(key, [event]);
+      } else {
+        list.push(event);
+      }
+    }
+    return buckets;
+  }, [plan.events, tz]);
+
   return (
     <div className="flex flex-col gap-1.5">
       {plan.days.map((day, index) => (
@@ -62,7 +70,7 @@ export function DayBreakdownAccordion({ plan }: Props): React.ReactElement {
           key={day.id}
           day={day}
           tz={tz}
-          events={eventsForDay(plan.events, day, tz)}
+          events={eventsByDate.get(day.date) ?? []}
           defaultOpen={index === 0}
         />
       ))}

@@ -1,9 +1,18 @@
 import { Button } from "@outbound/ui/components/ui/button";
 import { FileDown } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useRef, useState } from "react";
 
-import { ExportDialog } from "@/features/pdf-export/components/export-dialog";
 import type { LogDay } from "@/features/trip-planner/schemas/trip-plan";
+
+// Lazy-load the dialog so the export-pdf code path (jspdf, svg2pdf.js, the
+// preview clone helper, the dialog primitives) ships in its own chunk —
+// triggered only when the driver opens the export dialog (spec 11b perf
+// review MAJOR-2).
+const ExportDialog = lazy(() =>
+  import("@/features/pdf-export/components/export-dialog").then((m) => ({
+    default: m.ExportDialog,
+  })),
+);
 
 interface ExportButtonProps {
   readonly tripId: string;
@@ -48,7 +57,11 @@ export function ExportButton({ tripId, days, disabled }: ExportButtonProps): Rea
         <FileDown data-icon aria-hidden="true" />
         Export PDF
       </Button>
-      <ExportDialog tripId={tripId} days={days} open={open} onOpenChange={handleOpenChange} />
+      {open ? (
+        <Suspense fallback={null}>
+          <ExportDialog tripId={tripId} days={days} open={open} onOpenChange={handleOpenChange} />
+        </Suspense>
+      ) : null}
     </>
   );
 }
