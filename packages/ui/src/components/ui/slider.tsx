@@ -3,12 +3,6 @@ import { Slider as SliderPrimitive } from "radix-ui";
 
 import { cn } from "@outbound/ui/lib/utils";
 
-// Spec-03 patch (not canonical shadcn output): the upstream Slider doesn't
-// (a) propagate `aria-label`/`aria-labelledby`/`aria-describedby` to the Thumb
-//     — the element with `role="slider"` that screen readers actually announce
-// (b) hit the WCAG 2.5.8 24×24 minimum target size (default thumb is `size-4`).
-// Both are fixed inline; if `shadcn add slider --overwrite` is re-run, these
-// edits must be re-applied (mirrors the spec-01 sonner.tsx precedent).
 function Slider({
   className,
   defaultValue,
@@ -33,7 +27,7 @@ function Slider({
       min={min}
       max={max}
       className={cn(
-        "relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
+        "relative flex w-full touch-none items-center select-none data-disabled:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
         className,
       )}
       {...props}
@@ -41,7 +35,7 @@ function Slider({
       <SliderPrimitive.Track
         data-slot="slider-track"
         className={cn(
-          "bg-muted relative grow overflow-hidden rounded-full data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5",
+          "bg-input relative grow overflow-hidden rounded-full data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5",
         )}
       >
         <SliderPrimitive.Range
