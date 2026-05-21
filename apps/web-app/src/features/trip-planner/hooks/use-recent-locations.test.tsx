@@ -2,7 +2,10 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { GeocodeFeature } from "@/features/trip-planner/api/geocode-autocomplete";
-import { useRecentLocations } from "@/features/trip-planner/hooks/use-recent-locations";
+import {
+  __resetRecentLocationsCacheForTests,
+  useRecentLocations,
+} from "@/features/trip-planner/hooks/use-recent-locations";
 
 const userMock = vi.hoisted(() => ({ current: { id: "user-1" } }));
 
@@ -35,11 +38,13 @@ function clearOutboundRecents(): void {
 describe("useRecentLocations", () => {
   beforeEach(() => {
     clearOutboundRecents();
+    __resetRecentLocationsCacheForTests();
     userMock.current = { id: "user-1" };
   });
 
   afterEach(() => {
     clearOutboundRecents();
+    __resetRecentLocationsCacheForTests();
   });
 
   it("starts empty when localStorage is empty", () => {
@@ -82,6 +87,24 @@ describe("useRecentLocations", () => {
 
     expect(result.current.recents).toHaveLength(2);
     expect(result.current.recents[0]?.label).toBe("A again");
+  });
+
+  it("shares the recents store across sibling hook instances (no last-write-wins)", () => {
+    // Browser-walk finding 2026-05-21: before this guard, each AddressField
+    // had its own local copy of `recents` and pushRecent only persisted the
+    // last sibling's pick to localStorage.
+    const { result: a } = renderHook(() => useRecentLocations());
+    const { result: b } = renderHook(() => useRecentLocations());
+
+    act(() => {
+      a.current.pushRecent(feature("A", 10, 10));
+    });
+    expect(b.current.recents.map((r) => r.label)).toEqual(["A"]);
+
+    act(() => {
+      b.current.pushRecent(feature("B", 20, 20));
+    });
+    expect(a.current.recents.map((r) => r.label)).toEqual(["B", "A"]);
   });
 
   it("namespaces recents per Clerk user id", () => {

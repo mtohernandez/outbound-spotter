@@ -41,8 +41,8 @@ export function AppProvider({ children }: Props): React.ReactElement {
       signInUrl={env.VITE_AUTH_SIGN_IN_URL}
       signUpUrl={env.VITE_AUTH_SIGN_UP_URL}
     >
-      <ThemedTree>
-        <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <ThemedTree>
           <TooltipProvider delayDuration={200}>
             <AppErrorBoundary>
               <Suspense
@@ -57,8 +57,8 @@ export function AppProvider({ children }: Props): React.ReactElement {
             </AppErrorBoundary>
           </TooltipProvider>
           <Toaster position="bottom-right" richColors closeButton />
-        </QueryClientProvider>
-      </ThemedTree>
+        </ThemedTree>
+      </QueryClientProvider>
     </ClerkProvider>
   );
 }

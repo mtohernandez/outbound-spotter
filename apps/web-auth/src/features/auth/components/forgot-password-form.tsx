@@ -219,7 +219,10 @@ export function ForgotPasswordForm(): React.ReactElement {
         <CardFooter className="justify-center">
           <p className="text-muted-foreground text-sm">
             Remembered it?{" "}
-            <Link to="/sign-in" className="text-primary underline-offset-2 hover:underline">
+            <Link
+              to="/sign-in"
+              className="text-primary focus-visible:ring-ring focus-visible:ring-offset-background rounded-sm underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-offset-2"
+            >
               Sign in
             </Link>
           </p>

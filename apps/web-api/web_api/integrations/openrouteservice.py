@@ -76,6 +76,10 @@ _STATUS_SERVER_ERROR_MIN: Final = 500
 _STATUS_SERVER_ERROR_MAX: Final = 600
 _MIN_COORD_PAIR_LEN: Final = 2
 _QUOTA_HINT_TOKEN: Final = "quota"  # noqa: S105 — ORS body marker, not a credential
+# Defense-in-depth: cap upstream label strings so a buggy or malicious Pelias
+# response can't push multi-MB strings through the FE JSON envelope. Spec 11
+# follow-up (security LOW-6). 256 chars is well above any plausible US address.
+_MAX_LABEL_CHARS: Final = 256
 
 
 @dataclass(frozen=True, slots=True)
@@ -270,6 +274,10 @@ def _parse_feature(feature: object) -> PeliasFeature:
     label = properties.get("label")
     if not isinstance(label, str) or not label:
         raise OrsUpstreamError("OpenRouteService feature missing label.")
+    if len(label) > _MAX_LABEL_CHARS:
+        # Truncate rather than raise — a long label is a Pelias data-quality
+        # issue, not a fatal upstream error; the FE still gets a usable result.
+        label = label[:_MAX_LABEL_CHARS]
 
     return PeliasFeature(
         label=label,

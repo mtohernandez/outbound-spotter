@@ -1,5 +1,5 @@
 import { useUser } from "@clerk/react";
-import { useCallback, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 import type { GeocodeFeature } from "@/features/trip-planner/api/geocode-autocomplete";
 
@@ -45,14 +45,73 @@ function saveToStorage(key: string, entries: readonly GeocodeFeature[]): void {
   }
 }
 
+// Module-level cache so every AddressField that calls useRecentLocations
+// shares the same recents list and sees pushes from siblings in real time.
+// Before this, each AddressField initialized its own state copy from
+// localStorage on mount and overwrote sibling writes on push (last write
+// won), so picking three addresses in the trip form left only the LAST in
+// storage. Browser-walk finding 2026-05-21.
+type Listener = () => void;
+const subscribersByKey = new Map<string, Set<Listener>>();
+const cacheByKey = new Map<string, readonly GeocodeFeature[]>();
+
+function readSnapshot(key: string): readonly GeocodeFeature[] {
+  const cached = cacheByKey.get(key);
+  if (cached !== undefined) return cached;
+  const initial = loadFromStorage(key);
+  cacheByKey.set(key, initial);
+  return initial;
+}
+
+function notify(key: string): void {
+  const subs = subscribersByKey.get(key);
+  if (subs === undefined) return;
+  for (const sub of subs) sub();
+}
+
+function subscribeForKey(key: string, listener: Listener): () => void {
+  let set = subscribersByKey.get(key);
+  if (set === undefined) {
+    set = new Set();
+    subscribersByKey.set(key, set);
+  }
+  set.add(listener);
+  return () => {
+    set.delete(listener);
+  };
+}
+
+/**
+ * Test-only: drop the module-level cache + subscribers. Production code never
+ * needs to call this — the cache is rebuilt lazily from localStorage on next
+ * read. Vitest suites should call this in `beforeEach` so per-test isolation
+ * survives the cross-instance shared store.
+ */
+export function __resetRecentLocationsCacheForTests(): void {
+  cacheByKey.clear();
+  subscribersByKey.clear();
+}
+
+function pushFor(key: string, feature: GeocodeFeature): void {
+  const current = cacheByKey.get(key) ?? loadFromStorage(key);
+  const next = [
+    feature,
+    ...current.filter((entry) => entry.lat !== feature.lat || entry.lon !== feature.lon),
+  ].slice(0, MAX_RECENTS);
+  cacheByKey.set(key, next);
+  saveToStorage(key, next);
+  notify(key);
+}
+
+const EMPTY_RECENTS: readonly GeocodeFeature[] = Object.freeze([]);
+
+function getServerSnapshot(): readonly GeocodeFeature[] {
+  return EMPTY_RECENTS;
+}
+
 export interface UseRecentLocationsResult {
   readonly recents: readonly GeocodeFeature[];
   readonly pushRecent: (feature: GeocodeFeature) => void;
-}
-
-interface InternalState {
-  readonly storageKey: string;
-  readonly recents: readonly GeocodeFeature[];
 }
 
 export function useRecentLocations(): UseRecentLocationsResult {
@@ -60,31 +119,18 @@ export function useRecentLocations(): UseRecentLocationsResult {
   const userId = user?.id;
   const storageKey = buildStorageKey(userId);
 
-  // React-docs-endorsed "derive state from props" pattern: store the key
-  // along with the recents and detect a mismatch during render. setState
-  // during render is allowed by React when applied to the *current*
-  // component (no cascading-render rule violation, no useEffect needed).
-  const [state, setState] = useState<InternalState>(() => ({
-    storageKey,
-    recents: loadFromStorage(storageKey),
-  }));
+  const recents = useSyncExternalStore(
+    (listener) => subscribeForKey(storageKey, listener),
+    () => readSnapshot(storageKey),
+    getServerSnapshot,
+  );
 
-  if (state.storageKey !== storageKey) {
-    setState({ storageKey, recents: loadFromStorage(storageKey) });
-  }
+  const pushRecent = useCallback(
+    (feature: GeocodeFeature) => {
+      pushFor(storageKey, feature);
+    },
+    [storageKey],
+  );
 
-  const pushRecent = useCallback((feature: GeocodeFeature) => {
-    setState((current) => {
-      const next = [
-        feature,
-        ...current.recents.filter(
-          (entry) => entry.lat !== feature.lat || entry.lon !== feature.lon,
-        ),
-      ].slice(0, MAX_RECENTS);
-      saveToStorage(current.storageKey, next);
-      return { storageKey: current.storageKey, recents: next };
-    });
-  }, []);
-
-  return { recents: state.recents, pushRecent };
+  return { recents, pushRecent };
 }

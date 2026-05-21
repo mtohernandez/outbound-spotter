@@ -99,6 +99,9 @@ function triggerBrowserDownload(blob: Blob, filename: string): void {
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
+  // Hide the transient anchor from AT (a11y LOW from spec 11c audit).
+  link.setAttribute("aria-hidden", "true");
+  link.tabIndex = -1;
   document.body.appendChild(link);
   link.click();
   link.remove();

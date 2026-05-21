@@ -189,6 +189,11 @@ function triggerBrowserDownload(blob: Blob, filename: string): void {
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
+  // The append → click → remove cycle is synchronous, but the anchor is
+  // briefly in the accessibility tree without a name. Hide it from AT so it
+  // never surfaces as a phantom focusable element (a11y LOW from 11c).
+  link.setAttribute("aria-hidden", "true");
+  link.tabIndex = -1;
   document.body.appendChild(link);
   link.click();
   link.remove();

@@ -179,7 +179,10 @@ export function SignInForm(): React.ReactElement {
       <CardFooter className="justify-center">
         <p className="text-muted-foreground text-sm">
           Don&apos;t have an account?{" "}
-          <Link to="/sign-up" className="text-primary underline-offset-2 hover:underline">
+          <Link
+            to="/sign-up"
+            className="text-primary focus-visible:ring-ring focus-visible:ring-offset-background rounded-sm underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-offset-2"
+          >
             Create one
           </Link>
         </p>

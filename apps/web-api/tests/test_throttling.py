@@ -95,6 +95,8 @@ def _set_test_rates(monkeypatch: pytest.MonkeyPatch, **overrides: str) -> None:
     base = {
         "geocode_autocomplete": "60/min",
         "geocode_search": "20/min",
+        "geocode_reverse": "30/min",
+        "pelias_global": "900/day",
         "trip_create": "30/hour",
         "trip_list": "60/min",
         "trip_delete": "20/min",
@@ -177,6 +179,31 @@ def test_throttle_is_keyed_per_user_id(monkeypatch: pytest.MonkeyPatch) -> None:
     next(client_iter_b, None)
 
 
+def test_pelias_global_throttle_caps_across_users(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Spec 11 follow-up (security-auditor MEDIUM-2): the global Pelias
+    bucket bounds total Pelias traffic across all users so one client can't
+    drain the HeiGIT 1000/day shared quota for everyone else.
+    """
+    # Generous per-user rate, tiny global rate — once global is exhausted,
+    # every user (including fresh ones) gets 429.
+    _set_test_rates(monkeypatch, geocode_autocomplete="100/min", pelias_global="3/min")
+
+    client_iter_a = _client_for("user_global_a")
+    client_a = next(client_iter_a)
+    with patch("web_api.apps.geocoding.views.geocode_autocomplete", return_value=[]):
+        for _ in range(3):
+            assert client_a.get("/api/geocode/autocomplete/?text=A").status_code == 200
+        assert client_a.get("/api/geocode/autocomplete/?text=A").status_code == 429
+    next(client_iter_a, None)
+
+    # Fresh user → still 429 because the global bucket is full.
+    client_iter_b = _client_for("user_global_b")
+    client_b = next(client_iter_b)
+    with patch("web_api.apps.geocoding.views.geocode_autocomplete", return_value=[]):
+        assert client_b.get("/api/geocode/autocomplete/?text=B").status_code == 429
+    next(client_iter_b, None)
+
+
 def test_production_throttle_rates_are_intact() -> None:
     """Smoke: confirm the documented rates remain in settings (not the
     monkeypatched class attribute — the source of truth is REST_FRAMEWORK)."""
@@ -186,6 +213,8 @@ def test_production_throttle_rates_are_intact() -> None:
     rates = cast("dict[str, str]", rest_framework["DEFAULT_THROTTLE_RATES"])
     assert rates["geocode_autocomplete"] == "60/min"
     assert rates["geocode_search"] == "20/min"
+    assert rates["geocode_reverse"] == "30/min"
+    assert rates["pelias_global"] == "900/day"
     assert rates["trip_create"] == "30/hour"
     assert rates["trip_list"] == "60/min"
     assert rates["trip_delete"] == "20/min"

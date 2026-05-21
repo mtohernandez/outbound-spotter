@@ -144,41 +144,28 @@ paths:
                 $ref: '#/components/schemas/FeaturesEnvelope'
           description: ''
   /api/geocode/reverse/:
-    get:
-      operationId: geocode_reverse_retrieve
+    post:
+      operationId: geocode_reverse_create
       description: |-
-        Coordinate-to-address Pelias reverse. ``GET /api/geocode/reverse/?lat=&lon=``.
+        Coordinate-to-address Pelias reverse. ``POST /api/geocode/reverse/`` with
+        JSON body ``{lat, lon, size?}``.
 
         Powers the "Use my current location" UX in web-app (spec 11b): the FE calls
-        ``navigator.geolocation.getCurrentPosition`` and hands the resulting (lat,
+        ``navigator.geolocation.getCurrentPosition`` and POSTs the resulting (lat,
         lon) to this endpoint to resolve the user-visible label. Same `PeliasFeature`
         envelope as autocomplete + search so the FE consumes one type.
-      parameters:
-        - in: query
-          name: lat
-          schema:
-            type: number
-            format: double
-            maximum: 90
-            minimum: -90
-          required: true
-        - in: query
-          name: lon
-          schema:
-            type: number
-            format: double
-            maximum: 180
-            minimum: -180
-          required: true
-        - in: query
-          name: size
-          schema:
-            type: integer
-            maximum: 10
-            minimum: 1
-            default: 1
+
+        **Why POST, not GET** (spec 11b security follow-up, MEDIUM-3): driver
+        coordinates are PII. A GET would put `?lat=&lon=` directly in the access
+        log of every proxy in front of the web-api; a POST body never lands there.
       tags:
         - geocode
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReverseRequestRequest'
+        required: true
       responses:
         '200':
           content:
@@ -489,6 +476,27 @@ components:
         - lon
         - match_type
         - region_a
+    ReverseRequestRequest:
+      type: object
+      properties:
+        lat:
+          type: number
+          format: double
+          maximum: 90
+          minimum: -90
+        lon:
+          type: number
+          format: double
+          maximum: 180
+          minimum: -180
+        size:
+          type: integer
+          maximum: 10
+          minimum: 1
+          default: 1
+      required:
+        - lat
+        - lon
     TripCreateRequestRequest:
       type: object
       properties:

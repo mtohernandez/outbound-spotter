@@ -1,6 +1,6 @@
 import { Button } from "@outbound/ui/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { ExportMode } from "@/features/pdf-export/types/export-mode";
 import type { LogDay } from "@/features/trip-planner/schemas/trip-plan";
@@ -15,7 +15,12 @@ const PREVIEW_HEIGHT_PX = 260;
 export function PdfPreview({ days, mode }: Props): React.ReactElement | null {
   const [page, setPage] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const visibleDays = mode === "single-page" ? days : days.slice(page, page + 1);
+  // Memoize the slice so the effect's dependency stays referentially stable
+  // across renders that don't change `days`/`mode`/`page` (perf MINOR-1).
+  const visibleDays = useMemo(
+    () => (mode === "single-page" ? days : days.slice(page, page + 1)),
+    [days, mode, page],
+  );
 
   // Mirror what renderTripPdf will commit: clone the live SVGs the user
   // already sees in the Log Sheets tab and render them inline at scaled
@@ -29,13 +34,10 @@ export function PdfPreview({ days, mode }: Props): React.ReactElement | null {
       if (!(live instanceof SVGSVGElement)) continue;
       const clone = live.cloneNode(true) as SVGSVGElement;
       clone.removeAttribute("id");
-      clone.style.display = "block";
-      clone.style.width = "100%";
-      clone.style.height = "auto";
+      clone.removeAttribute("width");
+      clone.removeAttribute("height");
+      clone.style.cssText = "display:block;width:100%;height:auto;max-width:100%;min-width:0;";
       clone.setAttribute("role", "img");
-      // role="img" without a name fails WCAG 1.1.1; the clone's <title>
-      // child references in the live tree are now dangling, so name the
-      // clone explicitly with the day's date.
       clone.setAttribute("aria-label", `Daily log sheet for ${day.date}`);
       host.appendChild(clone);
     }
@@ -48,7 +50,7 @@ export function PdfPreview({ days, mode }: Props): React.ReactElement | null {
   const canNext = isMulti && page < days.length - 1;
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex min-w-0 flex-col gap-2">
       <div className="text-muted-foreground flex items-center justify-between text-xs">
         <span>Preview</span>
         {isMulti ? (
@@ -61,7 +63,7 @@ export function PdfPreview({ days, mode }: Props): React.ReactElement | null {
       </div>
       <div
         ref={containerRef}
-        className="bg-card border-border max-h-[var(--preview-h)] overflow-y-auto rounded-md border p-2"
+        className="bg-card border-border max-h-(--preview-h) w-full min-w-0 overflow-x-hidden overflow-y-auto rounded-md border p-2"
         style={{ "--preview-h": `${PREVIEW_HEIGHT_PX.toString()}px` } as React.CSSProperties}
       />
       {isMulti ? (

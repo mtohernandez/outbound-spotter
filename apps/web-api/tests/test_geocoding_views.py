@@ -144,9 +144,22 @@ def test_search_text_too_long_returns_400(authenticated_client: APIClient) -> No
 
 
 def test_reverse_without_token_returns_401(unauthenticated_client: APIClient) -> None:
-    response = unauthenticated_client.get("/api/geocode/reverse/?lat=37.5&lon=-77.4")
+    response = unauthenticated_client.post(
+        "/api/geocode/reverse/",
+        {"lat": 37.5, "lon": -77.4},
+        format="json",
+    )
 
     assert response.status_code == 401
+
+
+def test_reverse_get_method_not_allowed(authenticated_client: APIClient) -> None:
+    """Spec 11 follow-up MEDIUM-3: lat/lon are PII; GET would put them in
+    access logs. The endpoint accepts POST only.
+    """
+    response = authenticated_client.get("/api/geocode/reverse/?lat=37.5&lon=-77.4")
+
+    assert response.status_code == 405
 
 
 def test_reverse_happy_path(authenticated_client: APIClient) -> None:
@@ -154,7 +167,11 @@ def test_reverse_happy_path(authenticated_client: APIClient) -> None:
         "web_api.apps.geocoding.views.geocode_reverse",
         return_value=[_feature()],
     ) as mocked:
-        response = authenticated_client.get("/api/geocode/reverse/?lat=37.5407&lon=-77.4360")
+        response = authenticated_client.post(
+            "/api/geocode/reverse/",
+            {"lat": 37.5407, "lon": -77.4360},
+            format="json",
+        )
 
     assert response.status_code == 200
     body = response.json()
@@ -166,33 +183,53 @@ def test_reverse_happy_path(authenticated_client: APIClient) -> None:
 
 
 def test_reverse_missing_lat_returns_400(authenticated_client: APIClient) -> None:
-    response = authenticated_client.get("/api/geocode/reverse/?lon=-77.4")
+    response = authenticated_client.post(
+        "/api/geocode/reverse/",
+        {"lon": -77.4},
+        format="json",
+    )
 
     assert response.status_code == 400
     assert response.json()["errors"] is not None
 
 
 def test_reverse_out_of_range_lat_returns_400(authenticated_client: APIClient) -> None:
-    response = authenticated_client.get("/api/geocode/reverse/?lat=999&lon=0")
+    response = authenticated_client.post(
+        "/api/geocode/reverse/",
+        {"lat": 999, "lon": 0},
+        format="json",
+    )
 
     assert response.status_code == 400
 
 
 def test_reverse_out_of_range_lon_returns_400(authenticated_client: APIClient) -> None:
-    response = authenticated_client.get("/api/geocode/reverse/?lat=0&lon=999")
+    response = authenticated_client.post(
+        "/api/geocode/reverse/",
+        {"lat": 0, "lon": 999},
+        format="json",
+    )
 
     assert response.status_code == 400
 
 
 def test_reverse_nan_lat_returns_400(authenticated_client: APIClient) -> None:
-    response = authenticated_client.get("/api/geocode/reverse/?lat=nan&lon=0")
+    response = authenticated_client.post(
+        "/api/geocode/reverse/",
+        {"lat": "nan", "lon": 0},
+        format="json",
+    )
 
     assert response.status_code == 400
     assert response.json()["errors"] is not None
 
 
 def test_reverse_inf_lon_returns_400(authenticated_client: APIClient) -> None:
-    response = authenticated_client.get("/api/geocode/reverse/?lat=0&lon=infinity")
+    response = authenticated_client.post(
+        "/api/geocode/reverse/",
+        {"lat": 0, "lon": "infinity"},
+        format="json",
+    )
 
     assert response.status_code == 400
 
@@ -202,7 +239,11 @@ def test_reverse_rate_limit_returns_429(authenticated_client: APIClient) -> None
         "web_api.apps.geocoding.views.geocode_reverse",
         side_effect=OrsRateLimitError("quota", window="per-minute"),
     ):
-        response = authenticated_client.get("/api/geocode/reverse/?lat=37.5&lon=-77.4")
+        response = authenticated_client.post(
+            "/api/geocode/reverse/",
+            {"lat": 37.5, "lon": -77.4},
+            format="json",
+        )
 
     assert response.status_code == 429
 
@@ -212,7 +253,11 @@ def test_reverse_upstream_5xx_returns_502(authenticated_client: APIClient) -> No
         "web_api.apps.geocoding.views.geocode_reverse",
         side_effect=OrsUpstreamError("oops"),
     ):
-        response = authenticated_client.get("/api/geocode/reverse/?lat=37.5&lon=-77.4")
+        response = authenticated_client.post(
+            "/api/geocode/reverse/",
+            {"lat": 37.5, "lon": -77.4},
+            format="json",
+        )
 
     assert response.status_code == 502
 
@@ -222,6 +267,10 @@ def test_reverse_request_error_returns_400(authenticated_client: APIClient) -> N
         "web_api.apps.geocoding.views.geocode_reverse",
         side_effect=OrsRequestError("bad"),
     ):
-        response = authenticated_client.get("/api/geocode/reverse/?lat=37.5&lon=-77.4")
+        response = authenticated_client.post(
+            "/api/geocode/reverse/",
+            {"lat": 37.5, "lon": -77.4},
+            format="json",
+        )
 
     assert response.status_code == 400
