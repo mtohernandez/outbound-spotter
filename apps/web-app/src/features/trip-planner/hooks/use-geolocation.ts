@@ -84,6 +84,10 @@ export function useGeolocation(): GeolocationState {
               : positionError.code === positionError.TIMEOUT
                 ? "timeout"
                 : "unavailable";
+          // Clear any previously-cached coords on every non-success path so
+          // consumers never read a stale location after a denial / timeout
+          // (matches the outside-us branch above for consistency).
+          setCoords(null);
           setStatus(mapped);
           const err = new Error(positionError.message || mapped);
           setError(err);

@@ -26,9 +26,17 @@ from web_api.integrations.openrouteservice import (
     geocode_reverse,
     geocode_search,
 )
+from web_api.throttling import PeliasGlobalThrottle, PerUserScopedThrottle
 
 if TYPE_CHECKING:
     from rest_framework.request import Request
+    from rest_framework.throttling import BaseThrottle
+
+
+# Every Pelias proxy view stacks the per-user throttle with the tenant-wide
+# global throttle so one user can't drain the shared HeiGIT 1000/day cap for
+# everyone else (security-auditor MEDIUM-2 from spec 11b review).
+PELIAS_THROTTLES: list[type[BaseThrottle]] = [PerUserScopedThrottle, PeliasGlobalThrottle]
 
 
 def _features_payload(features: list[PeliasFeature]) -> list[dict[str, Any]]:
@@ -58,6 +66,11 @@ class GeocodeAutocompleteView(APIView):
     """As-you-type Pelias autocomplete. ``GET /api/geocode/autocomplete/?text=…``."""
 
     permission_classes: ClassVar[list[type[BasePermission]]] = [IsAuthenticated]  # type: ignore[misc]
+    # mypy flags overriding APIView's instance-attr with ClassVar; this is a
+    # well-trodden DRF pattern — the docs explicitly show subclasses setting
+    # `throttle_classes` as a class attribute. The mypy diagnostic is wrong
+    # for this idiom.
+    throttle_classes: ClassVar[list[type[BaseThrottle]]] = PELIAS_THROTTLES  # type: ignore[misc]
     throttle_scope = "geocode_autocomplete"
 
     @extend_schema(
@@ -87,6 +100,11 @@ class GeocodeSearchView(APIView):
     """Full-string Pelias search. ``GET /api/geocode/search/?text=…``."""
 
     permission_classes: ClassVar[list[type[BasePermission]]] = [IsAuthenticated]  # type: ignore[misc]
+    # mypy flags overriding APIView's instance-attr with ClassVar; this is a
+    # well-trodden DRF pattern — the docs explicitly show subclasses setting
+    # `throttle_classes` as a class attribute. The mypy diagnostic is wrong
+    # for this idiom.
+    throttle_classes: ClassVar[list[type[BaseThrottle]]] = PELIAS_THROTTLES  # type: ignore[misc]
     throttle_scope = "geocode_search"
 
     @extend_schema(
@@ -110,23 +128,33 @@ class GeocodeSearchView(APIView):
 
 
 class GeocodeReverseView(APIView):
-    """Coordinate-to-address Pelias reverse. ``GET /api/geocode/reverse/?lat=&lon=``.
+    """Coordinate-to-address Pelias reverse. ``POST /api/geocode/reverse/`` with
+    JSON body ``{lat, lon, size?}``.
 
     Powers the "Use my current location" UX in web-app (spec 11b): the FE calls
-    ``navigator.geolocation.getCurrentPosition`` and hands the resulting (lat,
+    ``navigator.geolocation.getCurrentPosition`` and POSTs the resulting (lat,
     lon) to this endpoint to resolve the user-visible label. Same `PeliasFeature`
     envelope as autocomplete + search so the FE consumes one type.
+
+    **Why POST, not GET** (spec 11b security follow-up, MEDIUM-3): driver
+    coordinates are PII. A GET would put `?lat=&lon=` directly in the access
+    log of every proxy in front of the web-api; a POST body never lands there.
     """
 
     permission_classes: ClassVar[list[type[BasePermission]]] = [IsAuthenticated]  # type: ignore[misc]
+    # mypy flags overriding APIView's instance-attr with ClassVar; this is a
+    # well-trodden DRF pattern — the docs explicitly show subclasses setting
+    # `throttle_classes` as a class attribute. The mypy diagnostic is wrong
+    # for this idiom.
+    throttle_classes: ClassVar[list[type[BaseThrottle]]] = PELIAS_THROTTLES  # type: ignore[misc]
     throttle_scope = "geocode_reverse"
 
     @extend_schema(
-        parameters=[ReverseRequestSerializer],
+        request=ReverseRequestSerializer,
         responses={200: FeaturesEnvelopeSerializer},
     )
-    def get(self, request: Request) -> Response:
-        serializer = ReverseRequestSerializer(data=request.query_params)
+    def post(self, request: Request) -> Response:
+        serializer = ReverseRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 

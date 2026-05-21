@@ -7,7 +7,7 @@ function Empty({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="empty"
       className={cn(
-        "flex min-w-0 flex-1 flex-col items-center justify-center gap-6 rounded-lg border-dashed p-6 text-center text-balance md:p-12",
+        "flex min-w-0 flex-1 flex-col items-center justify-center gap-6 rounded-lg border border-dashed p-6 text-center text-balance md:p-12",
         className,
       )}
       {...props}
@@ -55,13 +55,19 @@ function EmptyMedia({
   );
 }
 
-function EmptyTitle({ className, ...props }: React.ComponentProps<"div">) {
+function EmptyTitle({ className, children, ...props }: React.ComponentProps<"h2">) {
+  // <h2> rather than <div> so screen-reader users navigating by heading can
+  // land on error / empty / 404 states. WCAG 2.4.6 + 1.3.1. Visual styling
+  // is preserved by `text-lg font-medium tracking-tight`. `children` is
+  // destructured so jsx-a11y/heading-has-content can verify content.
   return (
-    <div
+    <h2
       data-slot="empty-title"
       className={cn("text-lg font-medium tracking-tight", className)}
       {...props}
-    />
+    >
+      {children}
+    </h2>
   );
 }
 

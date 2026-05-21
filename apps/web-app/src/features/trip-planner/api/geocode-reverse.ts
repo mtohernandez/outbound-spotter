@@ -26,9 +26,13 @@ export function useReverseGeocode(): UseMutationResult<GeocodeFeature, Error, Re
   return useMutation<GeocodeFeature, Error, ReverseGeocodeInput>({
     mutationFn: async ({ lat, lon }) => {
       const token = await getToken();
-      const params = new URLSearchParams({ lat: lat.toString(), lon: lon.toString() });
-      const result = await apiFetch<ReverseResponse>(`/api/geocode/reverse/?${params.toString()}`, {
+      // POST with JSON body — driver coordinates are PII and a GET would
+      // put `?lat=&lon=` in proxy access logs. Spec 11 follow-up (security
+      // MEDIUM-3).
+      const result = await apiFetch<ReverseResponse>("/api/geocode/reverse/", {
+        method: "POST",
         token,
+        json: { lat, lon },
       });
       const first = result.features[0];
       if (first === undefined) {

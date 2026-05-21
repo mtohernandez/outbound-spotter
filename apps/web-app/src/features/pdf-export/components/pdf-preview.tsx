@@ -1,6 +1,6 @@
 import { Button } from "@outbound/ui/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { ExportMode } from "@/features/pdf-export/types/export-mode";
 import type { LogDay } from "@/features/trip-planner/schemas/trip-plan";
@@ -15,7 +15,12 @@ const PREVIEW_HEIGHT_PX = 260;
 export function PdfPreview({ days, mode }: Props): React.ReactElement | null {
   const [page, setPage] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const visibleDays = mode === "single-page" ? days : days.slice(page, page + 1);
+  // Memoize the slice so the effect's dependency stays referentially stable
+  // across renders that don't change `days`/`mode`/`page` (perf MINOR-1).
+  const visibleDays = useMemo(
+    () => (mode === "single-page" ? days : days.slice(page, page + 1)),
+    [days, mode, page],
+  );
 
   // Mirror what renderTripPdf will commit: clone the live SVGs the user
   // already sees in the Log Sheets tab and render them inline at scaled

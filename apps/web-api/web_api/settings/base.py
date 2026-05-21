@@ -150,6 +150,10 @@ REST_FRAMEWORK = {
         "geocode_autocomplete": "60/min",
         "geocode_search": "20/min",
         "geocode_reverse": "30/min",
+        # Tenant-wide cap protecting the shared HeiGIT Pelias quota
+        # (~1000/day published). Tuned under the upstream so we surface a
+        # clean DRF 429 before HeiGIT does. See web_api.throttling.PeliasGlobalThrottle.
+        "pelias_global": "900/day",
         "trip_create": "30/hour",
         "trip_list": "60/min",
         "trip_delete": "20/min",
