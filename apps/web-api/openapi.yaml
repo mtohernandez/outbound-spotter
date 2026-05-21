@@ -1,0 +1,707 @@
+openapi: 3.0.3
+info:
+  title: Outbound Spotter API
+  version: 0.0.0
+  description: HOS-compliant trip planning and ELD log generation.
+paths:
+  /api/exports/:
+    get:
+      operationId: exports_list
+      description: |-
+        ``GET /api/exports/`` (paginated, ownership-filtered) + ``POST /api/exports/``.
+
+        GET returns the user's exports ordered newest-first. POST writes an
+        audit row after a server-side ownership re-check + sheet-count compute.
+      parameters:
+        - name: limit
+          required: false
+          in: query
+          description: Number of results to return per page.
+          schema:
+            type: integer
+        - name: offset
+          required: false
+          in: query
+          description: The initial index from which to return the results.
+          schema:
+            type: integer
+      tags:
+        - exports
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTripExportListItemList'
+          description: ''
+    post:
+      operationId: exports_create
+      description: |-
+        ``GET /api/exports/`` (paginated, ownership-filtered) + ``POST /api/exports/``.
+
+        GET returns the user's exports ordered newest-first. POST writes an
+        audit row after a server-side ownership re-check + sheet-count compute.
+      tags:
+        - exports
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripExportCreateRequestRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripExportListItem'
+          description: ''
+  /api/exports/{id}/:
+    get:
+      operationId: exports_retrieve
+      description: |-
+        ``DELETE /api/exports/<uuid:id>/`` — remove an audit row.
+
+        The PDF on the user's disk is unaffected; deleting an audit row only
+        removes the history entry. GET is also exposed (free with
+        ``RetrieveDestroyAPIView``) and harmless — mirrors the trips precedent.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          required: true
+      tags:
+        - exports
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripExportListItem'
+          description: ''
+    delete:
+      operationId: exports_destroy
+      description: |-
+        ``DELETE /api/exports/<uuid:id>/`` — remove an audit row.
+
+        The PDF on the user's disk is unaffected; deleting an audit row only
+        removes the history entry. GET is also exposed (free with
+        ``RetrieveDestroyAPIView``) and harmless — mirrors the trips precedent.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          required: true
+      tags:
+        - exports
+      responses:
+        '204':
+          description: No response body
+  /api/geocode/autocomplete/:
+    get:
+      operationId: geocode_autocomplete_retrieve
+      description: As-you-type Pelias autocomplete. ``GET /api/geocode/autocomplete/?text=…``.
+      parameters:
+        - in: query
+          name: focus_lat
+          schema:
+            type: number
+            format: double
+            maximum: 90
+            minimum: -90
+        - in: query
+          name: focus_lon
+          schema:
+            type: number
+            format: double
+            maximum: 180
+            minimum: -180
+        - in: query
+          name: size
+          schema:
+            type: integer
+            maximum: 10
+            minimum: 1
+            default: 5
+        - in: query
+          name: text
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+          required: true
+      tags:
+        - geocode
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeaturesEnvelope'
+          description: ''
+  /api/geocode/reverse/:
+    post:
+      operationId: geocode_reverse_create
+      description: |-
+        Coordinate-to-address Pelias reverse. ``POST /api/geocode/reverse/`` with
+        JSON body ``{lat, lon, size?}``.
+
+        Powers the "Use my current location" UX in web-app (spec 11b): the FE calls
+        ``navigator.geolocation.getCurrentPosition`` and POSTs the resulting (lat,
+        lon) to this endpoint to resolve the user-visible label. Same `PeliasFeature`
+        envelope as autocomplete + search so the FE consumes one type.
+
+        **Why POST, not GET** (spec 11b security follow-up, MEDIUM-3): driver
+        coordinates are PII. A GET would put `?lat=&lon=` directly in the access
+        log of every proxy in front of the web-api; a POST body never lands there.
+      tags:
+        - geocode
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReverseRequestRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeaturesEnvelope'
+          description: ''
+  /api/geocode/search/:
+    get:
+      operationId: geocode_search_retrieve
+      description: Full-string Pelias search. ``GET /api/geocode/search/?text=…``.
+      parameters:
+        - in: query
+          name: size
+          schema:
+            type: integer
+            maximum: 10
+            minimum: 1
+            default: 1
+        - in: query
+          name: text
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+          required: true
+      tags:
+        - geocode
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeaturesEnvelope'
+          description: ''
+  /api/me/:
+    get:
+      operationId: me_retrieve
+      description: |-
+        Returns the decoded Clerk session for the current request.
+
+        Used by the web-app to confirm the JWT round-trip works and to pick up the canonical user id
+        server-side. Any unauthenticated request gets a 401 from DRF's `IsAuthenticated` permission.
+      tags:
+        - me
+      responses:
+        '200':
+          description: No response body
+  /api/trips/:
+    get:
+      operationId: trips_list
+      description: |-
+        ``POST /api/trips/`` (custom ORS+HOS create) + ``GET /api/trips/`` (list).
+
+        POST keeps the bespoke validate-then-persist pipeline so ORS failures
+        short-circuit before any row hits the DB. GET answers the spec-09 list:
+        ownership-filtered, ordered newest-first, paginated by the project-wide
+        ``LimitOffsetPagination``, annotated with ``days_count`` via the manager
+        so the response stays a single grouped JOIN.
+      parameters:
+        - name: limit
+          required: false
+          in: query
+          description: Number of results to return per page.
+          schema:
+            type: integer
+        - name: offset
+          required: false
+          in: query
+          description: The initial index from which to return the results.
+          schema:
+            type: integer
+      tags:
+        - trips
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTripListItemList'
+          description: ''
+    post:
+      operationId: trips_create
+      description: |-
+        ``POST /api/trips/`` (custom ORS+HOS create) + ``GET /api/trips/`` (list).
+
+        POST keeps the bespoke validate-then-persist pipeline so ORS failures
+        short-circuit before any row hits the DB. GET answers the spec-09 list:
+        ownership-filtered, ordered newest-first, paginated by the project-wide
+        ``LimitOffsetPagination``, annotated with ``days_count`` via the manager
+        so the response stays a single grouped JOIN.
+      tags:
+        - trips
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripCreateRequestRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripResponse'
+          description: ''
+  /api/trips/{id}/:
+    get:
+      operationId: trips_retrieve
+      description: |-
+        ``GET /api/trips/<uuid:id>/`` + ``DELETE /api/trips/<uuid:id>/``.
+
+        GET returns the spec-04 retrieve envelope. DELETE (spec 09) hard-deletes
+        the row; FK ``on_delete=CASCADE`` removes ``TripStop`` / ``LogEvent`` /
+        ``LogDay`` in the same statement. Ownership filtering lives in
+        ``get_queryset`` so foreign UUIDs surface as 404 (no oracle — matches
+        the spec-04 ``TripRetrieveView`` and spec-06 ``TripPlanView`` precedents).
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          required: true
+      tags:
+        - trips
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripResponse'
+          description: ''
+    delete:
+      operationId: trips_destroy
+      description: |-
+        ``GET /api/trips/<uuid:id>/`` + ``DELETE /api/trips/<uuid:id>/``.
+
+        GET returns the spec-04 retrieve envelope. DELETE (spec 09) hard-deletes
+        the row; FK ``on_delete=CASCADE`` removes ``TripStop`` / ``LogEvent`` /
+        ``LogDay`` in the same statement. Ownership filtering lives in
+        ``get_queryset`` so foreign UUIDs surface as 404 (no oracle — matches
+        the spec-04 ``TripRetrieveView`` and spec-06 ``TripPlanView`` precedents).
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          required: true
+      tags:
+        - trips
+      responses:
+        '204':
+          description: No response body
+  /api/trips/{id}/plan/:
+    get:
+      operationId: trips_plan_retrieve
+      description: |-
+        ``GET /api/trips/<uuid:id>/plan/`` — the persisted HOS plan envelope.
+
+        ``get_queryset`` scopes to the requesting user so a foreign trip surfaces
+        as 404 (no oracle). The three reverse relations are prefetched so the
+        composed serializer issues no extra queries per row — the retrieve runs
+        in 4 queries total: 1 for the Trip lookup + ownership filter, plus one
+        batched prefetch per reverse relation (``stops`` / ``log_events`` /
+        ``log_days``). Django does NOT batch multiple ``prefetch_related``
+        targets into a single SQL statement; each target gets its own
+        ``SELECT … WHERE trip_id IN (…)``.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          required: true
+      tags:
+        - trips
+      responses:
+        '200':
+          description: No response body
+components:
+  schemas:
+    AddressInputRequest:
+      type: object
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 255
+        lat:
+          type: number
+          format: double
+          maximum: 90
+          minimum: -90
+        lon:
+          type: number
+          format: double
+          maximum: 180
+          minimum: -180
+        confidence:
+          type: number
+          format: double
+          maximum: 1
+          minimum: 0
+          nullable: true
+      required:
+        - label
+        - lat
+        - lon
+    FeaturesEnvelope:
+      type: object
+      description: 'Wrapper used only for the OpenAPI schema — `{"features": [...]}`.'
+      properties:
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/PeliasFeature'
+      required:
+        - features
+    ModeEnum:
+      enum:
+        - multi-page
+        - single-page
+      type: string
+      description: |-
+        * `multi-page` - multi-page
+        * `single-page` - single-page
+    PaginatedTripExportListItemList:
+      type: object
+      required:
+        - count
+        - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TripExportListItem'
+    PaginatedTripListItemList:
+      type: object
+      required:
+        - count
+        - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TripListItem'
+    PeliasFeature:
+      type: object
+      properties:
+        label:
+          type: string
+        country_a:
+          type: string
+          nullable: true
+        region_a:
+          type: string
+          nullable: true
+        locality:
+          type: string
+          nullable: true
+        confidence:
+          type: number
+          format: double
+          nullable: true
+        match_type:
+          type: string
+          nullable: true
+        lat:
+          type: number
+          format: double
+        lon:
+          type: number
+          format: double
+      required:
+        - confidence
+        - country_a
+        - label
+        - lat
+        - locality
+        - lon
+        - match_type
+        - region_a
+    ReverseRequestRequest:
+      type: object
+      properties:
+        lat:
+          type: number
+          format: double
+          maximum: 90
+          minimum: -90
+        lon:
+          type: number
+          format: double
+          maximum: 180
+          minimum: -180
+        size:
+          type: integer
+          maximum: 10
+          minimum: 1
+          default: 1
+      required:
+        - lat
+        - lon
+    TripCreateRequestRequest:
+      type: object
+      properties:
+        current:
+          $ref: '#/components/schemas/AddressInputRequest'
+        pickup:
+          $ref: '#/components/schemas/AddressInputRequest'
+        dropoff:
+          $ref: '#/components/schemas/AddressInputRequest'
+        cycle_hours_used:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,1})?$
+        start_at:
+          type: string
+          format: date-time
+      required:
+        - current
+        - cycle_hours_used
+        - dropoff
+        - pickup
+        - start_at
+    TripExportCreateRequestRequest:
+      type: object
+      description: |-
+        Validates a POST payload from the FE export-pdf hook.
+
+        ``mode`` is kebab-case on the wire; ``validated_data["mode"]`` is the
+        translated snake_case value the view writes to the model.
+      properties:
+        trip_id:
+          type: string
+          format: uuid
+        mode:
+          $ref: '#/components/schemas/ModeEnum'
+      required:
+        - mode
+        - trip_id
+    TripExportListItem:
+      type: object
+      description: |-
+        Read shape for ``GET /api/exports/`` and the POST 201 response.
+
+        ``trip_id`` is the FK column, which DRF surfaces as a UUID string
+        (or ``None`` when the trip has been deleted and SET_NULL fired).
+        ``mode`` is translated back to kebab-case for the FE.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        trip_id:
+          type: string
+          format: uuid
+          nullable: true
+          readOnly: true
+        mode:
+          type: string
+          readOnly: true
+        sheet_count:
+          type: integer
+          readOnly: true
+        trip_current_label:
+          type: string
+          readOnly: true
+        trip_pickup_label:
+          type: string
+          readOnly: true
+        trip_dropoff_label:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+        - created_at
+        - id
+        - mode
+        - sheet_count
+        - trip_current_label
+        - trip_dropoff_label
+        - trip_id
+        - trip_pickup_label
+    TripListItem:
+      type: object
+      description: |-
+        Thin row shape for ``GET /api/trips/`` (spec 09).
+
+        ``days_count`` is sourced from the queryset annotation in
+        ``TripManager.with_days_count``; the view that forgets to annotate will
+        raise at serialization time (loud failure beats a wrong number).
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        current_label:
+          type: string
+          readOnly: true
+        pickup_label:
+          type: string
+          readOnly: true
+        dropoff_label:
+          type: string
+          readOnly: true
+        route_summary:
+          readOnly: true
+          nullable: true
+        days_count:
+          type: integer
+          readOnly: true
+        start_at:
+          type: string
+          format: date-time
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+        - created_at
+        - current_label
+        - days_count
+        - dropoff_label
+        - id
+        - pickup_label
+        - route_summary
+        - start_at
+    TripResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        start_at:
+          type: string
+          format: date-time
+          readOnly: true
+        current_label:
+          type: string
+          readOnly: true
+        current_lat:
+          type: number
+          format: double
+          readOnly: true
+        current_lon:
+          type: number
+          format: double
+          readOnly: true
+        pickup_label:
+          type: string
+          readOnly: true
+        pickup_lat:
+          type: number
+          format: double
+          readOnly: true
+        pickup_lon:
+          type: number
+          format: double
+          readOnly: true
+        dropoff_label:
+          type: string
+          readOnly: true
+        dropoff_lat:
+          type: number
+          format: double
+          readOnly: true
+        dropoff_lon:
+          type: number
+          format: double
+          readOnly: true
+        cycle_hours_used:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,1})?$
+          readOnly: true
+        route_polyline:
+          readOnly: true
+          nullable: true
+        route_segments:
+          readOnly: true
+          nullable: true
+        route_summary:
+          readOnly: true
+          nullable: true
+      required:
+        - created_at
+        - current_label
+        - current_lat
+        - current_lon
+        - cycle_hours_used
+        - dropoff_label
+        - dropoff_lat
+        - dropoff_lon
+        - id
+        - pickup_label
+        - pickup_lat
+        - pickup_lon
+        - route_polyline
+        - route_segments
+        - route_summary
+        - start_at

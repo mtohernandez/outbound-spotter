@@ -5,15 +5,30 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="description" content="Outbound Spotter — sign in to access trip planning and ELD logs." />
+    <meta
+      name="description"
+      content="Outbound Spotter — sign in to access trip planning and ELD logs."
+    />
     <meta name="robots" content="noindex" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      `display=swap` in the URL keeps the fallback rendered until the variable fonts arrive,
+      so the request isn't text-blocking. We avoid the preload+inline-onload swap because the
+      inline event handler would force `script-src-attr 'unsafe-inline'` on any future CSP.
+    -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Geologica:opsz,wght@12..96,100..900&family=DM+Sans:opsz,wght@9..40,100..1000&display=swap"
       rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geologica:opsz,wght@12..96,100..900&family=DM+Sans:opsz,wght@9..40,100..1000&display=swap"
     />
-    <title>Sign in · Outbound Spotter</title>
+    <link
+      rel="preload"
+      as="image"
+      href="/auth/video-poster.jpg"
+      fetchpriority="high"
+      media="(min-width: 768px)"
+    />
+    <title>Outbound Spotter</title>
   </head>
   <body>
     <div id="root"></div>

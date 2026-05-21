@@ -43,10 +43,12 @@ coverage.xml
 *.sqlite3
 *.sqlite3-journal
 
-# Env
+# Env — no `.env*` template of any shape is tracked (per CONTRIBUTING.md §6). Variable names live
+# in each app's README; real values live in the developer's local working file (.env.local for
+# Vite, .env for Django) and in the deployment provider's secret store. The allowlist is empty by
+# design — a stray `.env.example` or `.env.local.example` will not slip back in.
 .env
 .env.*
-!.env.example
 
 # Editor
 .idea/
@@ -71,3 +73,11 @@ coverage/
 # Fly / Vercel local artifacts
 .fly/
 .vercel/
+
+# Playwright MCP snapshots + on-demand E2E screenshots (never committed)
+.playwright-mcp/
+e2e-*.png
+
+# Playwright MCP browser smoke screenshots — ephemeral evidence, not committed.
+/spec07-*.png
+/.playwright-mcp/

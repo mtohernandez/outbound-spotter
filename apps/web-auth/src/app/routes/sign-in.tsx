@@ -1,11 +1,14 @@
-import { SignIn } from "@clerk/react";
-
-import { paths } from "@/config/paths";
+import { env } from "@/config/env";
+import { AuthLayout } from "@/features/auth/components/auth-layout";
+import { RedirectIfSignedIn } from "@/features/auth/components/redirect-if-signed-in";
+import { SignInForm } from "@/features/auth/components/sign-in-form";
 
 export function SignInRoute(): React.ReactElement {
   return (
-    <main className="bg-background flex min-h-dvh items-center justify-center px-4 py-10">
-      <SignIn routing="path" path={paths.signIn} signUpUrl={paths.signUp} />
-    </main>
+    <RedirectIfSignedIn to={env.VITE_APP_URL}>
+      <AuthLayout>
+        <SignInForm />
+      </AuthLayout>
+    </RedirectIfSignedIn>
   );
 }

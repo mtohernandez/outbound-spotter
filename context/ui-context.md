@@ -24,13 +24,13 @@ Every choice in this file is derived from a documented, validated technique:
 
 Computed from the five brand hexes in `docs/theme.md` using the standard sRGB → linear-RGB → LMS¹ᐟ³ → OKLab → OKLCH pipeline:
 
-| Brand name   | Hex       | OKLCH (precise)               | Anchor stop | Slot it owns                                             |
-| ------------ | --------- | ----------------------------- | ----------- | -------------------------------------------------------- |
-| White        | `#FEFFFF` | `oklch(0.9992 0.0011 197.14)` | `teal-50`   | `--background`, `--card`, `--popover` (light)            |
-| Light blue   | `#BDDDDE` | `oklch(0.8746 0.0338 198.87)` | `teal-200`  | `--secondary`, `--muted`, `--accent`, `--border` (light) |
-| Green (teal) | `#008080` | `oklch(0.5431 0.0927 194.77)` | `teal-600`  | `--primary`, `--ring`, brand surfaces                    |
-| Black        | `#001212` | `oklch(0.1650 0.0282 194.77)` | `teal-950`  | `--foreground` (light), `--background` (dark)            |
-| Red          | `#F84960` | `oklch(0.6609 0.2101 17.87)`  | `red-500`   | `--destructive`                                          |
+| Brand name   | Hex       | OKLCH (precise)               | Anchor stop | Slot it owns                                                                   |
+| ------------ | --------- | ----------------------------- | ----------- | ------------------------------------------------------------------------------ |
+| White        | `#FEFFFF` | `oklch(0.9992 0.0011 197.14)` | `teal-50`   | `--background`, `--card`, `--popover` (light)                                  |
+| Light blue   | `#BDDDDE` | `oklch(0.8746 0.0338 198.87)` | `teal-200`  | `--secondary`, `--muted`, `--accent`, `--border` (light)                       |
+| Green (teal) | `#008080` | `oklch(0.5431 0.0927 194.77)` | `teal-600`  | `--primary`, `--ring`, brand surfaces                                          |
+| Black        | `#001212` | `oklch(0.1650 0.0282 194.77)` | `teal-950`  | `--foreground` (light), `--background` (dark)                                  |
+| Red          | `#F84960` | `oklch(0.6609 0.2101 17.87)`  | `red-500`   | brand swatch, `--chart-2` (semantic `--destructive` → `--red-600` for WCAG AA) |
 
 Notice that **four of the five brand hexes are stops on a single teal ramp** (50, 200, 600, 950). This is a deliberate, coherent palette: the chrome of the app rides one hue family, with red reserved as the lone accent for destructive intent.
 
@@ -49,7 +49,7 @@ Anchored on the brand hexes; intermediate stops interpolate L at the brand hue, 
 | 400  | `oklch(0.685 0.082 196)`      | `#5FA1A4`           | mid-tone, icons in light mode          |
 | 500  | `oklch(0.620 0.097 195.5)`    | `#3D9296`           | bright primary alt                     |
 | 600  | `oklch(0.5431 0.0927 194.77)` | `#008080`           | ★ brand teal (primary)                 |
-| 700  | `oklch(0.455 0.080 195)`      | `#106D6D`           | primary hover/pressed                  |
+| 700  | `oklch(0.455 0.030 195)`      | `#5E7271`           | muted-foreground (light mode)          |
 | 800  | `oklch(0.355 0.060 195)`      | `#1B5454`           | dark surface variant                   |
 | 900  | `oklch(0.255 0.040 195)`      | `#1A3737`           | dark elevated surface                  |
 | 950  | `oklch(0.1650 0.0282 194.77)` | `#001212`           | ★ brand black (dark bg)                |
@@ -92,7 +92,7 @@ Components reference semantic tokens. The mapping below is the single source of 
 | `--muted-foreground`                         | `--teal-700`                                    |
 | `--accent`                                   | `--teal-200`                                    |
 | `--accent-foreground`                        | `--teal-900`                                    |
-| `--destructive`                              | `--red-500`                                     |
+| `--destructive`                              | `--red-600`                                     |
 | `--destructive-foreground`                   | `--teal-50`                                     |
 | `--border`                                   | `--teal-200`                                    |
 | `--input`                                    | `--teal-200`                                    |
@@ -115,7 +115,7 @@ Components reference semantic tokens. The mapping below is the single source of 
 | `--muted-foreground`                         | `--teal-300`                                    |
 | `--accent`                                   | `--teal-800`                                    |
 | `--accent-foreground`                        | `--teal-50`                                     |
-| `--destructive`                              | `--red-500`                                     |
+| `--destructive`                              | `--red-600`                                     |
 | `--destructive-foreground`                   | `--teal-50`                                     |
 | `--border`                                   | `oklch(1 0 0 / 10%)`                            |
 | `--input`                                    | `oklch(1 0 0 / 15%)`                            |
@@ -130,7 +130,7 @@ Components reference semantic tokens. The mapping below is the single source of 
 | `--foreground` on `--background` (dark)       | ~ -96     | ~ 19:1     | passes (AAA) |
 | `--primary-foreground` on `--primary` (light) | ~ 76      | ~ 4.9:1    | passes (AA)  |
 | `--muted-foreground` on `--background`        | ~ 78      | ~ 5.2:1    | passes (AA)  |
-| `--destructive-foreground` on `--destructive` | ~ 75      | ~ 4.6:1    | passes (AA)  |
+| `--destructive-foreground` on `--destructive` | ~ 79      | ~ 5.3:1    | passes (AA)  |
 
 These are computed against the precise OKLCH values above; any ramp adjustment must be re-checked before commit (the `apca-check` lint step will run in CI once the design system unit lands).
 
@@ -153,7 +153,7 @@ The block below lands in `apps/web-app/src/styles/globals.css` and the same file
   --teal-400: oklch(0.685 0.082 196);
   --teal-500: oklch(0.62 0.097 195.5);
   --teal-600: oklch(0.5431 0.0927 194.77);
-  --teal-700: oklch(0.455 0.08 195);
+  --teal-700: oklch(0.455 0.03 195);
   --teal-800: oklch(0.355 0.06 195);
   --teal-900: oklch(0.255 0.04 195);
   --teal-950: oklch(0.165 0.0282 194.77);
@@ -185,7 +185,7 @@ The block below lands in `apps/web-app/src/styles/globals.css` and the same file
   --muted-foreground: var(--teal-700);
   --accent: var(--teal-200);
   --accent-foreground: var(--teal-900);
-  --destructive: var(--red-500);
+  --destructive: var(--red-600);
   --destructive-foreground: var(--teal-50);
   --border: var(--teal-200);
   --input: var(--teal-200);
@@ -225,7 +225,7 @@ The block below lands in `apps/web-app/src/styles/globals.css` and the same file
   --muted-foreground: var(--teal-300);
   --accent: var(--teal-800);
   --accent-foreground: var(--teal-50);
-  --destructive: var(--red-500);
+  --destructive: var(--red-600);
   --destructive-foreground: var(--teal-50);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);

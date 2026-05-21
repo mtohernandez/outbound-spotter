@@ -14,6 +14,7 @@ dependencies = [
   "django-cors-headers~=4.9.0",
   "clerk-backend-api~=5.0.6",
   "whitenoise~=6.12.0",
+  "requests~=2.32",
 ]
 
 [dependency-groups]
@@ -34,6 +35,14 @@ prod = ["gunicorn~=26.0.0"]
 package = false
 default-groups = ["dev"]
 
+# Vercel auto-detects Django via `manage.py`, reads WSGI_APPLICATION, and runs
+# `collectstatic` itself. The build script only owns migrations — Vercel runs
+# it after `uv sync` and before the function bundle is sealed, so a fresh deploy
+# applies pending migrations to the configured DATABASE_URL.
+# Source: https://vercel.com/docs/frameworks/full-stack/django (2026-04-09).
+[tool.vercel.scripts]
+build = "DJANGO_SETTINGS_MODULE=web_api.settings.prod python manage.py migrate --noinput"
+
 [tool.ruff]
 extend = "../../pyproject.toml"
 
@@ -53,7 +62,7 @@ disallow_untyped_defs = false
 django_settings_module = "web_api.settings.dev"
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "web_api.settings.dev"
+DJANGO_SETTINGS_MODULE = "web_api.settings.test"
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

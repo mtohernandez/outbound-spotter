@@ -5,7 +5,8 @@
     "tsBuildInfoFile": "${configDir}/node_modules/.cache/tsbuildinfo.app.json",
     "paths": {
       "@/*": ["${configDir}/src/*"]
-    }
+    },
+    "exactOptionalPropertyTypes": false
   },
   "include": ["src"]
 }

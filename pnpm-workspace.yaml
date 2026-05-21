@@ -3,6 +3,9 @@ packages:
   - 'packages/*'
 allowBuilds:
   '@clerk/shared': true
+  # core-js postinstall is a funding banner only (reviewed 2026-05-21); the
+  # package is pulled transitively by jspdf via canvg for spec 10 phase 2.
+  core-js: true
   msw: true
   unrs-resolver: true
 minimumReleaseAgeExclude:

@@ -13,7 +13,7 @@
     --teal-400: oklch(0.685 0.082 196);
     --teal-500: oklch(0.62 0.097 195.5);
     --teal-600: oklch(0.5431 0.0927 194.77);
-    --teal-700: oklch(0.455 0.08 195);
+    --teal-700: oklch(0.455 0.03 195);
     --teal-800: oklch(0.355 0.06 195);
     --teal-900: oklch(0.255 0.04 195);
     --teal-950: oklch(0.165 0.0282 194.77);
@@ -46,7 +46,10 @@
     --muted-foreground: var(--teal-700);
     --accent: var(--teal-200);
     --accent-foreground: var(--teal-900);
-    --destructive: var(--red-500);
+    /* WCAG 2.1 AA requires ≥4.5:1 on destructive bg + foreground. red-500 (brand)
+       lands at 4.37:1 on teal-50 — semantic-token shifts to red-600 to clear AA
+       while the brand red ramp remains available as `--red-500` for charts. */
+    --destructive: var(--red-600);
     --destructive-foreground: var(--teal-50);
     --border: var(--teal-200);
     --input: var(--teal-200);
@@ -68,9 +71,18 @@
     --sidebar-ring: var(--teal-600);
 
     --radius: 0.375rem; /* 6px base — dense pro-tool median */
+
+    /* Tell the browser this surface is light so native form controls
+       (datetime-local picker indicator, scrollbars, autofill chrome) pick
+       the matching palette automatically. */
+    color-scheme: light;
   }
 
   .dark {
+    /* Native form controls auto-invert (calendar icon goes light, scrollbar
+       chrome darkens) without per-element overrides. */
+    color-scheme: dark;
+
     --background: var(--teal-950);
     --foreground: var(--teal-50);
     --card: var(--teal-900);
@@ -85,7 +97,7 @@
     --muted-foreground: var(--teal-300);
     --accent: var(--teal-800);
     --accent-foreground: var(--teal-50);
-    --destructive: var(--red-500);
+    --destructive: var(--red-600);
     --destructive-foreground: var(--teal-50);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
@@ -173,4 +185,224 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ===========================================================================
+ * Leaflet map theming (spec 07) — defers to existing tokens only.
+ * No token additions; no @theme inline edits. Re-run the spec when bumping
+ * Leaflet to confirm class names haven't moved.
+ * ========================================================================*/
+
+.leaflet-popup-themed .leaflet-popup-content-wrapper {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  /* --shadow-md is not defined in the theme; literal matches Tailwind v4's default scale. */
+  box-shadow: 0 6px 16px -4px oklch(0 0 0 / 0.18);
+}
+.leaflet-popup-themed .leaflet-popup-tip {
+  background: var(--popover);
+  border: 1px solid var(--border);
+}
+.leaflet-popup-themed .leaflet-popup-close-button {
+  color: var(--muted-foreground);
+}
+.leaflet-popup-themed .leaflet-popup-content {
+  margin: 0.75rem 1rem;
+  font: inherit;
+}
+
+/* "You are here" current-location indicator — distinct from the StopKind
+ * teardrop pins so drivers can tell at a glance where they are now. */
+.current-location {
+  background: transparent;
+  border: 0;
+}
+.current-location-dot {
+  position: relative;
+  display: inline-flex;
+  width: 1.5rem;
+  height: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  color: var(--teal-500);
+}
+.current-location-dot__core {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 9999px;
+  background: currentColor;
+  position: relative;
+  z-index: 2;
+}
+.current-location-dot__ring {
+  position: absolute;
+  inset: calc(50% - 0.6rem);
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 9999px;
+  background: white;
+  box-shadow: 0 1px 3px oklch(0 0 0 / 0.18);
+  z-index: 1;
+}
+.current-location-dot__pulse {
+  position: absolute;
+  inset: calc(50% - 1rem);
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.25;
+  z-index: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .current-location-dot__pulse {
+    animation: current-location-pulse 2200ms cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+  @keyframes current-location-pulse {
+    0% {
+      transform: scale(0.55);
+      opacity: 0.45;
+    }
+    70% {
+      transform: scale(1.55);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1.55);
+      opacity: 0;
+    }
+  }
+}
+
+.trip-marker {
+  background: transparent;
+  border: 0;
+  /* Smooth the on-hover "pulse" the sidebar↔map sync triggers via the
+   * .trip-marker--is-pulsing class added to the wrapper. transform-origin at
+   * the pin tip so the pin scales from its anchor point, not its centre. */
+  transform-origin: 50% 100%;
+  transition:
+    transform 160ms ease-out,
+    filter 160ms ease-out;
+}
+.trip-marker--is-pulsing {
+  /* Drives the wrapper class set by <StopMarker isHovered>. Z-index ensures
+   * the pulsed pin sits above its neighbours in the marker pane. */
+  transform: scale(1.18);
+  z-index: 1000 !important;
+}
+.trip-marker__icon {
+  display: inline-flex;
+  /* White halo so markers stay visible against any OSM tile background
+   * (gray land, beige farmland, blue water). Without this the lighter teal
+   * markers fail WCAG 1.4.11 against many tiles (ui-visual-validator C-1). */
+  filter: drop-shadow(0 1px 2px oklch(0 0 0 / 0.35)) drop-shadow(0 0 1px oklch(1 0 0 / 0.85));
+}
+/* Each kind sets BOTH a custom property (the kind color, for downstream
+ * cascade — e.g. the popup Badge border) AND `color` itself (which paints
+ * the inline SVG via fill="currentColor" on the marker). Using a custom
+ * property keeps the kind color available even when a descendant rule
+ * (the popup Badge text-color override below) overrides `color`. */
+.trip-marker__icon--pickup {
+  --trip-marker-color: var(--teal-500);
+  color: var(--trip-marker-color);
+}
+.trip-marker__icon--dropoff {
+  --trip-marker-color: var(--red-500);
+  color: var(--trip-marker-color);
+}
+.trip-marker__icon--fuel {
+  --trip-marker-color: var(--teal-300);
+  color: var(--trip-marker-color);
+}
+.trip-marker__icon--break {
+  --trip-marker-color: var(--teal-400);
+  color: var(--trip-marker-color);
+}
+.trip-marker__icon--sleeper {
+  --trip-marker-color: var(--teal-700);
+  color: var(--trip-marker-color);
+}
+.trip-marker__icon--restart {
+  --trip-marker-color: var(--teal-800);
+  color: var(--trip-marker-color);
+}
+
+/* Route stops list (TripDetailPanel sidebar) — visual grammar:
+ *   .route-trunk   = the vertical line connecting Start → Arrive.
+ *   .route-node    = each row's icon wrapper. Sits on the trunk when
+ *                    `data-branch="false"` (driver-input stops + Start/Arrive
+ *                    + drive segments); deviates right with a horizontal
+ *                    stub line when `data-branch="true"` (planner-inserted
+ *                    break/sleeper/fuel/restart).
+ * The stub is a `::before` pseudo so the icon's flex slot (and the row's
+ * label column) keep their position — translate-only shift, no reflow.
+ */
+.route-node[data-branch="true"] {
+  transform: translateX(0.5rem);
+}
+.route-node[data-branch="true"]::before {
+  content: "";
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  width: 0.5rem;
+  height: 1px;
+  background: color-mix(in oklab, var(--color-border) 70%, transparent);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* Popup Badge: text color overridden to `--foreground` so the label stays
+ * WCAG 4.5:1 against the popover background (ui-visual-validator C-2 —
+ * lighter teals would fail at 12px otherwise). Border keeps the kind color
+ * via the `--trip-marker-color` custom property — `border-color: currentColor`
+ * would resolve to the overridden `color` instead. */
+.leaflet-popup-themed [data-slot="badge"].trip-marker__icon--pickup,
+.leaflet-popup-themed [data-slot="badge"].trip-marker__icon--dropoff,
+.leaflet-popup-themed [data-slot="badge"].trip-marker__icon--fuel,
+.leaflet-popup-themed [data-slot="badge"].trip-marker__icon--break,
+.leaflet-popup-themed [data-slot="badge"].trip-marker__icon--sleeper,
+.leaflet-popup-themed [data-slot="badge"].trip-marker__icon--restart {
+  border-color: var(--trip-marker-color);
+  color: var(--foreground);
+  /* Suppress the marker fade-in animation for the popup-badge use site —
+   * the badge appears with the popup, not with the marker. */
+  animation: none;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Marker fade-in is scoped to icons inside a leaflet wrapper so the same
+   * icon reused in the sidebar StopsList (or elsewhere) doesn't double-animate. */
+  .trip-marker > .trip-marker__icon {
+    opacity: 0;
+    animation: trip-marker-in 200ms ease-out 80ms forwards;
+  }
+  @keyframes trip-marker-in {
+    to {
+      opacity: 1;
+    }
+  }
+  .leaflet-tile {
+    transition: opacity 150ms ease-out;
+  }
+  /* Premium "drone lowering" entrance: tile pane only, so markers + popups
+   * keep correct hit boxes (they're in a sibling pane). 600ms, fades to flat. */
+  .leaflet-tile-pane {
+    animation: leaflet-tile-pane-in 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes leaflet-tile-pane-in {
+    from {
+      opacity: 0.4;
+      transform: perspective(900px) rotateX(8deg) scale(1.04);
+      transform-origin: 50% 100%;
+    }
+    to {
+      opacity: 1;
+      transform: perspective(900px) rotateX(0) scale(1);
+    }
+  }
 }

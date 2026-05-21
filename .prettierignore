@@ -30,3 +30,6 @@ docs/assesment.md
 **/.mypy_cache/**
 **/.ruff_cache/**
 **/.pytest_cache/**
+
+# Playwright MCP session snapshots (auto-generated, never committed)
+.playwright-mcp/**

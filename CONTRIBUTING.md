@@ -88,7 +88,16 @@ The `pre-push` hook runs `turbo run typecheck --affected` + `turbo run test --af
 
 (Documented here for completeness — first release is not in scope yet.)
 
-## 6. License acceptance
+## 6. Env conventions
+
+**No `.env*` files are tracked in this repo.** The root `.gitignore` ignores every shape (`.env`, `.env.local`, `.env.example`, `.env.production`, …). This applies in perpetuity — never reintroduce a template.
+
+- **Variable names** — each app documents its required variables (with type, purpose, and which side of the wire reads them) in its `README.md`. The runtime validators are the canonical schemas: `apps/web-app/src/config/env.ts`, `apps/web-auth/src/config/env.ts`, and `apps/web-api/web_api/settings/base.py` (pydantic-settings).
+- **Local dev** — create a working file the host tool reads (`.env.local` for Vite apps, `.env` for the Django app). Populate from your password manager / the deployment provider's dashboard. The file is gitignored.
+- **Cloud** — set each variable in the Vercel project's Environment Variables panel for each of the four Vercel projects (`outbound-spotter-app`, `outbound-spotter-accounts`, `outbound-spotter`, `outbound-spotter-api`). `DATABASE_URL` for `outbound-spotter-api` is the Neon pooled connection string.
+- **Never commit secrets.** This is enforced by `.gitignore`; do not bypass it.
+
+## 7. License acceptance
 
 By contributing you confirm:
 
@@ -96,7 +105,7 @@ By contributing you confirm:
 - Your contribution is licensed under PolyForm Noncommercial 1.0.0 (`LICENSE.md`).
 - The project is source-available and **not** for commercial use. Forking for commercial reuse, hosting as a SaaS for paying customers, or reselling are not permitted by the license.
 
-## 7. Where to find the rules of engagement
+## 8. Where to find the rules of engagement
 
 - `CLAUDE.md` — operating manual for AI-assisted work (skills, sub-agents, validation discipline).
 - `context/code-standards.md` — language-level conventions (TS, Python, React, Django).
