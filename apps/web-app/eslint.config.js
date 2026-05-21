@@ -83,6 +83,26 @@ export default [
     },
   },
   {
+    files: ["src/features/pdf-export/**/*.{ts,tsx,js,jsx}"],
+    rules: {
+      "import-x/no-restricted-paths": [
+        "error",
+        {
+          zones: [
+            ...BULLETPROOF_ZONES,
+            {
+              target: "./src/features/pdf-export",
+              from: "./src/features",
+              except: ["./pdf-export", "./log-sheet", "./trip-planner"],
+              message:
+                "Features may not import from sibling features. pdf-export may consume log-sheet (the DailyLogSheet SVG id contract + grid geometry constants) and trip-planner (LogDay + TripPlan schemas + useTripPlan); everything else lifts to src/components, src/hooks, src/lib, or a packages/* workspace.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     ignores: ["dist", "coverage", "node_modules", ".turbo"],
   },
 ];

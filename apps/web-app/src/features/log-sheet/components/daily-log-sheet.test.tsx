@@ -99,6 +99,14 @@ describe("DailyLogSheet", () => {
     expect(svg.querySelector(`desc#${descId}`)?.textContent).toContain("Total 8h 30m");
   });
 
+  it("carries a stable id derived from the day so the PDF orchestrator can locate it", () => {
+    // Spec 10 decision 11: ``id={`daily-log-sheet-${day.id}`}`` is the
+    // contract the export hook uses to clone each live SVG.
+    renderSheet();
+    const svg = screen.getByRole("img");
+    expect(svg.getAttribute("id")).toBe(`daily-log-sheet-${DAY.id}`);
+  });
+
   it("titles the sheet with the date formatted in the home-terminal tz", () => {
     renderSheet();
     const svg = screen.getByRole("img");

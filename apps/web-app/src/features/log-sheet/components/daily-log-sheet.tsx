@@ -95,6 +95,7 @@ export function DailyLogSheet({
 
       <div className="overflow-x-auto px-4 py-3">
         <svg
+          id={`daily-log-sheet-${day.id}`}
           role="img"
           viewBox={`0 0 ${SHEET_WIDTH} ${SHEET_HEIGHT}`}
           aria-labelledby={titleId}
