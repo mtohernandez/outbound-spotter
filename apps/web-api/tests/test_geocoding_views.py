@@ -141,3 +141,74 @@ def test_search_text_too_long_returns_400(authenticated_client: APIClient) -> No
     response = authenticated_client.get(f"/api/geocode/search/?text={over_long}")
 
     assert response.status_code == 400
+
+
+def test_reverse_without_token_returns_401(unauthenticated_client: APIClient) -> None:
+    response = unauthenticated_client.get("/api/geocode/reverse/?lat=37.5&lon=-77.4")
+
+    assert response.status_code == 401
+
+
+def test_reverse_happy_path(authenticated_client: APIClient) -> None:
+    with patch(
+        "web_api.apps.geocoding.views.geocode_reverse",
+        return_value=[_feature()],
+    ) as mocked:
+        response = authenticated_client.get("/api/geocode/reverse/?lat=37.5407&lon=-77.4360")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["features"][0]["label"] == "Richmond, VA"
+    args, kwargs = mocked.call_args
+    assert args[0] == pytest.approx(37.5407)
+    assert args[1] == pytest.approx(-77.4360)
+    assert kwargs.get("size", 1) == 1
+
+
+def test_reverse_missing_lat_returns_400(authenticated_client: APIClient) -> None:
+    response = authenticated_client.get("/api/geocode/reverse/?lon=-77.4")
+
+    assert response.status_code == 400
+    assert response.json()["errors"] is not None
+
+
+def test_reverse_out_of_range_lat_returns_400(authenticated_client: APIClient) -> None:
+    response = authenticated_client.get("/api/geocode/reverse/?lat=999&lon=0")
+
+    assert response.status_code == 400
+
+
+def test_reverse_out_of_range_lon_returns_400(authenticated_client: APIClient) -> None:
+    response = authenticated_client.get("/api/geocode/reverse/?lat=0&lon=999")
+
+    assert response.status_code == 400
+
+
+def test_reverse_rate_limit_returns_429(authenticated_client: APIClient) -> None:
+    with patch(
+        "web_api.apps.geocoding.views.geocode_reverse",
+        side_effect=OrsRateLimitError("quota", window="per-minute"),
+    ):
+        response = authenticated_client.get("/api/geocode/reverse/?lat=37.5&lon=-77.4")
+
+    assert response.status_code == 429
+
+
+def test_reverse_upstream_5xx_returns_502(authenticated_client: APIClient) -> None:
+    with patch(
+        "web_api.apps.geocoding.views.geocode_reverse",
+        side_effect=OrsUpstreamError("oops"),
+    ):
+        response = authenticated_client.get("/api/geocode/reverse/?lat=37.5&lon=-77.4")
+
+    assert response.status_code == 502
+
+
+def test_reverse_request_error_returns_400(authenticated_client: APIClient) -> None:
+    with patch(
+        "web_api.apps.geocoding.views.geocode_reverse",
+        side_effect=OrsRequestError("bad"),
+    ):
+        response = authenticated_client.get("/api/geocode/reverse/?lat=37.5&lon=-77.4")
+
+    assert response.status_code == 400

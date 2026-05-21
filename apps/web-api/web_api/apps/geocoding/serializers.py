@@ -31,6 +31,12 @@ class SearchRequestSerializer(serializers.Serializer[None]):
     size = serializers.IntegerField(min_value=1, max_value=10, required=False, default=1)
 
 
+class ReverseRequestSerializer(serializers.Serializer[None]):
+    lat = serializers.FloatField(min_value=-90, max_value=90)
+    lon = serializers.FloatField(min_value=-180, max_value=180)
+    size = serializers.IntegerField(min_value=1, max_value=10, required=False, default=1)
+
+
 class PeliasFeatureSerializer(serializers.Serializer[None]):
     # `label` shadows `Field.label` from the DRF base; the wire contract uses
     # `label` so we suppress the assignment-type warning here rather than rename.

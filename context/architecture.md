@@ -70,6 +70,7 @@ Each version below was pinned to the latest stable release at the time of select
 - Wired via `REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"]` + `DEFAULT_THROTTLE_RATES`:
   - `geocode_autocomplete = 60/min` (`GeocodeAutocompleteView`).
   - `geocode_search = 20/min` (`GeocodeSearchView`).
+  - `geocode_reverse = 30/min` (`GeocodeReverseView`, spec 11b). Powers the "Use my current location" UX — gesture-bursty (one click → one call), sits between autocomplete (high-volume typeahead) and search (committal lookup).
   - `trip_create = 30/hour` (`TripCreateView`). 30 × 24 ≈ 720 worst-case, well under the HeiGIT 2000/day cap with the `trip_route_cache` short-circuit handling repeated input.
   - `trip_plan_retrieve = 120/min` (`TripPlanView`). Spec 07 will poll `GET /api/trips/<uuid:id>/plan/` on tab focus via TanStack Query; 2/sec sustained covers an aggressive user without becoming an oracle. The plan is immutable post-creation in v1, so a `Cache-Control: private, max-age=60` follow-up could absorb most refetches at the browser layer.
   - `export_create = 60/hour` (`TripExportListCreateView` POST). Mirrors `trip_create`'s density (≈ 1/min sustained); audit-row writes are cheap but rate-limited to keep storage growth predictable and to bound noisy log spam.

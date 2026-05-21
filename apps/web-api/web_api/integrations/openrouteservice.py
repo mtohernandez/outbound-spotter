@@ -61,6 +61,7 @@ _session = _build_session()
 
 _AUTOCOMPLETE_PATH: Final = "/geocode/autocomplete"
 _SEARCH_PATH: Final = "/geocode/search"
+_REVERSE_PATH: Final = "/geocode/reverse"
 _DIRECTIONS_PATH: Final = "/v2/directions/driving-hgv/geojson"
 _REQUEST_TIMEOUT_SECONDS: Final = 5.0
 _DIRECTIONS_TIMEOUT_SECONDS: Final = 15.0
@@ -178,6 +179,22 @@ def geocode_search(text: str, *, size: int = 1) -> list[PeliasFeature]:
         "boundary.country": _BOUNDARY_COUNTRY,
     }
     return _fetch(_SEARCH_PATH, params)
+
+
+def geocode_reverse(lat: float, lon: float, *, size: int = 1) -> list[PeliasFeature]:
+    """Coordinate-to-address lookup against Pelias ``/geocode/reverse``.
+
+    Pelias docs: https://github.com/pelias/documentation/blob/master/reverse.md
+    Returns the same `PeliasFeature` shape as ``geocode_search`` so the FE
+    consumes one envelope from `/api/geocode/reverse/` and `/api/geocode/search/`.
+    """
+    params: dict[str, str | int | float] = {
+        "point.lat": lat,
+        "point.lon": lon,
+        "size": _clamp_size(size),
+        "boundary.country": _BOUNDARY_COUNTRY,
+    }
+    return _fetch(_REVERSE_PATH, params)
 
 
 def _clamp_size(value: int) -> int:

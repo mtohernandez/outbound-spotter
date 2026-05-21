@@ -14,6 +14,7 @@ from rest_framework.views import APIView
 from web_api.apps.geocoding.serializers import (
     AutocompleteRequestSerializer,
     FeaturesEnvelopeSerializer,
+    ReverseRequestSerializer,
     SearchRequestSerializer,
 )
 from web_api.integrations.openrouteservice import (
@@ -22,6 +23,7 @@ from web_api.integrations.openrouteservice import (
     OrsUpstreamError,
     PeliasFeature,
     geocode_autocomplete,
+    geocode_reverse,
     geocode_search,
 )
 
@@ -101,6 +103,39 @@ class GeocodeSearchView(APIView):
 
         try:
             features = geocode_search(text, size=size)
+        except (OrsRateLimitError, OrsRequestError, OrsUpstreamError) as exc:
+            return _ors_error_response(exc)
+
+        return Response({"features": _features_payload(features)})
+
+
+class GeocodeReverseView(APIView):
+    """Coordinate-to-address Pelias reverse. ``GET /api/geocode/reverse/?lat=&lon=``.
+
+    Powers the "Use my current location" UX in web-app (spec 11b): the FE calls
+    ``navigator.geolocation.getCurrentPosition`` and hands the resulting (lat,
+    lon) to this endpoint to resolve the user-visible label. Same `PeliasFeature`
+    envelope as autocomplete + search so the FE consumes one type.
+    """
+
+    permission_classes: ClassVar[list[type[BasePermission]]] = [IsAuthenticated]  # type: ignore[misc]
+    throttle_scope = "geocode_reverse"
+
+    @extend_schema(
+        parameters=[ReverseRequestSerializer],
+        responses={200: FeaturesEnvelopeSerializer},
+    )
+    def get(self, request: Request) -> Response:
+        serializer = ReverseRequestSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        lat: float = float(data["lat"])
+        lon: float = float(data["lon"])
+        size: int = data.get("size", 1)
+
+        try:
+            features = geocode_reverse(lat, lon, size=size)
         except (OrsRateLimitError, OrsRequestError, OrsUpstreamError) as exc:
             return _ors_error_response(exc)
 
