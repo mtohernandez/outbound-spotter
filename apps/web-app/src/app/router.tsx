@@ -3,9 +3,11 @@ import { lazy, Suspense } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router";
 
 import { IndexRedirect } from "@/app/routes/index-redirect";
+import { NotFoundRoute } from "@/app/routes/not-found";
 import { TripsDetailRoute } from "@/app/routes/trips-detail";
 import { TripsNewRoute } from "@/app/routes/trips-new";
 import { AppShellLayout, type RouteHandle } from "@/components/app-shell/app-shell-layout";
+import { RouteErrorElement } from "@/components/error-boundary/route-error-element";
 import { paths } from "@/config/paths";
 import { TripDetailPanel } from "@/features/trip-planner/components/trip-detail-panel";
 import { TripInputPanel } from "@/features/trip-planner/components/trip-input-panel";
@@ -36,8 +38,9 @@ const router = createBrowserRouter([
   {
     path: paths.root,
     element: <AppShellLayout />,
+    errorElement: <RouteErrorElement />,
     children: [
-      { index: true, element: <IndexRedirect /> },
+      { index: true, element: <IndexRedirect />, errorElement: <RouteErrorElement /> },
       {
         path: "trips",
         element: (
@@ -45,16 +48,19 @@ const router = createBrowserRouter([
             <TripsHistoryRoute />
           </Suspense>
         ),
+        errorElement: <RouteErrorElement />,
         handle: { title: "Saved trips" } satisfies RouteHandle,
       },
       {
         path: "trips/new",
         element: <TripsNewRoute />,
+        errorElement: <RouteErrorElement />,
         handle: { Secondary: TripInputPanel, title: "Plan a trip" } satisfies RouteHandle,
       },
       {
         path: "trips/:id",
         element: <TripsDetailRoute />,
+        errorElement: <RouteErrorElement />,
         handle: { Secondary: TripDetailPanel, title: "Trip workspace" } satisfies RouteHandle,
       },
       {
@@ -64,8 +70,10 @@ const router = createBrowserRouter([
             <ExportsHistoryRoute />
           </Suspense>
         ),
+        errorElement: <RouteErrorElement />,
         handle: { title: "Exports" } satisfies RouteHandle,
       },
+      { path: "*", element: <NotFoundRoute />, errorElement: <RouteErrorElement /> },
     ],
   },
 ]);

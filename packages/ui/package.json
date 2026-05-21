@@ -13,6 +13,7 @@
   "exports": {
     "./styles/globals.css": "./src/styles/globals.css",
     "./lib/utils": "./src/lib/utils.ts",
+    "./lib/reportable-error": "./src/lib/reportable-error.ts",
     "./components/theme/use-theme": "./src/components/theme/use-theme.ts",
     "./components/*": "./src/components/*.tsx",
     "./hooks/*": "./src/hooks/*.ts"

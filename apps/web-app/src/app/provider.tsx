@@ -1,10 +1,11 @@
 import { ClerkProvider } from "@clerk/react";
 import { SpotterLoader } from "@outbound/ui/components/brand/spotter-loader";
 import { ThemeProvider } from "@outbound/ui/components/theme/theme-provider";
+import { Toaster } from "@outbound/ui/components/ui/sonner";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Suspense } from "react";
-import { Toaster } from "sonner";
 
+import { AppErrorBoundary } from "@/components/error-boundary/app-error-boundary";
 import { env } from "@/config/env";
 import { queryClient } from "@/lib/query-client";
 
@@ -22,15 +23,17 @@ export function AppProvider({ children }: Props): React.ReactElement {
         signUpUrl={env.VITE_AUTH_SIGN_UP_URL}
       >
         <QueryClientProvider client={queryClient}>
-          <Suspense
-            fallback={
-              <div className="bg-background flex min-h-dvh items-center justify-center">
-                <SpotterLoader size="lg" />
-              </div>
-            }
-          >
-            {children}
-          </Suspense>
+          <AppErrorBoundary>
+            <Suspense
+              fallback={
+                <div className="bg-background flex min-h-dvh items-center justify-center">
+                  <SpotterLoader size="lg" />
+                </div>
+              }
+            >
+              {children}
+            </Suspense>
+          </AppErrorBoundary>
           <Toaster position="bottom-right" richColors closeButton />
         </QueryClientProvider>
       </ClerkProvider>

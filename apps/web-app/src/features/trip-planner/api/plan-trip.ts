@@ -1,7 +1,7 @@
 import { useAuth } from "@clerk/react";
+import { reportableError } from "@outbound/ui/lib/reportable-error";
 import { useMutation, type UseMutationResult } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
-import { toast } from "sonner";
 
 import { paths } from "@/config/paths";
 import type { TripInput } from "@/features/trip-planner/schemas/trip-input";
@@ -56,8 +56,11 @@ export function usePlanTrip(): UseMutationResult<TripResponse, Error, TripInput>
       void navigate(paths.tripsDetail(data.id));
     },
     onError: (error) => {
-      const message = extractDetail(error) ?? error.message;
-      toast.error(message);
+      const detail = extractDetail(error);
+      // Preserve the original ApiError as `cause` so console.error still surfaces
+      // status code + body for telemetry; the synthesized Error.message is what
+      // the user reads on the toast.
+      reportableError(detail === null ? error : new Error(detail, { cause: error }), "plan-trip");
     },
   });
 }
