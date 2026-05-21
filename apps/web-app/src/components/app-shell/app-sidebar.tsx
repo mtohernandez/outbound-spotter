@@ -62,7 +62,7 @@ export function AppSidebar({ Secondary }: Props): React.ReactElement {
                     className="px-2.5 md:px-2"
                   >
                     <Link to={paths.tripsNew satisfies string}>
-                      <Plus />
+                      <Plus data-icon aria-hidden="true" />
                       <span>New trip</span>
                     </Link>
                   </SidebarMenuButton>
@@ -75,7 +75,7 @@ export function AppSidebar({ Secondary }: Props): React.ReactElement {
                     className="px-2.5 md:px-2"
                   >
                     <Link to={paths.tripsHistory satisfies string}>
-                      <RouteIcon />
+                      <RouteIcon data-icon aria-hidden="true" />
                       <span>Saved trips</span>
                     </Link>
                   </SidebarMenuButton>
@@ -88,7 +88,7 @@ export function AppSidebar({ Secondary }: Props): React.ReactElement {
                     className="px-2.5 md:px-2"
                   >
                     <Link to={paths.exportsHistory satisfies string}>
-                      <History />
+                      <History data-icon aria-hidden="true" />
                       <span>Exports</span>
                     </Link>
                   </SidebarMenuButton>

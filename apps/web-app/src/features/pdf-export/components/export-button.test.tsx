@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -53,6 +53,24 @@ describe("ExportButton", () => {
     expect(trigger).toHaveAttribute("aria-expanded", "false");
     await user.click(trigger);
     expect(trigger).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("returns focus to the trigger when the dialog closes via Escape", async () => {
+    renderWithProviders(<ExportButton tripId={TRIP_ID} days={[DAY]} />);
+    const user = userEvent.setup();
+    const trigger = screen.getByTestId("export-pdf-trigger");
+
+    await user.click(trigger);
+    expect(screen.getByRole("heading", { name: /export pdf/i })).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => {
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+    });
+    await waitFor(() => {
+      expect(trigger).toHaveFocus();
+    });
   });
 
   it("is disabled when explicitly disabled", () => {
