@@ -26,12 +26,14 @@ export function RouteErrorElement(): React.ReactElement {
     <div
       role="alert"
       aria-live="assertive"
+      aria-labelledby="auth-route-error-title"
+      aria-describedby="auth-route-error-description"
       className="bg-background flex min-h-dvh items-center justify-center p-6"
     >
       <Empty>
         <EmptyHeader>
-          <EmptyTitle>{title}</EmptyTitle>
-          <EmptyDescription>{description}</EmptyDescription>
+          <EmptyTitle id="auth-route-error-title">{title}</EmptyTitle>
+          <EmptyDescription id="auth-route-error-description">{description}</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           <div className="flex flex-wrap items-center justify-center gap-2">

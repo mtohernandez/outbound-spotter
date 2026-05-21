@@ -21,12 +21,14 @@ function AppErrorFallback({ resetErrorBoundary }: FallbackProps): React.ReactEle
     <div
       role="alert"
       aria-live="assertive"
+      aria-labelledby="app-error-title"
+      aria-describedby="app-error-description"
       className="bg-background flex min-h-dvh items-center justify-center p-6"
     >
       <Empty>
         <EmptyHeader>
-          <EmptyTitle>{APP_ERROR_TITLE}</EmptyTitle>
-          <EmptyDescription>{APP_ERROR_DESCRIPTION}</EmptyDescription>
+          <EmptyTitle id="app-error-title">{APP_ERROR_TITLE}</EmptyTitle>
+          <EmptyDescription id="app-error-description">{APP_ERROR_DESCRIPTION}</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           <div className="flex flex-wrap items-center justify-center gap-2">

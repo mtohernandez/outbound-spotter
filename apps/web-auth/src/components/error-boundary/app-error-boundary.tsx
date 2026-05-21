@@ -20,22 +20,32 @@ function AppErrorFallback({ resetErrorBoundary }: FallbackProps): React.ReactEle
     <div
       role="alert"
       aria-live="assertive"
+      aria-labelledby="app-error-title"
+      aria-describedby="app-error-description"
       className="bg-background flex min-h-dvh items-center justify-center p-6"
     >
       <Empty>
         <EmptyHeader>
-          <EmptyTitle>{APP_ERROR_TITLE}</EmptyTitle>
-          <EmptyDescription>{APP_ERROR_DESCRIPTION}</EmptyDescription>
+          <EmptyTitle id="app-error-title">{APP_ERROR_TITLE}</EmptyTitle>
+          <EmptyDescription id="app-error-description">{APP_ERROR_DESCRIPTION}</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
-          <Button
-            type="button"
-            onClick={() => {
-              resetErrorBoundary();
-            }}
-          >
-            Reload
-          </Button>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button
+              type="button"
+              onClick={() => {
+                resetErrorBoundary();
+              }}
+            >
+              Reload
+            </Button>
+            {/* Literal "/sign-in" so the user has a recovery action even when
+                the auth shell is the source of the crash and resetErrorBoundary()
+                cannot un-bug it. */}
+            <Button asChild variant="outline">
+              <a href="/sign-in">Sign in</a>
+            </Button>
+          </div>
         </EmptyContent>
       </Empty>
     </div>

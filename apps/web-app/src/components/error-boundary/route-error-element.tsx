@@ -27,12 +27,14 @@ export function RouteErrorElement(): React.ReactElement {
     <div
       role="alert"
       aria-live="assertive"
+      aria-labelledby="route-error-title"
+      aria-describedby="route-error-description"
       className="flex min-h-0 flex-1 items-center justify-center p-6"
     >
       <Empty>
         <EmptyHeader>
-          <EmptyTitle>{title}</EmptyTitle>
-          <EmptyDescription>{description}</EmptyDescription>
+          <EmptyTitle id="route-error-title">{title}</EmptyTitle>
+          <EmptyDescription id="route-error-description">{description}</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           <div className="flex flex-wrap items-center justify-center gap-2">
