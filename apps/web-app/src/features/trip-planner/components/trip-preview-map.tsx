@@ -4,11 +4,11 @@ import L from "leaflet";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { MapContainer, Marker, Polyline, TileLayer } from "react-leaflet";
 
+import { buildCurrentLocationIcon } from "@/features/trip-planner/components/map/current-location-icon";
 import { buildMarkerIcon } from "@/features/trip-planner/components/map/marker-icons";
-import type { StopKind } from "@/features/trip-planner/schemas/trip-plan";
 import { isResolved, useTripDraft } from "@/features/trip-planner/state/trip-input-draft";
 
-import type { Map as LeafletMap } from "leaflet";
+import type { DivIcon, Map as LeafletMap } from "leaflet";
 
 const OSM_TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 const OSM_ATTRIBUTION =
@@ -18,28 +18,30 @@ const FALLBACK_ZOOM = 4;
 const MAP_ARIA_LABEL =
   "Trip route preview. Fill in current, pickup, and dropoff to see the preview path. Use arrow keys to pan, plus and minus to zoom.";
 
-// "Start" uses pickup color (matches the sidebar StopKindIcon convention so
-// the brand stays consistent between the input form and the planned trip).
-// Dropoff uses red so the end-of-state is always the visual anchor.
-const PREVIEW_KIND_MAP: Record<"current" | "pickup" | "dropoff", StopKind> = {
-  current: "pickup",
-  pickup: "pickup",
-  dropoff: "dropoff",
-};
+type PreviewSlot = "current" | "pickup" | "dropoff";
+
+// Each input slot picks its own visual: the current location is the "you are
+// here" pulsing dot (no pin tip — drivers shouldn't confuse it with the
+// pickup or dropoff stop), pickup is the teal teardrop pin, dropoff is the
+// red teardrop pin.
+function iconForSlot(slot: PreviewSlot): DivIcon {
+  if (slot === "current") return buildCurrentLocationIcon();
+  return buildMarkerIcon(slot);
+}
 
 export default function TripPreviewMap(): React.ReactElement {
   const mapRef = useRef<LeafletMap | null>(null);
   const draft = useTripDraft();
 
   // Build the list of resolved pin positions in route order, swapping to
-  // Leaflet's [lat, lon] convention. Only kinds the driver has actually
+  // Leaflet's [lat, lon] convention. Only slots the driver has actually
   // picked render — half-filled forms still show a useful map.
-  const pins = useMemo<{ key: string; kind: StopKind; pos: [number, number] }[]>(() => {
-    const out: { key: string; kind: StopKind; pos: [number, number] }[] = [];
+  const pins = useMemo<{ key: PreviewSlot; pos: [number, number]; icon: DivIcon }[]>(() => {
+    const out: { key: PreviewSlot; pos: [number, number]; icon: DivIcon }[] = [];
     for (const slot of ["current", "pickup", "dropoff"] as const) {
       const addr = draft[slot];
       if (!isResolved(addr)) continue;
-      out.push({ key: slot, kind: PREVIEW_KIND_MAP[slot], pos: [addr.lat, addr.lon] });
+      out.push({ key: slot, pos: [addr.lat, addr.lon], icon: iconForSlot(slot) });
     }
     return out;
   }, [draft]);
@@ -94,7 +96,7 @@ export default function TripPreviewMap(): React.ReactElement {
           />
         ) : null}
         {pins.map((p) => (
-          <Marker key={p.key} position={p.pos} icon={buildMarkerIcon(p.kind)} keyboard={false} />
+          <Marker key={p.key} position={p.pos} icon={p.icon} keyboard={false} />
         ))}
       </MapContainer>
       {pins.length === 0 ? (

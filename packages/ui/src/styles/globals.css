@@ -201,6 +201,69 @@
   font: inherit;
 }
 
+/* "You are here" current-location indicator — distinct from the StopKind
+ * teardrop pins so drivers can tell at a glance where they are now. */
+.current-location {
+  background: transparent;
+  border: 0;
+}
+.current-location-dot {
+  position: relative;
+  display: inline-flex;
+  width: 1.5rem;
+  height: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  color: var(--teal-500);
+}
+.current-location-dot__core {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 9999px;
+  background: currentColor;
+  position: relative;
+  z-index: 2;
+}
+.current-location-dot__ring {
+  position: absolute;
+  inset: calc(50% - 0.6rem);
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 9999px;
+  background: white;
+  box-shadow: 0 1px 3px oklch(0 0 0 / 0.18);
+  z-index: 1;
+}
+.current-location-dot__pulse {
+  position: absolute;
+  inset: calc(50% - 1rem);
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.25;
+  z-index: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .current-location-dot__pulse {
+    animation: current-location-pulse 2200ms cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+  @keyframes current-location-pulse {
+    0% {
+      transform: scale(0.55);
+      opacity: 0.45;
+    }
+    70% {
+      transform: scale(1.55);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1.55);
+      opacity: 0;
+    }
+  }
+}
+
 .trip-marker {
   background: transparent;
   border: 0;

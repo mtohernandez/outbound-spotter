@@ -10,7 +10,6 @@ import { useParams } from "react-router";
 
 import { useTripById } from "@/features/trip-planner/api/trip-by-id";
 import { useTripPlan } from "@/features/trip-planner/api/trip-plan";
-import { RouteSummary } from "@/features/trip-planner/components/route-summary";
 import { StopsList } from "@/features/trip-planner/components/stops-list";
 import type { TripResponse } from "@/features/trip-planner/schemas/trip-response";
 
@@ -82,12 +81,6 @@ export function TripDetailPanel(): React.ReactElement {
         <SidebarGroup className="px-0">
           <SidebarGroupLabel>Route</SidebarGroupLabel>
           <SidebarGroupContent>
-            <RouteSummary trip={data} />
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup className="px-0">
-          <SidebarGroupLabel>Stops</SidebarGroupLabel>
-          <SidebarGroupContent>
             {plan.isPending ? (
               <div className="flex flex-col gap-2">
                 <Skeleton className="h-9 w-full" />
@@ -95,7 +88,7 @@ export function TripDetailPanel(): React.ReactElement {
                 <Skeleton className="h-9 w-full" />
               </div>
             ) : plan.isError ? (
-              <p className="text-muted-foreground text-xs">Stops unavailable.</p>
+              <p className="text-muted-foreground text-xs">Route stops unavailable.</p>
             ) : (
               <StopsList trip={data} plan={plan.data} />
             )}

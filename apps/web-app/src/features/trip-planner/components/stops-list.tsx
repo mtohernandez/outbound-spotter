@@ -1,10 +1,13 @@
-import { CircleDot, Flag } from "lucide-react";
+import { ArrowDown, Flag } from "lucide-react";
+import { Fragment } from "react";
 
+import { CurrentLocationDot } from "@/features/trip-planner/components/map/current-location-dot";
 import { StopKindIcon } from "@/features/trip-planner/components/map/stop-kind-icon";
 import { STOP_KIND_META } from "@/features/trip-planner/components/map/stop-kind-labels";
 import type { TripPlan, TripStop } from "@/features/trip-planner/schemas/trip-plan";
 import type { TripResponse } from "@/features/trip-planner/schemas/trip-response";
 import { setHoveredStop, useHoveredStopId } from "@/features/trip-planner/state/hovered-stop";
+import { formatDistance } from "@/features/trip-planner/utils/format-distance";
 import { formatDuration } from "@/features/trip-planner/utils/format-duration";
 
 interface Props {
@@ -16,7 +19,6 @@ interface TimeFormatter {
   readonly format: (date: Date) => string;
 }
 
-// Module-cached so we allocate one formatter per timezone, not per render.
 const timeFormatterCache = new Map<string, TimeFormatter>();
 function timeFormatter(tz: string): TimeFormatter {
   const cached = timeFormatterCache.get(tz);
@@ -35,29 +37,123 @@ function computeArrival(plan: TripPlan): Date | null {
   if (plan.stops.length === 0) return null;
   const last = plan.stops[plan.stops.length - 1];
   if (!last) return null;
-  const end = new Date(last.scheduled_at).valueOf() + last.duration_s * 1000;
-  return new Date(end);
+  return new Date(new Date(last.scheduled_at).valueOf() + last.duration_s * 1000);
 }
+
+// Stop labels reused for the route_segments-derived drive legs (segments lack
+// stop names; they're indexed by polyline coordinate, matching the input
+// triple in route order).
+const LEG_LABELS = ["Current", "Pickup", "Dropoff"];
 
 export function StopsList({ trip, plan }: Props): React.ReactElement {
   const hoveredStopId = useHoveredStopId();
-  const tz = plan.home_terminal_tz;
-  const fmt = timeFormatter(tz);
+  const fmt = timeFormatter(plan.home_terminal_tz);
   const arrival = computeArrival(plan);
+  const { distance_mi, duration_s } = trip.route_summary;
 
   return (
-    <ol className="relative flex flex-col gap-1" aria-label="Trip stops in chronological order">
-      <StartRow time={fmt.format(new Date(trip.start_at))} label={trip.current_label} />
-      {plan.stops.map((stop) => (
-        <StopRow
-          key={stop.id}
-          stop={stop}
-          time={fmt.format(new Date(stop.scheduled_at))}
-          isHovered={hoveredStopId === stop.id}
-        />
-      ))}
-      {arrival ? <ArrivalRow time={fmt.format(arrival)} /> : null}
-    </ol>
+    <div className="flex flex-col gap-3">
+      <SummaryHeader
+        distance={distance_mi}
+        durationSeconds={duration_s}
+        departure={fmt.format(new Date(trip.start_at))}
+        arrival={arrival ? fmt.format(arrival) : null}
+      />
+      <ol className="relative flex flex-col gap-1" aria-label="Trip stops in chronological order">
+        <StartRow time={fmt.format(new Date(trip.start_at))} label={trip.current_label} />
+        {plan.stops.map((stop, index) => {
+          // The matching ORS leg sits BEFORE this stop — leg index aligns with
+          // the input triple, but `plan.stops` interleaves planner-inserted
+          // events. Render driver-input drive legs (current→pickup, pickup→
+          // dropoff) explicitly using `route_segments`; planner-inserted
+          // breaks/fuels/sleepers inline without their own segment row.
+          const driverInput = stop.kind === "pickup" || stop.kind === "dropoff";
+          const segment = driverInput
+            ? trip.route_segments[Math.min(index, trip.route_segments.length - 1)]
+            : undefined;
+          const fromLabel = LEG_LABELS[stop.kind === "pickup" ? 0 : 1] ?? "";
+          const toLabel = LEG_LABELS[stop.kind === "pickup" ? 1 : 2] ?? "";
+          return (
+            <Fragment key={stop.id}>
+              {segment ? (
+                <DriveSegmentRow
+                  miles={segment.distance_mi}
+                  seconds={segment.duration_s}
+                  fromLabel={fromLabel}
+                  toLabel={toLabel}
+                />
+              ) : null}
+              <StopRow
+                stop={stop}
+                time={fmt.format(new Date(stop.scheduled_at))}
+                isHovered={hoveredStopId === stop.id}
+              />
+            </Fragment>
+          );
+        })}
+        {arrival ? <ArrivalRow time={fmt.format(arrival)} /> : null}
+      </ol>
+    </div>
+  );
+}
+
+function SummaryHeader({
+  distance,
+  durationSeconds,
+  departure,
+  arrival,
+}: {
+  readonly distance: number;
+  readonly durationSeconds: number;
+  readonly departure: string;
+  readonly arrival: string | null;
+}): React.ReactElement {
+  return (
+    <div className="bg-accent/30 border-border/60 flex flex-col gap-1 rounded-md border px-3 py-2">
+      <div className="flex items-baseline gap-2">
+        <span className="font-display text-base font-medium tabular-nums">
+          {formatDuration(durationSeconds)}
+        </span>
+        <span className="text-muted-foreground text-sm tabular-nums">
+          · {formatDistance(distance)}
+        </span>
+      </div>
+      <div className="text-muted-foreground flex flex-wrap items-baseline gap-x-1.5 text-xs">
+        <span className="text-foreground font-mono">{departure}</span>
+        {arrival ? (
+          <>
+            <span aria-hidden="true">→</span>
+            <span className="text-foreground font-mono">{arrival}</span>
+          </>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function DriveSegmentRow({
+  miles,
+  seconds,
+  fromLabel,
+  toLabel,
+}: {
+  readonly miles: number;
+  readonly seconds: number;
+  readonly fromLabel: string;
+  readonly toLabel: string;
+}): React.ReactElement {
+  return (
+    <li className="text-muted-foreground flex items-center gap-3 px-2 py-1 text-xs">
+      <span className="flex w-5 shrink-0 justify-center" aria-hidden="true">
+        <ArrowDown className="size-3.5" />
+      </span>
+      <span className="font-mono">
+        {formatDuration(seconds)} · {formatDistance(miles)}
+      </span>
+      <span className="truncate text-xs">
+        {fromLabel} → {toLabel}
+      </span>
+    </li>
   );
 }
 
@@ -70,11 +166,8 @@ function StartRow({
 }): React.ReactElement {
   return (
     <li className="flex items-start gap-3 rounded-md px-2 py-1.5">
-      <span
-        className="text-primary mt-0.5 flex size-5 shrink-0 items-center justify-center"
-        aria-hidden="true"
-      >
-        <CircleDot className="size-5" />
+      <span className="mt-0.5 flex w-5 shrink-0 justify-center" aria-hidden="true">
+        <CurrentLocationDot className="size-5" />
       </span>
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="text-muted-foreground font-mono text-xs">{time} · Start</span>
@@ -142,10 +235,7 @@ function StopRow({
 function ArrivalRow({ time }: { readonly time: string }): React.ReactElement {
   return (
     <li className="flex items-start gap-3 rounded-md px-2 py-1.5">
-      <span
-        className="text-primary mt-0.5 flex size-5 shrink-0 items-center justify-center"
-        aria-hidden="true"
-      >
+      <span className="text-primary mt-0.5 flex w-5 shrink-0 justify-center" aria-hidden="true">
         <Flag className="size-5" />
       </span>
       <div className="flex min-w-0 flex-1 flex-col">
