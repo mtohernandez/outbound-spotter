@@ -51,7 +51,8 @@ Each version below was pinned to the latest stable release at the time of select
   - `log_days` (UUID id, `trip_id` FK→`trips` CASCADE, `date` Date in home-terminal-local TZ, four per-status `*_s` PositiveInt fields, `total_miles` Decimal(7,1)). Index + unique on `(trip, date)`. Denormalised at write time by `hos_adapter.materialize_plan`; midnight-crossing events split their seconds + miles across two `log_days` rows so spec 08's §395.8 grid header sums correctly.
   - **`Trip.start_at`** (DateTime, tz-aware) — driver-chosen shift start. Required at create time; migration 0004 backfills any pre-spec-06 row from `created_at` via `Coalesce("created_at", Now())`.
   - **Plan-table invariant (spec 06):** every `trips` row that exists has matching `trip_stops` + `log_events` + `log_days` rows. `services.plan_trip` wraps `Trip.objects.create` AND `hos_adapter.materialize_plan(trip)` in one `transaction.atomic` block; any failure (ORS error, planner `ValueError`, DB constraint) rolls back the entire write so no half-resolved Trip persists. The view layer maps each failure mode to its HTTP envelope (4xx/5xx) and the FE keeps form state.
-- **No blob storage in v1.** PDFs are generated client-side and never persisted server-side.
+  - `trip_exports` (UUID id, Clerk `user_id` string, `trip_id` FK→`trips` `SET_NULL` `null=True`, denormalized `trip_current_label` / `trip_pickup_label` / `trip_dropoff_label` CharField(255), `mode` CharField(16) in `{multi_page, single_page}` (snake_case at DB layer; serializer translates to kebab-case on the wire), `sheet_count` PositiveSmallInt, `created_at` auto). Index on `(user_id, -created_at)` and `(trip,)`; ordering `(-created_at,)`. **Metadata-only audit row written when the user clicks Export PDF; the PDF blob is never persisted server-side per invariant #6.** `SET_NULL` (not CASCADE) + denormalized labels ensure audit history survives trip deletion; the FE `Recreate` action returns a graceful-degradation toast when `trip_id` is null.
+- **No blob storage in v1.** PDFs are generated client-side and never persisted server-side; `trip_exports` stores metadata only.
 - **ORS response cache (`trip_route_cache`)** is the only cache layer in v1; it backstops the HeiGIT 2000/day Directions quota during the assessment review.
 
 ## Auth and Access Model
@@ -71,6 +72,9 @@ Each version below was pinned to the latest stable release at the time of select
   - `geocode_search = 20/min` (`GeocodeSearchView`).
   - `trip_create = 30/hour` (`TripCreateView`). 30 × 24 ≈ 720 worst-case, well under the HeiGIT 2000/day cap with the `trip_route_cache` short-circuit handling repeated input.
   - `trip_plan_retrieve = 120/min` (`TripPlanView`). Spec 07 will poll `GET /api/trips/<uuid:id>/plan/` on tab focus via TanStack Query; 2/sec sustained covers an aggressive user without becoming an oracle. The plan is immutable post-creation in v1, so a `Cache-Control: private, max-age=60` follow-up could absorb most refetches at the browser layer.
+  - `export_create = 60/hour` (`TripExportListCreateView` POST). Mirrors `trip_create`'s density (≈ 1/min sustained); audit-row writes are cheap but rate-limited to keep storage growth predictable and to bound noisy log spam.
+  - `export_list = 60/min` (`TripExportListCreateView` GET). Mirrors `trip_list` exactly.
+  - `export_delete = 20/min` (`TripExportDestroyView` DELETE). Mirrors `trip_delete` exactly.
 - Storage backend: Django's default cache (LocMem in dev, single-process). **Production deployment must back DRF's cache with Redis** before scaling beyond one gunicorn worker, otherwise each worker keeps its own counter.
 
 ## External integrations
@@ -110,7 +114,7 @@ Each version below was pinned to the latest stable release at the time of select
 3. **No raw ORS calls from the browser.** The ORS API key never reaches the client.
 4. **No client-side HOS math.** web-app renders log events; it does not decide where breaks go.
 5. **Every mutation checks ownership.** A request without a valid Clerk JWT, or for a trip the JWT subject does not own, returns 401 / 403.
-6. **PDF export is client-only.** No headless Chromium in production. The PDF is the same SVG the user already sees.
+6. **PDF export is client-only.** No headless Chromium in production. The PDF is the same SVG the user already sees. PDF generation runs in the same browser session that rendered the SVG; the user's machine is the only PDF source. **Spec 10 strengthens this**: `trip_exports` records that an export occurred (mode, sheet_count, denormalized trip labels, timestamp) but **the PDF bytes are never persisted server-side**. `TripExport.delete` removes only the audit row; the user-side PDF file is untouched. Per-trip audit rows survive trip deletion via `on_delete=SET_NULL` + denormalized labels (CASCADE was rejected so history persists past `Trip` deletion).
 7. **Theme tokens are the only color / typography surface.** No hex literals or hardcoded font names in components; everything resolves from the Tailwind v4 `@theme` block defined per `docs/theme.md`.
 8. **No custom sub-agents.** All sub-agents come from the `claude-code-workflows` marketplace (wshobson/agents). Skills live under `.agents/skills/` and are surfaced via the `.claude/skills` symlink.
 9. **Specs drive implementation.** No code lands without a `context/specs/NN-*.md` file. The build plan (`context/specs/00-build-plan.md`) is authored before the first unit.
