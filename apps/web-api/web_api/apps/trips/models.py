@@ -24,6 +24,8 @@ import uuid
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
+from web_api.apps.trips.managers import TripManager
+
 
 class StopKind(models.TextChoices):
     PICKUP = "pickup", "Pickup"
@@ -80,6 +82,8 @@ class Trip(models.Model):
     route_summary = models.JSONField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+    objects: TripManager = TripManager()
 
     class Meta:
         indexes = (models.Index(fields=["user_id", "-created_at"]),)

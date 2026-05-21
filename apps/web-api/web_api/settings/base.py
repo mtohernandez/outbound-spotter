@@ -149,6 +149,8 @@ REST_FRAMEWORK = {
         "geocode_autocomplete": "60/min",
         "geocode_search": "20/min",
         "trip_create": "30/hour",
+        "trip_list": "60/min",
+        "trip_delete": "20/min",
         "trip_plan_retrieve": "120/min",
     },
     "EXCEPTION_HANDLER": "web_api.exception_handler.exception_handler",
