@@ -80,11 +80,12 @@ function DistanceCell({ row }: CellContext<SavedTrip, unknown>): React.ReactElem
 }
 
 function DaysCell({ row }: CellContext<SavedTrip, unknown>): React.ReactElement {
-  // sr-only "days" so screen readers announce "3 days" instead of a bare integer.
+  // sr-only suffix so screen readers announce "3 days" / "1 day" instead of a bare integer.
+  const days = row.original.days_count;
   return (
     <span className="text-sm tabular-nums">
-      {row.original.days_count}
-      <span className="sr-only"> days</span>
+      {days}
+      <span className="sr-only"> {days === 1 ? "day" : "days"}</span>
     </span>
   );
 }
