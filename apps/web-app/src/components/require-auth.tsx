@@ -1,24 +1,18 @@
-import { useAuth } from "@clerk/react";
-import { type ReactNode, useEffect } from "react";
+import { ClerkLoaded, RedirectToSignIn, Show } from "@clerk/react";
 
-import { env } from "@/config/env";
+import type { ReactNode } from "react";
 
 interface Props {
   readonly children: ReactNode;
 }
 
-export function RequireAuth({ children }: Props): React.ReactElement | null {
-  const { isLoaded, isSignedIn } = useAuth();
-
-  useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      window.location.replace(env.VITE_AUTH_SIGN_IN_URL);
-    }
-  }, [isLoaded, isSignedIn]);
-
-  if (!isLoaded || !isSignedIn) {
-    return null;
-  }
-
-  return <>{children}</>;
+export function RequireAuth({ children }: Props): React.ReactElement {
+  return (
+    <ClerkLoaded>
+      <Show when="signed-in">{children}</Show>
+      <Show when="signed-out">
+        <RedirectToSignIn />
+      </Show>
+    </ClerkLoaded>
+  );
 }
