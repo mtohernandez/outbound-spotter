@@ -1,7 +1,7 @@
 import { useAuth } from "@clerk/react";
+import { reportableError } from "@outbound/ui/lib/reportable-error";
 import { useMutation, type UseMutationResult } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
-import { toast } from "sonner";
 
 import { paths } from "@/config/paths";
 import type { TripInput } from "@/features/trip-planner/schemas/trip-input";
@@ -56,8 +56,8 @@ export function usePlanTrip(): UseMutationResult<TripResponse, Error, TripInput>
       void navigate(paths.tripsDetail(data.id));
     },
     onError: (error) => {
-      const message = extractDetail(error) ?? error.message;
-      toast.error(message);
+      const detail = extractDetail(error);
+      reportableError(detail === null ? error : new Error(detail), "plan-trip");
     },
   });
 }

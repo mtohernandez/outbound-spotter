@@ -1,4 +1,5 @@
 import { useAuth } from "@clerk/react";
+import { reportableError } from "@outbound/ui/lib/reportable-error";
 import { useMutation, useQueryClient, type UseMutationResult } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -22,8 +23,8 @@ export function useDeleteTrip(): UseMutationResult<undefined, Error, DeleteTripV
       void queryClient.invalidateQueries({ queryKey: ["trips", "list"] });
       toast.success("Trip deleted");
     },
-    onError: () => {
-      toast.error("Couldn't delete trip");
+    onError: (error) => {
+      reportableError(new Error("Couldn't delete trip", { cause: error }), "delete-trip");
     },
   });
 }

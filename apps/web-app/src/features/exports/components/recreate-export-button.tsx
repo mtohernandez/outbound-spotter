@@ -1,5 +1,6 @@
 import { useAuth } from "@clerk/react";
 import { Button } from "@outbound/ui/components/ui/button";
+import { reportableError } from "@outbound/ui/lib/reportable-error";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -59,7 +60,7 @@ export function RecreateExportButton({ record }: RecreateExportButtonProps): Rea
     // for future enum drift (e.g. a third mode added BE-side without an FE
     // bump).
     if (record.trip_id === null || !isExportMode(record.mode)) {
-      toast.error("Export mode no longer supported.");
+      reportableError(new Error("Export mode no longer supported."), "recreate-export");
       return;
     }
 
@@ -89,11 +90,11 @@ export function RecreateExportButton({ record }: RecreateExportButtonProps): Rea
       setPayload({ trip, plan, mode: record.mode });
     } catch (caught) {
       const status = caught instanceof ApiError ? caught.status : null;
-      if (status === 404) {
-        toast.error("Original trip is no longer available. Remove this record from history.");
-      } else {
-        toast.error("Couldn't re-export. Try again in a moment.");
-      }
+      const message =
+        status === 404
+          ? "Original trip is no longer available. Remove this record from history."
+          : "Couldn't re-export. Try again in a moment.";
+      reportableError(new Error(message, { cause: caught }), "recreate-export");
       setIsPending(false);
     }
   }
@@ -120,8 +121,11 @@ export function RecreateExportButton({ record }: RecreateExportButtonProps): Rea
         });
         triggerBrowserDownload(blob, filename);
         toast.success(`Re-exported ${filename}`);
-      } catch {
-        toast.error("Couldn't re-export. Try again in a moment.");
+      } catch (caught) {
+        reportableError(
+          new Error("Couldn't re-export. Try again in a moment.", { cause: caught }),
+          "recreate-export",
+        );
       } finally {
         if (!cancelToken.aborted) {
           setPayload(null);

@@ -1,4 +1,5 @@
 import { useAuth } from "@clerk/react";
+import { reportableError } from "@outbound/ui/lib/reportable-error";
 import { useMutation, useQueryClient, type UseMutationResult } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -30,8 +31,11 @@ export function useDeleteExportRecord(): UseMutationResult<
       void queryClient.invalidateQueries({ queryKey: ["exports", "list"] });
       toast.success("Removed from history");
     },
-    onError: () => {
-      toast.error("Couldn't remove the record. Try again in a moment.");
+    onError: (error) => {
+      reportableError(
+        new Error("Couldn't remove the record. Try again in a moment.", { cause: error }),
+        "delete-export",
+      );
     },
   });
 }

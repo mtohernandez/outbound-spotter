@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@outbound/ui/component
 import { lazy, Suspense } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 
+import { FeatureErrorBoundary } from "@/components/error-boundary/feature-error-boundary";
 import { paths } from "@/config/paths";
 import { DailyLogSheetsStrip } from "@/features/log-sheet/components/daily-log-sheets-strip";
 import { ExportButton } from "@/features/pdf-export/components/export-button";
@@ -113,16 +114,20 @@ export function TripsDetailRoute(): React.ReactElement {
         className="flex min-h-0 min-w-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
         forceMount
       >
-        <Suspense fallback={<LoadingState />}>
-          <TripMap trip={trip.data} plan={plan.data} active={view === "map"} />
-        </Suspense>
+        <FeatureErrorBoundary scope="trip-map">
+          <Suspense fallback={<LoadingState />}>
+            <TripMap trip={trip.data} plan={plan.data} active={view === "map"} />
+          </Suspense>
+        </FeatureErrorBoundary>
       </TabsContent>
       <TabsContent
         value="logs"
         className="flex min-h-0 min-w-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
         forceMount
       >
-        <DailyLogSheetsStrip trip={trip.data} plan={plan.data} />
+        <FeatureErrorBoundary scope="daily-log-sheets">
+          <DailyLogSheetsStrip trip={trip.data} plan={plan.data} />
+        </FeatureErrorBoundary>
       </TabsContent>
     </Tabs>
   );

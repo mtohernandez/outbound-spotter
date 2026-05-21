@@ -93,7 +93,7 @@ describe("useDeleteTrip", () => {
     await waitFor(() => {
       expect(result.current.isError).toBe(true);
     });
-    expect(toastError).toHaveBeenCalledWith("Couldn't delete trip");
+    expect(toastError).toHaveBeenCalledWith("Couldn't delete trip", { description: "delete-trip" });
     expect(toastSuccess).not.toHaveBeenCalled();
     expect(invalidateSpy).not.toHaveBeenCalled();
   });
