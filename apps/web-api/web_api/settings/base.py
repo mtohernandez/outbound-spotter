@@ -153,6 +153,10 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_THROTTLE_CLASSES": ["web_api.throttling.PerUserScopedThrottle"],
     "DEFAULT_THROTTLE_RATES": {
+        # `anon` is DRF's stock scope for AnonRateThrottle — used by /api/healthz/
+        # (AllowAny, but exercises the DB on each call so we cap the IP-keyed
+        # request rate to bound the Neon free-tier CU spend).
+        "anon": "30/min",
         "geocode_autocomplete": "60/min",
         "geocode_search": "20/min",
         "geocode_reverse": "30/min",

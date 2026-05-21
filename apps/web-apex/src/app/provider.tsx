@@ -15,7 +15,7 @@ export function AppProvider({ children }: Props): React.ReactElement {
       <ClerkProvider
         publishableKey={env.VITE_CLERK_PUBLISHABLE_KEY}
         isSatellite
-        domain={env.VITE_APEX_URL}
+        domain={new URL(env.VITE_APEX_URL).host}
         signInUrl={env.VITE_AUTH_SIGN_IN_URL}
       >
         <Suspense

@@ -49,6 +49,10 @@ Companion plan file: `/Users/mateo/.claude/plans/role-you-are-a-recursive-clover
 
 9. **Migrations — Vercel build-time hook.** `[tool.vercel.scripts].build = "DJANGO_SETTINGS_MODULE=web_api.settings.prod python manage.py migrate --noinput"` in `apps/web-api/pyproject.toml`. Vercel runs this after `uv sync` and before sealing the function bundle; a failing migration fails the deploy (loud signal of misconfigured `DATABASE_URL`). `collectstatic` runs automatically — no need to add it to the build script (cite the Django-on-Vercel "Serving static assets" section).
 
+   **Preview-deploy semantics (architect-review D3).** Every PR build runs `migrate` against whatever `DATABASE_URL` the build environment has. Two requirements for safety:
+   - `DATABASE_URL` MUST be scoped `Production`-only in `outbound-spotter-api`'s Vercel env-var panel. Preview builds either get no `DATABASE_URL` (fail-loud) or a Neon branch URL — never the production database.
+   - Migrations MUST be additive in v0.1.0. Column drops or breaking renames require a two-deploy dance (add nullable → backfill → switch readers → drop) because Vercel keeps the previous function version warm during cutover and the old code path will 500 against the new schema. Documented in `apps/web-api/README.md` "Build & deploy".
+
 10. **Static files — Vercel CDN, not WhiteNoise.** Vercel auto-collects static files at build and serves from the CDN. WhiteNoise stays in `MIDDLEWARE` so `vercel dev` works locally; in production it's a no-op behind the CDN.
 
 11. **CI/CD — Vercel's git integration.** Each of the four projects connects to the GitHub repo with `rootDirectory: apps/<name>` and production branch `main`. Push to `main` triggers four production builds in parallel. No `.github/workflows/deploy.yml` is written — the existing `ci.yml` (lint / typecheck / test / build / commitlint / format check / ruff / mypy / pytest) is the gate.

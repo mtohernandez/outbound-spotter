@@ -84,10 +84,10 @@ Each project's `vercel.json` declares its framework preset + `rootDirectory` (`a
 
 - Every authenticated session is a Clerk session.
 - **web-auth** is the only origin that renders sign-in / sign-up. It uses `@clerk/react` (Core 3) and shadcn auth blocks for the visual layer. The unified `<Show when="signed-in" />` and `<Show when="signed-out" />` primitives replace the legacy `<SignedIn>` / `<SignedOut>` components.
-- **web-app** loads `@clerk/react` for session state only (`useUser`, `useAuth`, `<Show>`). If signed out, it redirects to `auth.<host>`.
+- **web-app** loads `@clerk/react` for session state only (`useUser`, `useAuth`, `<Show>`). If signed out, it redirects to `accounts.<host>` via the Clerk satellite handshake.
 - **web-api** validates incoming requests against Clerk's JWKS via `clerk-backend-api` (Python SDK). The decoded `sub` is the canonical user id, attached to `request.user_id` by middleware.
 - Every mutating endpoint checks ownership: a user can only read / write trips they own. There is no admin role in v1.
-- The publishable key lives in `VITE_CLERK_PUBLISHABLE_KEY` (web-app, web-auth). The secret key lives only in Fly.io secrets for web-api.
+- The publishable key lives in `VITE_CLERK_PUBLISHABLE_KEY` (web-app, web-auth, web-apex). The secret key lives only in the Vercel project Environment Variables panel for the `outbound-spotter-api` project.
 
 ## Rate limiting
 
@@ -102,7 +102,7 @@ Each project's `vercel.json` declares its framework preset + `rootDirectory` (`a
   - `export_create = 60/hour` (`TripExportListCreateView` POST). Mirrors `trip_create`'s density (≈ 1/min sustained); audit-row writes are cheap but rate-limited to keep storage growth predictable and to bound noisy log spam.
   - `export_list = 60/min` (`TripExportListCreateView` GET). Mirrors `trip_list` exactly.
   - `export_delete = 20/min` (`TripExportDestroyView` DELETE). Mirrors `trip_delete` exactly.
-- Storage backend: Django's default cache (LocMem in dev, single-process). **Production deployment must back DRF's cache with Redis** before scaling beyond one gunicorn worker, otherwise each worker keeps its own counter.
+- Storage backend: Django's default cache (LocMem). In dev this is a single-process counter. **On Vercel Fluid Compute the API runs as N short-lived isolates**, so LocMem becomes a per-invocation counter and the documented rates (`geocode_autocomplete = 60/min`, `pelias_global = 900/day`, `trip_create = 30/hour`, …) are best-effort, not hard caps — a burst spread across cold instances can briefly exceed them. **The HeiGIT 1000/day Pelias quota and the OpenRouteService 2000/day Directions quota are the absolute ceilings**; the in-process counters guard against a single-instance hot loop. A shared cache (Vercel KV / Upstash Redis) is on the spec-12 follow-up list under `progress-tracker.md` Next Up — landing it converts the rates back into hard caps.
 
 ## External integrations
 
@@ -145,3 +145,5 @@ Each project's `vercel.json` declares its framework preset + `rootDirectory` (`a
 7. **Theme tokens are the only color / typography surface.** No hex literals or hardcoded font names in components; everything resolves from the Tailwind v4 `@theme` block defined per `docs/theme.md`.
 8. **No custom sub-agents.** All sub-agents come from the `claude-code-workflows` marketplace (wshobson/agents). Skills live under `.agents/skills/` and are surfaced via the `.claude/skills` symlink.
 9. **Specs drive implementation.** No code lands without a `context/specs/NN-*.md` file. The build plan (`context/specs/00-build-plan.md`) is authored before the first unit.
+
+10. **`apps/web-apex/` is a redirect-only surface.** No router, no API calls, no business logic, no persistence. The app is one component (`<Redirector />`) that reads `useAuth()` and `window.location.replace`s to either `app.<host>` (signed in) or `accounts.<host>/sign-in` (signed out). The bundle imports `@clerk/react`, `@outbound/ui` (for `<SpotterLoader />`), and React only. Enforced by code review; a future drive-by addition (analytics, a `/health` route, a feature flag fetch) erases the boundary the spec carved out.

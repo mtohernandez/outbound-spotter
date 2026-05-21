@@ -10,7 +10,7 @@ Outbound Spotter is a trip-planning web app for property-carrying interstate tru
 2. Render a route with mandatory stops: pickup (1 hr on-duty), dropoff (1 hr on-duty), fueling every ≤1,000 miles, and rest / sleeper-berth periods.
 3. Produce one fully-drawn Daily Log Sheet per 24-hour period of the trip, with the duty-status grid lines, totals, and Remarks (city/state at each duty change) accurate to the regulation.
 4. Persist trips per signed-in user so drivers can revisit, share, and export them.
-5. Be hostable for free on Vercel + Fly.io within the assessment review window.
+5. Be hostable for free on Vercel + Neon within the assessment review window.
 
 ## Core User Flow
 

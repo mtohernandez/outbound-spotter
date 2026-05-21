@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, ClassVar
 from django.db import DatabaseError, connection
 from rest_framework.permissions import AllowAny, BasePermission
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 
 if TYPE_CHECKING:
@@ -20,10 +21,13 @@ if TYPE_CHECKING:
     from rest_framework.throttling import BaseThrottle
 
 
+# The endpoint is AllowAny but exercises the DB; anonymous throttling caps
+# the cost-amplification attack on Neon's free CU budget (security-auditor
+# HIGH-1, spec 12). The `anon` rate is wired in `DEFAULT_THROTTLE_RATES`.
 class HealthzView(APIView):
     authentication_classes: ClassVar[list[type[BaseAuthentication]]] = []  # type: ignore[misc]
     permission_classes: ClassVar[list[type[BasePermission]]] = [AllowAny]  # type: ignore[misc]
-    throttle_classes: ClassVar[list[type[BaseThrottle]]] = []  # type: ignore[misc]
+    throttle_classes: ClassVar[list[type[BaseThrottle]]] = [AnonRateThrottle]  # type: ignore[misc]
 
     def get(self, _request: Request) -> Response:
         try:

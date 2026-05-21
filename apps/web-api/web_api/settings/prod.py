@@ -33,19 +33,24 @@ DATABASES["default"]["CONN_HEALTH_CHECKS"] = True  # noqa: F405
 DATABASES["default"]["DISABLE_SERVER_SIDE_CURSORS"] = True  # noqa: F405
 
 # Vercel captures stdout per-invocation into the function log stream. No file
-# handlers — serverless containers have ephemeral filesystems.
+# handlers — serverless containers have ephemeral filesystems. We keep the
+# format plain so non-ASCII / quoted messages can never produce invalid JSON;
+# Vercel's log search treats each line as text and code-reviewer M3 (spec 12)
+# flagged that `%(message)r` (Python repr) emits single-quoted output that
+# breaks JSON parsers. Switch to structured logging via `python-json-logger`
+# if Vercel's log query layer ever needs field-level filtering.
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
-        "json": {
-            "format": '{"level":"%(levelname)s","logger":"%(name)s","msg":%(message)r}',
+        "stdout": {
+            "format": "%(levelname)s %(name)s %(message)s",
         },
     },
     "handlers": {
         "stdout": {
             "class": "logging.StreamHandler",
-            "formatter": "json",
+            "formatter": "stdout",
         },
     },
     "root": {"handlers": ["stdout"], "level": "INFO"},
