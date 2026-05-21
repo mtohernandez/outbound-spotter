@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import "@/testing/axe";
 
 import { cleanup } from "@testing-library/react";
 import { setupServer } from "msw/node";
