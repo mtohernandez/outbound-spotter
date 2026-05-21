@@ -2,6 +2,7 @@ import { createBrowserRouter, RouterProvider } from "react-router";
 
 import { IndexRedirect } from "@/app/routes/index-redirect";
 import { TripsDetailRoute } from "@/app/routes/trips-detail";
+import { TripsHistoryRoute } from "@/app/routes/trips-history";
 import { TripsNewRoute } from "@/app/routes/trips-new";
 import { AppShellLayout, type RouteHandle } from "@/components/app-shell/app-shell-layout";
 import { paths } from "@/config/paths";
@@ -14,6 +15,11 @@ const router = createBrowserRouter([
     element: <AppShellLayout />,
     children: [
       { index: true, element: <IndexRedirect /> },
+      {
+        path: "trips",
+        element: <TripsHistoryRoute />,
+        handle: { title: "Saved trips" } satisfies RouteHandle,
+      },
       {
         path: "trips/new",
         element: <TripsNewRoute />,

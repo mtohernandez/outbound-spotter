@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@outbound/ui/components/ui/sidebar";
-import { History, Plus } from "lucide-react";
+import { Plus, Route as RouteIcon } from "lucide-react";
 import { Link, useLocation } from "react-router";
 
 import { NavUser } from "@/components/app-shell/nav-user";
@@ -23,6 +23,11 @@ interface Props {
 export function AppSidebar({ Secondary }: Props): React.ReactElement {
   const location = useLocation();
   const isNewTripActive = location.pathname === paths.tripsNew;
+  // Saved trips highlights for the list (/trips) and any /trips/<id> detail
+  // route, but not /trips/new — that one belongs to "New trip".
+  const isSavedTripsActive =
+    location.pathname === paths.tripsHistory ||
+    (location.pathname.startsWith("/trips/") && location.pathname !== paths.tripsNew);
 
   return (
     <Sidebar
@@ -63,13 +68,15 @@ export function AppSidebar({ Secondary }: Props): React.ReactElement {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    tooltip={{ children: "Saved trips — coming soon", hidden: false }}
-                    disabled
-                    aria-disabled
-                    className="cursor-not-allowed px-2.5 opacity-50 md:px-2"
+                    asChild
+                    tooltip={{ children: "Saved trips", hidden: false }}
+                    isActive={isSavedTripsActive}
+                    className="px-2.5 md:px-2"
                   >
-                    <History />
-                    <span>Saved trips</span>
+                    <Link to={paths.tripsHistory satisfies string}>
+                      <RouteIcon />
+                      <span>Saved trips</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
