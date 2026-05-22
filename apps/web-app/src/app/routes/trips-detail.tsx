@@ -112,7 +112,7 @@ export function TripsDetailRoute(): React.ReactElement {
             <TabsTrigger value="logs">Log sheets</TabsTrigger>
           </TabsList>
           <div className="ms-auto flex items-center">
-            <ExportButton tripId={trip.data.id} days={plan.data.days} />
+            {view === "logs" ? <ExportButton tripId={trip.data.id} days={plan.data.days} /> : null}
           </div>
         </div>
         <TabsContent
