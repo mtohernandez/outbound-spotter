@@ -10,6 +10,17 @@ name: Deploy
 # still expected to come from Vercel's GitHub App when it is healthy. If
 # preview parity becomes necessary, add a separate job triggered on
 # `pull_request` that uses `--target=preview` instead of `--prod`.
+#
+# The Vite apps (web-app / web-auth / web-apex) need the FULL monorepo
+# present during `vercel build` because their per-project buildCommand starts
+# with `cd ../.. && pnpm exec turbo run build --filter=…`. The remote-build
+# path that `vercel deploy --prod` takes by default uploads only the app
+# subdirectory and the build fails with "Unable to read package.json". The
+# fix is the prebuilt pattern: install + `vercel build` locally in the GHA
+# runner (where the full repo exists), then ship only `.vercel/output/` via
+# `vercel deploy --prebuilt`. web-api stays on the remote-build path —
+# its `framework: django` preset has no buildCommand and uploads cleanly
+# from `apps/web-api/`.
 
 on:
   push:
@@ -26,7 +37,7 @@ permissions:
   contents: read
 
 jobs:
-  deploy:
+  deploy-web:
     name: Deploy ${{ matrix.project.name }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -45,12 +56,79 @@ jobs:
           - name: web-apex
             dir: apps/web-apex
             project_id_secret: VERCEL_PROJECT_ID_WEB_APEX
-          - name: web-api
-            dir: apps/web-api
-            project_id_secret: VERCEL_PROJECT_ID_WEB_API
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets[matrix.project.project_id_secret] }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # turbo --affected wants full history
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - run: corepack enable && corepack prepare --activate
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install monorepo deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Vercel CLI
+        # Pin to the major that matches the local toolchain
+        # (`vercel --version` reports 53.x as of 2026-05-22).
+        run: npm install --global vercel@53
+
+      - name: Pull Vercel project config
+        working-directory: ${{ matrix.project.dir }}
+        run: vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
+
+      - name: Build (prebuilt — runs cd ../.. && turbo locally in the GHA runner)
+        working-directory: ${{ matrix.project.dir }}
+        env:
+          # Vite apps' env.ts requires VITE_CLERK_PUBLISHABLE_KEY at build time;
+          # vercel pull provides the project's prod env vars but Clerk's
+          # publishable key is currently scoped under the Vercel project's
+          # Environment Variables panel — `vercel pull` writes it into
+          # `.vercel/.env.production.local`, which `vercel build` reads.
+          # No GHA-side override needed here.
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: vercel build --prod --token "$VERCEL_TOKEN"
+
+      - name: Deploy prebuilt artifact
+        working-directory: ${{ matrix.project.dir }}
+        run: |
+          set -e
+          DEPLOY_URL=$(vercel deploy --prebuilt --prod \
+            --token "$VERCEL_TOKEN" \
+            --meta githubSha="$GITHUB_SHA" \
+            --meta githubRef="$GITHUB_REF_NAME" \
+            --meta githubActor="$GITHUB_ACTOR")
+          {
+            echo "## ${{ matrix.project.name }}";
+            echo "";
+            echo "- **Deploy URL:** $DEPLOY_URL";
+            echo "- **Commit:** \`$GITHUB_SHA\`";
+            echo "- **Triggered by:** \`$GITHUB_ACTOR\`";
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-web-api:
+    # Django project — no monorepo-aware buildCommand, so the remote-build
+    # path that `vercel deploy --prod` takes by default works as-is. Keep this
+    # job lean (no pnpm install, no vercel build locally) since the build runs
+    # on Vercel's infrastructure where the framework preset provides the
+    # full Python + uv environment.
+    name: Deploy web-api
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB_API }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
       - uses: actions/checkout@v4
@@ -60,23 +138,19 @@ jobs:
           node-version-file: '.nvmrc'
 
       - name: Install Vercel CLI
-        # Pin to the major version that matches the local toolchain
-        # (`vercel --version` reports 53.x as of 2026-05-22).
         run: npm install --global vercel@53
 
-      - name: Deploy ${{ matrix.project.name }} to production
-        working-directory: ${{ matrix.project.dir }}
+      - name: Deploy (remote build via Vercel Django preset)
+        working-directory: apps/web-api
         run: |
           set -e
-          # VERCEL_ORG_ID + VERCEL_PROJECT_ID + VERCEL_TOKEN env vars scope
-          # the deploy to the right project (no --scope or vercel pull needed).
           DEPLOY_URL=$(vercel deploy --prod --yes \
             --token "$VERCEL_TOKEN" \
             --meta githubSha="$GITHUB_SHA" \
             --meta githubRef="$GITHUB_REF_NAME" \
             --meta githubActor="$GITHUB_ACTOR")
           {
-            echo "## ${{ matrix.project.name }}";
+            echo "## web-api";
             echo "";
             echo "- **Deploy URL:** $DEPLOY_URL";
             echo "- **Commit:** \`$GITHUB_SHA\`";
