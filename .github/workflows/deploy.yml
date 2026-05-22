@@ -1,0 +1,84 @@
+name: Deploy
+
+# Vercel's git integration silently stopped firing for this repo's projects
+# (no deploys recorded across the four Vercel projects for either the v0.1.1
+# or v0.1.2 main-merge commits — no Vercel checks landed on those commits
+# either). This workflow takes over the production-deploy responsibility so
+# every push to `main` reaches every environment without manual intervention.
+#
+# Preview deployments for PRs are intentionally NOT handled here — they are
+# still expected to come from Vercel's GitHub App when it is healthy. If
+# preview parity becomes necessary, add a separate job triggered on
+# `pull_request` that uses `--target=preview` instead of `--prod`.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  # Don't cancel a deploy in flight when another push lands — let it finish
+  # so we never tear down a half-promoted production URL.
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy ${{ matrix.project.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      # One failing project should not abort the other three — each Vercel
+      # project is independent and may legitimately fail on its own.
+      fail-fast: false
+      matrix:
+        project:
+          - name: web-app
+            dir: apps/web-app
+            project_id_secret: VERCEL_PROJECT_ID_WEB_APP
+          - name: web-auth
+            dir: apps/web-auth
+            project_id_secret: VERCEL_PROJECT_ID_WEB_AUTH
+          - name: web-apex
+            dir: apps/web-apex
+            project_id_secret: VERCEL_PROJECT_ID_WEB_APEX
+          - name: web-api
+            dir: apps/web-api
+            project_id_secret: VERCEL_PROJECT_ID_WEB_API
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets[matrix.project.project_id_secret] }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Install Vercel CLI
+        # Pin to the major version that matches the local toolchain
+        # (`vercel --version` reports 53.x as of 2026-05-22).
+        run: npm install --global vercel@53
+
+      - name: Deploy ${{ matrix.project.name }} to production
+        working-directory: ${{ matrix.project.dir }}
+        run: |
+          set -e
+          # VERCEL_ORG_ID + VERCEL_PROJECT_ID + VERCEL_TOKEN env vars scope
+          # the deploy to the right project (no --scope or vercel pull needed).
+          DEPLOY_URL=$(vercel deploy --prod --yes \
+            --token "$VERCEL_TOKEN" \
+            --meta githubSha="$GITHUB_SHA" \
+            --meta githubRef="$GITHUB_REF_NAME" \
+            --meta githubActor="$GITHUB_ACTOR")
+          {
+            echo "## ${{ matrix.project.name }}";
+            echo "";
+            echo "- **Deploy URL:** $DEPLOY_URL";
+            echo "- **Commit:** \`$GITHUB_SHA\`";
+            echo "- **Triggered by:** \`$GITHUB_ACTOR\`";
+          } >> "$GITHUB_STEP_SUMMARY"
