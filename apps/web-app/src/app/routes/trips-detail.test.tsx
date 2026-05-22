@@ -133,9 +133,33 @@ describe("TripsDetailRoute (Tabs wrap)", () => {
     });
   });
 
-  it("mounts the Export PDF trigger in the TabsList trailing area", async () => {
+  it("hides the Export PDF trigger on the Map tab and reveals it on Log sheets", async () => {
+    // Export only makes sense on the log-sheets surface — the SVGs that get
+    // turned into a PDF live there. Gating the trigger also forecloses the
+    // edge case where the user could invoke export while the logs panel is
+    // data-state=inactive (display:none), which leaves getComputedStyle
+    // unresolved and produces a blank PDF.
+    const user = userEvent.setup();
     renderWithProviders(<TripsDetailRoute />, {
       initialEntries: ["/trips/00000000-0000-4000-8000-000000000001"],
+      routePath: "/trips/:id",
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: /^Map$/ })).toHaveAttribute("data-state", "active");
+    });
+    expect(screen.queryByTestId("export-pdf-trigger")).toBeNull();
+
+    await user.click(screen.getByRole("tab", { name: /Log sheets/i }));
+
+    const trigger = await screen.findByTestId("export-pdf-trigger");
+    expect(trigger).toHaveTextContent(/export pdf/i);
+    expect(trigger).not.toBeDisabled();
+  });
+
+  it("mounts the Export PDF trigger when arriving directly on ?view=logs", async () => {
+    renderWithProviders(<TripsDetailRoute />, {
+      initialEntries: ["/trips/00000000-0000-4000-8000-000000000001?view=logs"],
       routePath: "/trips/:id",
     });
 
