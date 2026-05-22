@@ -46,6 +46,6 @@ export default [
     },
   },
   {
-    ignores: ["dist", "coverage", "node_modules", ".turbo"],
+    ignores: ["dist", "coverage", "node_modules", ".turbo", ".vercel"],
   },
 ];
