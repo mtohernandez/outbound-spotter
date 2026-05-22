@@ -97,20 +97,20 @@ describe("cloneSvgForExport", () => {
   });
 });
 
-describe("cloneSvgForExport — oklch → sRGB normalization (hotfix v0.1.2)", () => {
+describe("cloneSvgForExport — oklch → sRGB normalization", () => {
   it("rewrites oklch() fills to a canvas-normalized sRGB value svg2pdf can paint", async () => {
     // svg2pdf.js cannot parse oklch(); the runtime hands every color through a
     // CanvasRenderingContext2D.fillStyle round-trip, which the browser uses to
     // normalize CSS colors to #rrggbb / rgba(). jsdom ships no canvas color
     // parser, so we stub the same getContext entry point the helper caches.
-    let lastAssigned = "";
+    const seen: string[] = [];
     const fakeCtx = {
       _fillStyle: "#000000",
       get fillStyle(): string {
         return this._fillStyle;
       },
       set fillStyle(value: string) {
-        lastAssigned = value;
+        seen.push(value);
         // Mirror real browser behavior: any well-formed input is collapsed to
         // an opaque #rrggbb. Our stub uses a fixed sentinel so the assertion
         // is deterministic across machines.
@@ -141,7 +141,7 @@ describe("cloneSvgForExport — oklch → sRGB normalization (hotfix v0.1.2)", (
     const clonedLine = clone.querySelector("line");
     expect(clonedLine?.getAttribute("stroke")).toBe("#3d9296");
     expect(clonedLine?.getAttribute("fill")).toBe("#3d9296");
-    expect(lastAssigned).toContain("oklch");
+    expect(seen).toEqual(expect.arrayContaining([expect.stringContaining("oklch")]));
 
     getContextSpy.mockRestore();
   });

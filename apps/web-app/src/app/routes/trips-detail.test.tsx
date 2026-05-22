@@ -133,7 +133,7 @@ describe("TripsDetailRoute (Tabs wrap)", () => {
     });
   });
 
-  it("hides the Export PDF trigger on the Map tab and reveals it on Log sheets (hotfix v0.1.2)", async () => {
+  it("hides the Export PDF trigger on the Map tab and reveals it on Log sheets", async () => {
     // Export only makes sense on the log-sheets surface — the SVGs that get
     // turned into a PDF live there. Gating the trigger also forecloses the
     // edge case where the user could invoke export while the logs panel is
